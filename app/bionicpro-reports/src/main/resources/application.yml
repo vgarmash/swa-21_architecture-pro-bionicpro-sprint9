@@ -1,0 +1,126 @@
+server:
+  port: 8081
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: bionicpro-reports
+  
+  # ClickHouse datasource configuration
+  datasource:
+    url: jdbc:clickhouse://${CLICKHOUSE_HOST}/default
+    driver-class-name: com.clickhouse.jdbc.ClickHouseDriver
+    username: ${CLICKHOUSE_USER}
+    password: ${CLICKHOUSE_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 2000
+      idle-timeout: 300000ms
+      max-lifetime: 1200000ms
+  
+  # OAuth2 Resource Server configuration with Keycloak
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://keycloak:8080/realms/reports-realm}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/reports-realm/protocol/openid-connect/certs}
+
+# Application-specific configuration
+app:
+  auth:
+    # Timeout for external integrations (≤2000ms)
+    timeout-ms: 2000
+
+  # MinIO configuration for report caching
+  minio:
+    # MinIO server endpoint (Docker network address)
+    endpoint: ${MINIO_ENDPOINT:http://minio:9000}
+    # MinIO access credentials from environment
+    access-key: ${MINIO_ROOT_USER:}
+    secret-key: ${MINIO_ROOT_PASSWORD:}
+    # Bucket name for storing reports
+    bucket-name: ${MINIO_BUCKET_NAME:reports}
+    # CDN base URL for generating public URLs
+    # In production, this would be the CDN endpoint
+    cdn-base-url: ${CDN_BASE_URL:http://localhost:9000}
+    # Presigned URL expiry time in hours (default 7 days)
+    presigned-url-expiry-hours: ${MINIO_PRESIGNED_EXPIRY:168}
+
+# ClickHouse configuration
+clickhouse:
+  password: ${CLICKHOUSE_PASSWORD}
+
+# Logging
+logging:
+  level:
+    com.bionicpro: DEBUG
+    org.springframework.security: DEBUG
+
+# Management endpoints (Actuator)
+management:
+  endpoints:
+    web:
+      exposure:
+        # Include health, liveness, readiness, and info endpoints
+        include: health,info,liveness,readiness
+    # Configure endpoint-specific settings
+    health:
+      # Path for health check endpoint
+      path: /health
+    info:
+      # Path for info endpoint
+      path: /info
+  # Configure health endpoint specific settings
+  endpoint:
+    health:
+      # Show details only when authenticated (security context)
+      show-details: when-authorized
+      # Configure health indicators timeout
+      timeout: 10s
+      # Enable Kubernetes liveness and readiness probes
+      probes:
+        enabled: true
+        # Liveness probe - checks if application is running
+        liveness:
+          enabled: true
+        # Readiness probe - checks if application is ready to receive traffic
+        readiness:
+          enabled: true
+      # Health status aggregation configuration
+      status:
+        # Order of statuses (highest to lowest priority)
+        order:
+          - DOWN
+          - OUT_OF_SERVICE
+          - UP
+          - UNKNOWN
+    # Info endpoint configuration
+    info:
+      # Show all details for info endpoint
+      show-details: when-authorized
+
+# Custom health check configuration
+healthcheck:
+  # ClickHouse health check settings
+  clickhouse:
+    enabled: true
+    timeout-ms: 5000
+    query: "SELECT 1"
+  # MinIO health check settings
+  minio:
+    enabled: true
+    timeout-ms: 5000
+    # Bucket to check for existence
+    bucket-name: ${app.minio.bucket-name:reports}
+
+# SpringDoc OpenAPI configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha

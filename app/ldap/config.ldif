@@ -1,0 +1,95 @@
+# OpenLDAP configuration for BionicPRO
+# Base DN: dc=bionicpro,dc=local
+
+# Organizational Units (OU)
+dn: ou=users,dc=bionicpro,dc=local
+objectClass: top
+objectClass: organizationalUnit
+ou: users
+
+dn: ou=groups,dc=bionicpro,dc=local
+objectClass: top
+objectClass: organizationalUnit
+ou: groups
+
+# LDAP Users
+# employeeNumber maps to sensors-db user_id for Keycloak LDAP federation
+
+dn: uid=user1,ou=users,dc=bionicpro,dc=local
+objectClass: top
+objectClass: inetOrgPerson
+cn: User
+sn: One
+uid: user1
+mail: user1@example.com
+employeeNumber: 512
+userPassword: ${LDAP_USER_PASSWORD}
+
+dn: uid=user2,ou=users,dc=bionicpro,dc=local
+objectClass: top
+objectClass: inetOrgPerson
+cn: User
+sn: Two
+uid: user2
+mail: user2@example.com
+employeeNumber: 887
+userPassword: ${LDAP_USER_PASSWORD}
+
+dn: uid=admin1,ou=users,dc=bionicpro,dc=local
+objectClass: top
+objectClass: inetOrgPerson
+cn: Admin
+sn: One
+uid: admin1
+mail: admin1@example.com
+employeeNumber: 316
+userPassword: ${LDAP_ADMIN_PASSWORD}
+
+dn: uid=prothetic1,ou=users,dc=bionicpro,dc=local
+objectClass: top
+objectClass: inetOrgPerson
+cn: Prothetic
+sn: One
+uid: prothetic1
+mail: prothetic1@example.com
+employeeNumber: 779
+userPassword: ${LDAP_PROTHETIC_PASSWORD}
+
+dn: uid=prothetic2,ou=users,dc=bionicpro,dc=local
+objectClass: top
+objectClass: inetOrgPerson
+cn: Prothetic
+sn: Two
+uid: prothetic2
+mail: prothetic2@example.com
+employeeNumber: 355
+userPassword: ${LDAP_PROTHETIC_PASSWORD}
+
+dn: uid=prothetic3,ou=users,dc=bionicpro,dc=local
+objectClass: top
+objectClass: inetOrgPerson
+cn: Prothetic
+sn: Three
+uid: prothetic3
+mail: prothetic3@example.com
+employeeNumber: 256
+userPassword: ${LDAP_PROTHETIC_PASSWORD}
+
+# LDAP Groups (mapped to Keycloak roles)
+dn: cn=user,ou=groups,dc=bionicpro,dc=local
+objectClass: groupOfNames
+cn: user
+member: uid=user1,ou=users,dc=bionicpro,dc=local
+member: uid=user2,ou=users,dc=bionicpro,dc=local
+
+dn: cn=administrator,ou=groups,dc=bionicpro,dc=local
+objectClass: groupOfNames
+cn: administrator
+member: uid=admin1,ou=users,dc=bionicpro,dc=local
+
+dn: cn=prothetic_user,ou=groups,dc=bionicpro,dc=local
+objectClass: groupOfNames
+cn: prothetic_user
+member: uid=prothetic1,ou=users,dc=bionicpro,dc=local
+member: uid=prothetic2,ou=users,dc=bionicpro,dc=local
+member: uid=prothetic3,ou=users,dc=bionicpro,dc=local

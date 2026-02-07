@@ -22,4 +22,21 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+/.temp/
 /.idea/
+/.continue/
+/.kilocode/
+**/target
+**/out
+/app/.data/**
+/app/.env
+**/*.drawio.bkp
+/.proxyai/
+**/AGENTS.md
+/swa-21_architecture-pro-bionicpro-sprint9.iml
+/app/frontend/frontend.iml
+**/*.log.gz
+/plans/**.md
+/plans/**.csv
+/logs/**.txt
+/plans/**.ps1

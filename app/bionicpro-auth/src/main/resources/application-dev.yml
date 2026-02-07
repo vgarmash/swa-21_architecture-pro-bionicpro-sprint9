@@ -1,0 +1,39 @@
+server:
+  port: 8000
+
+spring:
+  data:
+    redis:
+      host: redis
+      port: 6379
+
+keycloak:
+  server-url: ${KEYCLOAK_SERVER_URL:http://keycloak:8080}
+  public-url: ${KEYCLOAK_PUBLIC_URL:http://localhost:8088}
+  realm: reports-realm
+  client-id: bionicpro-auth
+  redirect-uri: http://localhost:8000/api/auth/callback
+
+auth:
+  frontend-url: http://localhost:3000
+  session:
+    timeout-minutes: 30
+    cookie-name: BIONICPRO_SESSION
+    cookie-secure: false
+  token:
+    access-token-timeout-minutes: 2
+    refresh-token-timeout-minutes: 30
+
+# Development timeouts (slightly relaxed)
+timeouts:
+  authentication-max-ms: 3000
+  ldap-timeout-ms: 3000
+  api-timeout-ms: 3000
+
+# Verbose logging for development
+logging:
+  level:
+    com.bionicpro: TRACE
+    org.springframework.security: TRACE
+    org.springframework.session: TRACE
+    org.springframework.security.oauth2: TRACE
