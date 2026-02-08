@@ -1,129 +1,226 @@
 {
-    "realm": "reports-realm",
-    "enabled": true,
-    "roles": {
-      "realm": [
-        {
-          "name": "user",
-          "description": "Regular user role"
-        },
-        {
-          "name": "administrator",
-          "description": "Administrator role"
-        },
-        {
-          "name": "prothetic_user",
-          "description": "Prothetic user role with report access"
-        }
-      ]
-    },
-    "users": [
-      {
-        "username": "user1",
-        "enabled": true,
-        "email": "user1@example.com",
-        "firstName": "User",
-        "lastName": "One",
-        "credentials": [
-          {
-            "type": "password",
-            "value": "password123",
-            "temporary": false
-          }
-        ],
-        "realmRoles": ["user"]
-      },
-      {
-        "username": "user2",
-        "enabled": true,
-        "email": "user2@example.com",
-        "firstName": "User",
-        "lastName": "Two",
-        "credentials": [
-          {
-            "type": "password",
-            "value": "password123",
-            "temporary": false
-          }
-        ],
-        "realmRoles": ["user"]
-      },
-      {
-        "username": "admin1",
-        "enabled": true,
-        "email": "admin1@example.com",
-        "firstName": "Admin",
-        "lastName": "One",
-        "credentials": [
-          {
-            "type": "password",
-            "value": "admin123",
-            "temporary": false
-          }
-        ],
-        "realmRoles": ["administrator"]
-      },
-      {
-        "username": "prothetic1",
-        "enabled": true,
-        "email": "prothetic1@example.com",
-        "firstName": "Prothetic",
-        "lastName": "One",
-        "credentials": [
-          {
-            "type": "password",
-            "value": "prothetic123",
-            "temporary": false
-          }
-        ],
-        "realmRoles": ["prothetic_user"]
-      },
-      {
-        "username": "prothetic2",
-        "enabled": true,
-        "email": "prothetic2@example.com",
-        "firstName": "Prothetic",
-        "lastName": "Two",
-        "credentials": [
-          {
-            "type": "password",
-            "value": "prothetic123",
-            "temporary": false
-          }
-        ],
-        "realmRoles": ["prothetic_user"]
-      },
-      {
-        "username": "prothetic3",
-        "enabled": true,
-        "email": "prothetic3@example.com",
-        "firstName": "Prothetic",
-        "lastName": "Three",
-        "credentials": [
-          {
-            "type": "password",
-            "value": "prothetic123",
-            "temporary": false
-          }
-        ],
-        "realmRoles": ["prothetic_user"]
-      }
-    ],
-    "clients": [
-      {
-        "clientId": "reports-frontend",
-        "enabled": true,
-        "publicClient": true,
-        "redirectUris": ["http://localhost:3000/*"],
-        "webOrigins": ["http://localhost:3000"],
-        "directAccessGrantsEnabled": true
-      },
-      {
-        "clientId": "reports-api",
-        "enabled": true,
-        "clientAuthenticatorType": "client-secret",
-        "secret": "oNwoLQdvJAvRcL89SydqCWCe5ry1jMgq", 
-        "bearerOnly": true
-      }
-    ]
-  }
+	"realm": "reports-realm",
+	"enabled": true,
+	"accessTokenLifespan": 120,
+	"refreshTokenLifespan": 7200,
+	"ssoSessionIdleTimeout": 7200,
+	"ssoSessionMaxLifespan": 7200,
+	"roles": {
+		"realm": [
+			{
+				"name": "admin",
+				"description": "Administrator role"
+			},
+			{
+				"name": "user",
+				"description": "Regular user role"
+			},
+			{
+				"name": "report_viewer",
+				"description": "Role for viewing reports"
+			}
+		]
+	},
+	"users": [
+		{
+			"username": "user1",
+			"enabled": true,
+			"email": "user1@example.com",
+			"firstName": "User",
+			"lastName": "One",
+			"credentials": [
+				{
+					"type": "password",
+					"value": "password123",
+					"temporary": false
+				}
+			],
+			"realmRoles": [
+				"user"
+			]
+		},
+		{
+			"username": "user2",
+			"enabled": true,
+			"email": "user2@example.com",
+			"firstName": "User",
+			"lastName": "Two",
+			"credentials": [
+				{
+					"type": "password",
+					"value": "password123",
+					"temporary": false
+				}
+			],
+			"realmRoles": [
+				"user"
+			]
+		},
+		{
+			"username": "admin1",
+			"enabled": true,
+			"email": "admin1@example.com",
+			"firstName": "Admin",
+			"lastName": "One",
+			"credentials": [
+				{
+					"type": "password",
+					"value": "admin123",
+					"temporary": false
+				}
+			],
+			"realmRoles": [
+				"admin"
+			]
+		},
+		{
+			"username": "prothetic1",
+			"enabled": true,
+			"email": "prothetic1@example.com",
+			"firstName": "Prothetic",
+			"lastName": "One",
+			"credentials": [
+				{
+					"type": "password",
+					"value": "prothetic123",
+					"temporary": false
+				}
+			],
+			"realmRoles": [
+				"report_viewer"
+			]
+		},
+		{
+			"username": "prothetic2",
+			"enabled": true,
+			"email": "prothetic2@example.com",
+			"firstName": "Prothetic",
+			"lastName": "Two",
+			"credentials": [
+				{
+					"type": "password",
+					"value": "prothetic123",
+					"temporary": false
+				}
+			],
+			"realmRoles": [
+				"report_viewer"
+			]
+		},
+		{
+			"username": "prothetic3",
+			"enabled": true,
+			"email": "prothetic3@example.com",
+			"firstName": "Prothetic",
+			"lastName": "Three",
+			"credentials": [
+				{
+					"type": "password",
+					"value": "prothetic123",
+					"temporary": false
+				}
+			],
+			"realmRoles": [
+				"report_viewer"
+			]
+		}
+	],
+	"clients": [
+		{
+			"clientId": "reports-frontend",
+			"name": "Reports Frontend",
+			"description": "Reports Frontend Client",
+			"protocol": "openid-connect",
+			"publicClient": true,
+			"redirectUris": [
+				"http://localhost:3000/*"
+			],
+			"webOrigins": [
+				"http://localhost:3000"
+			],
+			"standardFlowEnabled": true,
+			"implicitFlowEnabled": false,
+			"directAccessGrantsEnabled": false,
+			"serviceAccountsEnabled": false,
+			"attributes": {
+				"pkce.code.challenge.method": "S256"
+			},
+			"protocolMappers": [
+				{
+					"name": "pkce code challenge method",
+					"protocol": "openid-connect",
+					"protocolMapper": "oidc-pkce-code-challenge-method-mapper",
+					"config": {
+						"pkce.code.challenge.method": "S256"
+					}
+				}
+			]
+		},
+		{
+			"clientId": "reports-api",
+			"name": "Reports API",
+			"description": "Reports API Client",
+			"protocol": "openid-connect",
+			"publicClient": false,
+			"clientAuthenticatorType": "client-secret",
+			"secret": "oNwoLQdvJAvRcL89SydqCWCe5ry1jMgq",
+			"bearerOnly": true
+		},
+		{
+			"clientId": "bionicpro-auth-backend",
+			"name": "BionicPRO Auth Backend",
+			"description": "BFF Service Client",
+			"protocol": "openid-connect",
+			"publicClient": false,
+			"secret": "${KEYCLOAK_CLIENT_SECRET}",
+			"redirectUris": [
+				"http://localhost:8081/auth/callback"
+			],
+			"webOrigins": [],
+			"standardFlowEnabled": true,
+			"implicitFlowEnabled": false,
+			"directAccessGrantsEnabled": false,
+			"serviceAccountsEnabled": false,
+			"authorizationServicesEnabled": true,
+			"authorizationSettings": {
+				"policyEnforcementMode": "ENFORCING",
+				"decisionStrategy": "UNANIMOUS"
+			},
+			"attributes": {
+				"pkce.code.challenge.method": "S256"
+			},
+			"protocolMappers": [
+				{
+					"name": "audience mapper",
+					"protocol": "openid-connect",
+					"protocolMapper": "oidc-audience-mapper",
+					"config": {
+						"included.client.audience": "bionicpro-auth-backend",
+						"id.token.claim": "false",
+						"access.token.claim": "true"
+					}
+				}
+			]
+		},
+		{
+			"clientId": "bionicpro-frontend-public",
+			"name": "BionicPRO Frontend Public",
+			"description": "Public Frontend Client",
+			"protocol": "openid-connect",
+			"publicClient": true,
+			"redirectUris": [
+				"http://localhost:3000/*"
+			],
+			"webOrigins": [
+				"http://localhost:3000"
+			],
+			"standardFlowEnabled": true,
+			"implicitFlowEnabled": false,
+			"directAccessGrantsEnabled": true,
+			"serviceAccountsEnabled": false,
+			"attributes": {
+				"pkce.code.challenge.method": "S256"
+			}
+		}
+	]
+}
