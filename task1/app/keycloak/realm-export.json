@@ -5,6 +5,16 @@
 	"refreshTokenLifespan": 7200,
 	"ssoSessionIdleTimeout": 7200,
 	"ssoSessionMaxLifespan": 7200,
+	"otpPolicyType": "totp",
+	"otpPolicyAlgorithm": "HmacSHA1",
+	"otpPolicyInitialCounter": 0,
+	"otpPolicyDigits": 6,
+	"otpPolicyLookAheadWindow": 1,
+	"otpPolicyPeriod": 30,
+	"otpSupportedApplications": [
+		"FreeOTP",
+		"Google Authenticator"
+	],
 	"roles": {
 		"realm": [
 			{
@@ -221,6 +231,37 @@
 			"attributes": {
 				"pkce.code.challenge.method": "S256"
 			}
+		}
+	],
+	"authenticationFlows": [
+		{
+			"alias": "Browser - Conditional OTP",
+			"authenticationExecutions": [
+				{
+					"authenticator": "auth-username-password-form",
+					"requirement": "REQUIRED",
+					"priority": 10,
+					"userSetupAllowed": false,
+					"autheticatorFlow": false
+				},
+				{
+					"authenticator": "auth-otp-form",
+					"requirement": "REQUIRED",
+					"priority": 20,
+					"userSetupAllowed": false,
+					"autheticatorFlow": false
+				}
+			]
+		}
+	],
+	"requiredActions": [
+		{
+			"alias": "CONFIGURE_TOTP",
+			"name": "Configure OTP",
+			"enabled": true,
+			"defaultAction": false,
+			"priority": 10,
+			"providerId": "CONFIGURE_TOTP"
 		}
 	]
 }

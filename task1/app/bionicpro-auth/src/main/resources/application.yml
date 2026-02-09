@@ -57,6 +57,15 @@ bff:
   encryption:
     key: ${BFF_ENCRYPTION_KEY}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorize
+
 logging:
   level:
     root: INFO
