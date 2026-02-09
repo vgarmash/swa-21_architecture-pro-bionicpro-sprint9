@@ -21,7 +21,7 @@ spring:
       timeout: 2000
   session:
     store-type: redis
-    timeout: 10m
+    timeout: 120m
   security:
     oauth2:
       client:

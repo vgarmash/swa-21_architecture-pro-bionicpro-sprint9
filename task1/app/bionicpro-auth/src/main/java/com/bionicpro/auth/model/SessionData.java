@@ -23,39 +23,49 @@ public class SessionData {
      * ID сессии
      */
     private String sessionId;
-    
+
     /**
      * Access токен пользователя
      */
     private String accessToken;
-    
+
     /**
      * Зашифрованный refresh токен пользователя
      */
     private String encryptedRefreshToken;
-    
+
     /**
      * Время истечения access токена в секундах
      */
     private Long accessTokenExpiresAt;
-    
+
     /**
      * ID пользователя
      */
     private String userId;
-    
+
     /**
      * Имя пользователя
      */
     private String userName;
-    
+
     /**
      * Email пользователя
      */
     private String userEmail;
-    
+
     /**
      * Роли пользователя
      */
     private String[] roles;
+
+    /**
+     * IP-адрес клиента
+     */
+    private String clientIpAddress;
+
+    /**
+     * User-Agent клиента
+     */
+    private String userAgent;
 }
