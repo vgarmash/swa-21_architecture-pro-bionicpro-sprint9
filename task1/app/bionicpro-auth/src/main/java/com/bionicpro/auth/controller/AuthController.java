@@ -11,12 +11,12 @@ package com.bionicpro.auth.controller;
 import com.bionicpro.auth.model.PKCEParams;
 import com.bionicpro.auth.model.TokenResponse;
 import com.bionicpro.auth.service.KeycloakService;
-import com.bionicpro.auth.service.SessionService;
 import com.bionicpro.auth.util.CryptoUtil;
 import com.bionicpro.auth.util.PKCEUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -47,19 +47,12 @@ public class AuthController {
     private final KeycloakService keycloakService;
     
     /**
-     * Сервис для управления сессиями
-     */
-    private final SessionService sessionService;
-    
-    /**
      * Конструктор контроллера.
      *
      * @param keycloakService сервис для работы с Keycloak
-     * @param sessionService сервис для управления сессиями
      */
-    public AuthController(KeycloakService keycloakService, SessionService sessionService) {
+    public AuthController(KeycloakService keycloakService) {
         this.keycloakService = keycloakService;
-        this.sessionService = sessionService;
     }
     
     /**
@@ -76,8 +69,9 @@ public class AuthController {
         pkceParams.setCodeChallenge(PKCEUtil.generateCodeChallenge(pkceParams.getCodeVerifier()));
         
         // Store code verifier in session temporarily
-        String sessionId = request.getSession().getId();
-        request.getSession().setAttribute("code_verifier_" + sessionId, pkceParams.getCodeVerifier());
+        HttpSession session = request.getSession();
+        String sessionId = session.getId();
+        session.setAttribute("code_verifier_" + sessionId, pkceParams.getCodeVerifier());
         
         URI authorizationUri = keycloakService.getAuthorizationUri(
             pkceParams,
@@ -103,8 +97,9 @@ public class AuthController {
             HttpServletRequest request,
             HttpServletResponse response) {
         
-        String sessionId = request.getSession().getId();
-        String codeVerifier = (String) request.getSession().getAttribute("code_verifier_" + sessionId);
+        HttpSession session = request.getSession();
+        String sessionId = session.getId();
+        String codeVerifier = (String) session.getAttribute("code_verifier_" + sessionId);
         
         if (codeVerifier == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
@@ -123,7 +118,18 @@ public class AuthController {
             String userEmail = "user1@example.com";
             String[] roles = {"user"};
             
-            sessionService.createSession(tokenResponse, userId, userName, userEmail, roles);
+            // Store encrypted refresh token in session
+            String encryptedRefreshToken = CryptoUtil.encrypt(
+                tokenResponse.getRefreshToken(), encryptionKey
+            );
+            session.setAttribute("encrypted_refresh_token", encryptedRefreshToken);
+            session.setAttribute("access_token_expires_at", System.currentTimeMillis() / 1000 + tokenResponse.getExpiresIn());
+            session.setAttribute("user_id", userId);
+            session.setAttribute("user_name", userName);
+            session.setAttribute("user_email", userEmail);
+            session.setAttribute("roles", roles);
+            session.setAttribute("client_ip_address", getClientIpAddress(request));
+            session.setAttribute("user_agent", request.getHeader("User-Agent"));
             
             // Set session cookie
             response.addCookie(createSessionCookie(sessionId));
@@ -146,8 +152,8 @@ public class AuthController {
      */
     @PostMapping("/auth/refresh")
     public ResponseEntity<Void> refreshTokens(HttpServletRequest request, HttpServletResponse response) {
-        String sessionId = request.getSession().getId();
-        String encryptedRefreshToken = sessionService.getEncryptedRefreshToken(sessionId);
+        HttpSession session = request.getSession();
+        String encryptedRefreshToken = (String) session.getAttribute("encrypted_refresh_token");
         
         if (encryptedRefreshToken == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -161,7 +167,11 @@ public class AuthController {
             TokenResponse tokenResponse = keycloakService.refreshTokens(refreshToken);
             
             // Update session with new tokens
-            sessionService.updateSessionTokens(sessionId, tokenResponse);
+            String newEncryptedRefreshToken = CryptoUtil.encrypt(
+                tokenResponse.getRefreshToken(), encryptionKey
+            );
+            session.setAttribute("encrypted_refresh_token", newEncryptedRefreshToken);
+            session.setAttribute("access_token_expires_at", System.currentTimeMillis() / 1000 + tokenResponse.getExpiresIn());
             
             // Set new session cookie
             response.addCookie(createSessionCookie(sessionId));
@@ -169,7 +179,7 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.OK).build();
             
         } catch (Exception e) {
-            sessionService.invalidateSession(sessionId);
+            session.invalidate();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }
@@ -184,10 +194,11 @@ public class AuthController {
      */
     @PostMapping("/auth/logout")
     public ResponseEntity<RedirectView> logout(HttpServletRequest request, HttpServletResponse response) {
-        String sessionId = request.getSession().getId();
+        HttpSession session = request.getSession();
+        String sessionId = session.getId();
         
         // Invalidate session
-        sessionService.invalidateSession(sessionId);
+        session.invalidate();
         
         // Clear cookie
         response.addCookie(createSessionCookie(sessionId, true));
@@ -226,5 +237,25 @@ public class AuthController {
         cookie.setPath("/");
         cookie.setMaxAge(clear ? 0 : 600); // 10 minutes
         return cookie;
+    }
+    
+    /**
+     * Получает IP-адрес клиента из запроса.
+     * Учитывает заголовки X-Forwarded-For и X-Real-IP для прокси.
+     *
+     * @param request HTTP запрос
+     * @return IP-адрес клиента
+     */
+    private String getClientIpAddress(HttpServletRequest request) {
+        String ipAddress = request.getHeader("X-Forwarded-For");
+        if (ipAddress != null && !ipAddress.isEmpty()) {
+            // X-Forwarded-For может содержать несколько IP через запятую, берем первый
+            return ipAddress.split(",")[0].trim();
+        }
+        ipAddress = request.getHeader("X-Real-IP");
+        if (ipAddress != null && !ipAddress.isEmpty()) {
+            return ipAddress;
+        }
+        return request.getRemoteAddr();
     }
 }
