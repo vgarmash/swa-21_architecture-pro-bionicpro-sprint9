@@ -1,0 +1,65 @@
+server:
+  port: 8082
+  servlet:
+    session:
+      cookie:
+        name: BIONIC_AUTH2_SESSION
+        http-only: true
+        secure: true
+        same-site: strict
+        path: /
+  error:
+    include-message: always
+
+spring:
+  application:
+    name: bionic-auth2
+  data:
+    redis:
+      host: redis
+      port: 6379
+      timeout: 2000
+  session:
+    store-type: redis
+    timeout: 10m
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://keycloak:8080/realms/reports-realm
+          jwk-set-uri: http://keycloak:8080/realms/reports-realm/protocol/openid-connect/certs
+          audience: bionicpro-api
+
+bff:
+  keycloak:
+    issuer-uri: http://keycloak:8080/realms/reports-realm
+    token-uri: http://keycloak:8080/realms/reports-realm/protocol/openid-connect/token
+    logout-uri: http://keycloak:8080/realms/reports-realm/protocol/openid-connect/logout
+    authorization-uri: http://keycloak:8080/realms/reports-realm/protocol/openid-connect/auth
+  frontend:
+    redirect-uri: http://localhost:3000
+  session:
+    cookie-domain: localhost
+    cookie-path: /
+  encryption:
+    key: ${BFF_ENCRYPTION_KEY}
+  token:
+    access-token-lifetime: 120
+    refresh-token-lifetime: 3600
+    session-lifetime: 600
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorize
+
+logging:
+  level:
+    root: INFO
+    com.bionicpro: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.session: DEBUG
