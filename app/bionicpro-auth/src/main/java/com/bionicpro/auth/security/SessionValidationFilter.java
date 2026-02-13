@@ -243,8 +243,8 @@ public class SessionValidationFilter implements Filter {
         session.invalidate();
 
         // Создаем новую сессию
-        HttpSession newSession = session.getSession().getId() != null ? 
-            session.getSession().getId() != null ? session.getSession().getId() != null ? 
+        HttpSession newSession = session.getId() != null ?
+            session.getId() != null ? session.getId() != null ?
                 ((HttpSession) session.getClass().getMethod("getSession").invoke(session)) : null : null : null;
         
         // В Spring Boot сессия автоматически создается при вызове getSession(true)

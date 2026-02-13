@@ -174,7 +174,7 @@ public class AuthController {
             session.setAttribute("access_token_expires_at", System.currentTimeMillis() / 1000 + tokenResponse.getExpiresIn());
             
             // Set new session cookie
-            response.addCookie(createSessionCookie(sessionId));
+            response.addCookie(createSessionCookie(session.getId()));
             
             return ResponseEntity.status(HttpStatus.OK).build();
             
@@ -233,7 +233,6 @@ public class AuthController {
         Cookie cookie = new Cookie("BIONICPRO_SESSION", clear ? "" : sessionId);
         cookie.setHttpOnly(true);
         cookie.setSecure(true);
-        cookie.setSameSite("Strict");
         cookie.setPath("/");
         cookie.setMaxAge(clear ? 0 : 600); // 10 minutes
         return cookie;
