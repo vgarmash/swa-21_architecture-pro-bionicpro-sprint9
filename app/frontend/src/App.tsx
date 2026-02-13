@@ -1,32 +1,23 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ReactKeycloakProvider } from '@react-keycloak/web';
+import Keycloak, { KeycloakConfig } from 'keycloak-js';
 import ReportPage from './components/ReportPage';
 
+const keycloakConfig: KeycloakConfig = {
+  url: process.env.REACT_APP_KEYCLOAK_URL,
+  realm: process.env.REACT_APP_KEYCLOAK_REALM||"",
+  clientId: process.env.REACT_APP_KEYCLOAK_CLIENT_ID||""
+};
+
+const keycloak = new Keycloak(keycloakConfig);
+
 const App: React.FC = () => {
-  const loginWithBFF = () => {
-    window.location.href = `${process.env.REACT_APP_BFF_URL}/auth/login`;
-  };
-
-  const checkAuth = () => {
-    const cookies = document.cookie.split(';');
-    const sessionCookie = cookies.find(c => c.trim().startsWith('BIONICPRO_SESSION='));
-    return !!sessionCookie;
-  };
-
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route 
-          path="/login" 
-          element={<div>Redirecting to BFF login...</div>} 
-        />
-        <Route 
-          path="/" 
-          element={checkAuth() ? <ReportPage /> : <Navigate to="/login" />} 
-        />
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </BrowserRouter>
+    <ReactKeycloakProvider authClient={keycloak}>
+      <div className="App">
+        <ReportPage />
+      </div>
+    </ReactKeycloakProvider>
   );
 };
 
