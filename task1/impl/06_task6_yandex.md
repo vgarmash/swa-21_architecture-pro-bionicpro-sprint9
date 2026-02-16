@@ -454,3 +454,69 @@ Authorization: Bearer ACCESS_TOKEN
 - [ ] Тест повторный вход
 - [ ] Тест consent
 - [ ] Тест link аккаунтов
+
+---
+
+## 12. Параметры конфигурации Identity Provider
+
+```json
+{
+  "alias": "yandex",
+  "displayName": "Yandex",
+  "providerId": "oidc",
+  "config": {
+    "clientId": "<YANDEX_CLIENT_ID>",
+    "clientSecret": "<YANDEX_CLIENT_SECRET>",
+    "authorizationUrl": "https://oauth.yandex.ru/authorize",
+    "tokenUrl": "https://oauth.yandex.ru/token",
+    "userInfoUrl": "https://login.yandex.ru/info",
+    "logoutUrl": "https://oauth.yandex.ru/revoke_token",
+    "clientAuthMethod": "client_secret_post",
+    "trustEmail": true,
+    "storeToken": false,
+    "addUserProfile": true,
+    "linkExistingAccount": false
+  },
+  "consentRequired": true,
+  "consentScreenText": "BionicPRO запрашивает доступ к вашему профилю"
+}
+```
+
+Примечание: Client ID и Client Secret необходимо получить при регистрации приложения в Яндекс Console.
+
+## 13. Маппинг атрибутов
+
+| Атрибут Яндекса | Атрибут Keycloak | Тип |
+|-----------------|------------------|-----|
+| id | yandex_id | String |
+| login | yandex_login | String |
+| default_avatar_id | yandex_avatar | String |
+| email | email | String |
+| first_name | firstName | String |
+| last_name | lastName | String |
+
+## 14. Инструкция по регистрации приложения в Яндекс Console
+
+1. Перейти на https://console.yandex.ru/
+2. Создать новое приложение
+3. Настроить права доступа: доступ к информации о пользователе (логин, имя, email, аватар)
+4. Получить Client ID и Client Secret
+5. Настроить Callback URL: `http://localhost:8080/realms/reports-realm/broker/yandex/endpoint`
+
+## 15. Граничные условия
+
+- Timeout при аутентификации через Яндекс: не более 2000 мс (2 секунды)
+
+## 16. UI
+
+Используются стандартные экраны Keycloak:
+- Consent screen (отображается при первом входе)
+
+## 17. Критерии приёмки
+
+| ID | Тест | Ожидаемый результат |
+|----|------|---------------------|
+| T6.1 | YandexLogin | Аутентификация через Яндекс ID успешна |
+| T6.2 | ConsentScreen | Consent screen отображается при первом входе |
+| T6.3 | ProfileSave | Данные профиля сохранены в user attributes |
+| T6.4 | YandexTimeout | Ошибка при превышении timeout 2 секунд |

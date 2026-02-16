@@ -587,3 +587,64 @@ Set-Cookie: BIONICPRO_SESSION=...; HttpOnly; Secure; SameSite=Lax
 - [ ] Добавить bionicpro-auth в docker-compose.yaml
 - [ ] Настроить зависимости (keycloak → redis → auth)
 - [ ] Проверить networking
+
+---
+
+## 8. API эндпоинты
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| GET | /api/auth/login | Инициация аутентификации, перенаправление на Keycloak |
+| GET | /api/auth/callback | Обработка callback от Keycloak, обмен кода на токены |
+| GET | /api/auth/status | Проверка статуса аутентификации |
+| POST | /api/auth/logout | Выход, удаление сессии |
+| POST | /api/auth/refresh | Принудительное обновление сессии |
+
+## 9. Параметры конфигурации
+
+```yaml
+server:
+  port: 8081
+
+keycloak:
+  auth-server-url: http://localhost:8080
+  realm: reports-realm
+  client-id: bionicpro-auth
+  client-secret: <secret>
+
+security:
+  session:
+    cookie:
+      name: BIONICPRO_SESSION
+      http-only: true
+      secure: true
+      same-site: strict
+    timeout-minutes: 30
+
+token:
+  access-token-lifespan-seconds: 120
+  refresh-token-lifespan-seconds: 1800
+
+redis:
+  host: localhost
+  port: 6379
+
+timeouts:
+  authentication-max-ms: 2000
+  ldap-timeout-ms: 2000
+```
+
+## 10. Граничные условия
+- Timeout на аутентификацию: не более 2000 мс (2 секунды)
+- Retry policy при обновлении токенов: максимум 3 попытки
+
+## 11. Критерии приёмки
+
+| ID | Тест | Ожидаемый результат |
+|----|------|---------------------|
+| T3.1 | LoginRedirect | GET /api/auth/login возвращает 302 редирект на Keycloak |
+| T3.2 | CallbackExchange | Callback с кодом - обмен кода на токены, создание сессии |
+| T3.3 | CookieAttributes | Cookie имеет HttpOnly=true, Secure=true, SameSite=strict |
+| T3.4 | TokenRefresh | При истечении access_token автоматическое получение нового |
+| T3.5 | SessionRotation | При повторном запросе session ID изменяется |
+| T3.6 | AuthTimeout | Ошибка при превышении timeout 2 секунд

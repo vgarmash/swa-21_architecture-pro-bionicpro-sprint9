@@ -178,6 +178,42 @@
 
 ---
 
+## 6. Параметры конфигурации Keycloak
+
+```json
+{
+  "clientId": "reports-frontend",
+  "pkceCodeChallengeMethod": "S256",
+  "directAccessGrantsEnabled": false,
+  "standardFlowEnabled": true,
+  "implicitFlowEnabled": false,
+  "redirectUris": [
+    "http://localhost:3000/*",
+    "http://localhost:8080/*"
+  ]
+}
+```
+
+## 7. Параметры конфигурации фронтенда
+
+```typescript
+const keycloakConfig: KeycloakConfig = {
+  url: process.env.REACT_APP_KEYCLOAK_URL,
+  realm: process.env.REACT_APP_KEYCLOAK_REALM,
+  clientId: process.env.REACT_APP_KEYCLOAK_CLIENT_ID,
+  pkceMethod: 'S256',
+  flow: 'standard'
+};
+```
+
+## 8. Критерии приёмки
+
+| ID | Тест | Ожидаемый результат |
+|----|------|---------------------|
+| T2.1 | Аутентификация без PKCE отклоняется | Keycloak возвращает 400 с ошибкой |
+| T2.2 | Аутентификация с PKCE S256 | Успешная аутентификация |
+| T2.3 | directAccessGrantsEnabled = false | Запрос с grant_type=password отклоняется |
+
 ## 6. Зависимости
 
 ### 6.1. Системные зависимости

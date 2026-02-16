@@ -358,3 +358,58 @@
 ### Documentation
 - [ ] Инструкция для пользователей по настройке OTP
 - [ ] Инструкция для администраторов по сбросу OTP
+
+---
+
+## 12. Параметры конфигурации OTP Policy
+
+```json
+{
+  "type": "totp",
+  "algorithm": "SHA256",
+  "digits": 6,
+  "counter": 0,
+  "period": 30,
+  "supportedApplications": [
+    "Google Authenticator",
+    "FreeOTP",
+    "Microsoft Authenticator",
+    "Authy"
+  ]
+}
+```
+
+**Примечание**: Используется SHA256 вместо SHA1 для повышения безопасности.
+
+---
+
+## 13. Модификация Browser Flow
+
+```
+1. Cookie
+2. Identity Provider Redirector
+3. Username Password Form
+4. OTP Form (ДОБАВИТЬ после Username Password Form)
+5. Conditional OTP Form
+6. Execute actions
+```
+
+---
+
+## 14. UI
+
+Используются стандартные экраны Keycloak для:
+- Настройки OTP (сканирование QR-кода)
+- Ввода одноразового пароля
+- Consent screen (не требуется для OTP)
+
+---
+
+## 15. Критерии приёмки
+
+| ID | Тест | Ожидаемый результат |
+|----|------|---------------------|
+| T5.1 | RejectNoOTP | Вход без OTP отклоняется |
+| T5.2 | AcceptOTP | Вход с валидным OTP успешен |
+| T5.3 | FirstTimeSetup | При первом входе пользователь перенаправляется на настройку OTP |
+| T5.4 | OTPAlgorithm | Проверка что используется SHA256 |

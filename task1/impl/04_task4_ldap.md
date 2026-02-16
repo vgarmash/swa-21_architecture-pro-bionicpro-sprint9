@@ -397,3 +397,67 @@ Keycloak автоматически выполняет LDAP операции:
 - [ ] Проверить аутентификацию каждого LDAP пользователя
 - [ ] Проверить синхронизацию ролей
 - [ ] Проверить fallback на Keycloak БД
+
+---
+
+## 6. Тестовые данные
+
+Тестовые данные находятся в файле app/ldap/config.ldif:
+
+| UID | Полное имя | Email | Пароль | Группа LDAP | Роль Keycloak |
+|-----|------------|-------|--------|-------------|---------------|
+| `john.doe` | John Doe | john@example.com | `password` | prothetic_user | prothetic_user |
+| `jane.smith` | Jane Smith | jane@example.com | `password` | user | user |
+| `alex.johnson` | Alex Johnson | alex@example.com | `password` | prothetic_user | prothetic_user |
+
+Группы LDAP: user, prothetic_user, administrator
+
+## 7. Параметры конфигурации LDAP в Keycloak
+
+```json
+{
+  "vendor": "other",
+  "connectionUrl": "ldap://openldap:389",
+  "bindDn": "cn=admin,dc=example,dc=com",
+  "bindCredential": "admin",
+  "usersDn": "ou=People,dc=example,dc=com",
+  "groupDn": "ou=Groups,dc=example,dc=com",
+  "userObjectClasses": ["inetOrgPerson"],
+  "groupObjectClasses": ["groupOfNames"],
+  "mapper": {
+    "usernameLDAPAttribute": "uid",
+    "rdnLDAPAttribute": "uid",
+    "uuidLDAPAttribute": "entryUUID",
+    "userRolesRetrieveStrategy": "LOAD_GROUPS_BY_MEMBER_ATTRIBUTE",
+    "groupNameLDAPAttribute": "cn",
+    "groupsPath": "/"
+  },
+  "syncSettings": {
+    "importEnabled": true,
+    "syncRegistrations": true,
+    "batchSizeForSync": 1000
+  }
+}
+```
+
+### Маппинг ролей:
+
+| Группа LDAP | Роль Keycloak |
+|-------------|----------------|
+| user | user |
+| prothetic_user | prothetic_user |
+| administrator | administrator |
+
+## 8. Граничные условия
+
+- Timeout при обращении к LDAP: не более 2000 мс (2 секунды)
+- При недоступности LDAP: fallback аутентификация через Keycloak БД
+
+## 9. Критерии приёмки
+
+| ID | Тест | Ожидаемый результат |
+|----|------|---------------------|
+| T4.1 | LDAPLogin | Вход с LDAP учётными данными (john.doe/password) успешен |
+| T4.2 | RoleSync | Роли синхронизируются из LDAP в Keycloak |
+| T4.3 | LDAPTimeout | Ошибка при превышении timeout 2 секунд |
+| T4.4 | FallbackAuth | При недоступности LDAP используется Keycloak БД |
