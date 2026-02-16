@@ -1,38 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { ReactKeycloakProvider } from '@react-keycloak/web';
-import Keycloak, { KeycloakConfig } from 'keycloak-js';
 import ReportPage from './components/ReportPage';
-import { KeycloakService } from './keycloak/keycloakService';
-
-const keycloakConfig: KeycloakConfig = {
-  url: process.env.REACT_APP_KEYCLOAK_URL,
-  realm: process.env.REACT_APP_KEYCLOAK_REALM || "",
-  clientId: process.env.REACT_APP_KEYCLOAK_CLIENT_ID || ""
-};
-
-const keycloak = new Keycloak(keycloakConfig);
-const keycloakService = new KeycloakService({
-  url: process.env.REACT_APP_KEYCLOAK_URL || "",
-  realm: process.env.REACT_APP_KEYCLOAK_REALM || "",
-  clientId: process.env.REACT_APP_KEYCLOAK_CLIENT_ID || ""
-});
 
 const App: React.FC = () => {
   const [initialized, setInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Имитация инициализации (без использования Keycloak)
   useEffect(() => {
-    keycloakService.init(
-      () => {
+    // Имитация асинхронной инициализации
+    const init = async () => {
+      try {
+        // Здесь можно добавить логику для работы с новым сервисом
         setInitialized(true);
-      },
-      () => {
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Initialization error');
         setInitialized(true);
       }
-    ).catch((err) => {
-      setError(err instanceof Error ? err.message : 'Keycloak initialization error');
-      setInitialized(true);
-    });
+    };
+
+    init();
   }, []);
 
   if (error) {
@@ -55,11 +41,9 @@ const App: React.FC = () => {
   }
 
   return (
-    <ReactKeycloakProvider authClient={keycloak}>
-      <div className="App">
-        <ReportPage />
-      </div>
-    </ReactKeycloakProvider>
+    <div className="App">
+      <ReportPage />
+    </div>
   );
 };
 

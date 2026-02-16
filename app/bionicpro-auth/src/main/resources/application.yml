@@ -1,0 +1,36 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: bionicpro-auth
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/bionicpro
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+  h2:
+    console:
+      enabled: true
+
+jwt:
+  secret: bionicpro-secret-key-for-jwt-token-generation
+  expiration: 120000
+
+keycloak:
+  realm: bionicpro
+  auth-server-url: http://localhost:8080
+  ssl-required: external
+  resource: bionicpro-auth
+  credentials:
+    secret: bionicpro-client-secret
