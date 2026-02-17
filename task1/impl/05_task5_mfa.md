@@ -25,7 +25,7 @@
 | Параметр | Значение |
 |----------|----------|
 | OTP Type | Time based |
-| OTP Algorithm | SHA1 |
+| OTP Algorithm | SHA256 |
 | Digits | 6 |
 | Initial Counter | 0 |
 | Step | 30 |
@@ -43,7 +43,7 @@
 | Digits | 6 |
 | Counter | 0 |
 | Period | 30 |
-| Algorithm | SHA1 |
+| Algorithm | SHA256 |
 
 #### 2.1.3. Обязательная OTP для всех пользователей
 - **Требование**: Все пользователи должны использовать OTP
@@ -99,7 +99,7 @@
 #### 2.4.2. TOTP стандарт
 - **Стандарт**: RFC 6238 (Time-based One-Time Password)
 - **Параметры**:
-  - Алгоритм: HMAC-SHA1
+  - Алгоритм: HMAC-SHA-256
   - Длина: 6 цифр
   - Период: 30 секунд
 

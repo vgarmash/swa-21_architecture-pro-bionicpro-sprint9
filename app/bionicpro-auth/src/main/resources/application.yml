@@ -1,0 +1,61 @@
+server:
+  port: 8000
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: bionicpro-auth
+  session:
+    store-type: redis
+    redis:
+      namespace: bionicpro:session
+    timeout: 1800s
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+keycloak:
+  server-url: ${KEYCLOAK_SERVER_URL:http://localhost:8080}
+  realm: ${KEYCLOAK_REALM:reports-realm}
+  client-id: ${KEYCLOAK_CLIENT_ID:bionicpro-auth}
+  client-secret: ${KEYCLOAK_CLIENT_SECRET:}
+  redirect-uri: ${KEYCLOAK_REDIRECT_URI:http://localhost:8000/api/auth/callback}
+
+auth:
+  session:
+    timeout-minutes: 30
+    cookie-name: BIONICPRO_SESSION
+  token:
+    access-token-timeout-minutes: 2
+    refresh-token-timeout-minutes: 30
+
+# Timeouts for external integrations (≤2000ms)
+timeouts:
+  authentication-max-ms: 2000
+  ldap-timeout-ms: 2000
+  api-timeout-ms: 2000
+
+# Logging
+logging:
+  level:
+    com.bionicpro: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.session: DEBUG
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized

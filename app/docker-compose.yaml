@@ -9,13 +9,12 @@ services:
       - ./.data/postgres-keycloak-data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
-    # 🔍 Добавляем healthcheck для PostgreSQL
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U keycloak_user -d keycloak_db"]
       interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 10s  # время на инициализацию БД перед проверками
+      start_period: 10s
 
   keycloak:
     image: quay.io/keycloak/keycloak:21.1
@@ -31,10 +30,10 @@ services:
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
     ports:
       - "8080:8080"
-    # ✅ Ждём, пока keycloak_db будет здоров (healthy)
     depends_on:
       keycloak_db:
         condition: service_healthy
+
   frontend:
     build:
       context: ./frontend
@@ -46,6 +45,7 @@ services:
       REACT_APP_KEYCLOAK_URL: http://localhost:8080
       REACT_APP_KEYCLOAK_REALM: reports-realm
       REACT_APP_KEYCLOAK_CLIENT_ID: reports-frontend
+
   openldap:
     image: osixia/openldap:1.5.0
     container_name: openldap
@@ -53,23 +53,25 @@ services:
     volumes:
       - ./ldap/config.ldif:/container/service/slapd/assets/config/bootstrap/ldif/50-bootstrap.ldif
     environment:
-      - LDAP_ORGANISATION=example-com
-      - LDAP_DOMAIN=example.com
+      - LDAP_ORGANISATION=BionicPRO
+      - LDAP_DOMAIN=bionicpro.local
       - LDAP_ADMIN_PASSWORD=admin
     ports:
       - "389:389"
       - "636:636"
-  crm_db: 
+
+  crm_db:
     image: postgres:14
     environment:
       POSTGRES_DB: crm_db
       POSTGRES_USER: crm_user
       POSTGRES_PASSWORD: crm_password
     volumes:
-        - ./crm-db:/docker-entrypoint-initdb.d
-        - ./.data/postgres-crm-data:/var/lib/postgresql/data
+      - ./crm-db:/docker-entrypoint-initdb.d
+      - ./.data/postgres-crm-data:/var/lib/postgresql/data
     ports:
       - "5444:5432"
+
   olap_db:
     image: clickhouse/clickhouse-server:latest
     ports:
@@ -85,6 +87,7 @@ services:
       interval: 1s
       timeout: 3s
       retries: 30
+
   minio:
     image: minio/minio
     ports:
@@ -96,5 +99,40 @@ services:
       MINIO_ROOT_USER: minio_user
       MINIO_ROOT_PASSWORD: minio_password
     command: server --console-address ":9001" /data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis/data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  bionicpro-auth:
+    build:
+      context: ./bionicpro-auth
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KEYCLOAK_SERVER_URL: http://keycloak:8080
+      KEYCLOAK_REALM: reports-realm
+      KEYCLOAK_CLIENT_ID: bionicpro-auth
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:}
+      KEYCLOAK_REDIRECT_URI: http://localhost:8000/api/auth/callback
+    depends_on:
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+
 volumes:
   minio_storage: {}
