@@ -29,3 +29,4 @@ replay_pid*
 **/target
 **/out
 /app/.data/**
+**/*.drawio.bkp
