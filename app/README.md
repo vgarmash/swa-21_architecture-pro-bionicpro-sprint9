@@ -26,7 +26,8 @@
 ├── .data/                          # Тома данных (создаются автоматически)
 │   ├── postgres-keycloak-data/
 │   ├── postgres-crm-data/
-│   └── clickhouse-data/
+│   ├── clickhouse-data/
+│   └── sensors-data/              # Данные PostgreSQL для сенсоров
 ├── keycloak/
 │   └── realm-export.json           # Экспорт realm с PKCE и MFA
 ├── ldap/
@@ -36,6 +37,9 @@
 │   └── src/
 ├── crm-db/                         # PostgreSQL CRM
 ├── olap-db/                        # ClickHouse OLAP
+├── sensors-db/                     # PostgreSQL для данных ЭМГ сенсоров
+│   ├── init.sql                    # Скрипт инициализации БД
+│   └── sensors.csv                 # Данные сенсоров
 ├── frontend/                       # React-приложение
 └── redis/data/                    # Redis данные
 ```
@@ -71,6 +75,7 @@ docker-compose ps
 | OpenLDAP         | ldap://localhost:389        | `cn=admin,dc=example,dc=com` / `admin` |
 | CRM DB           | localhost:5444 (PostgreSQL) | `crm_user` / `crm_password`  |
 | OLAP DB          | http://localhost:8123       | — (ClickHouse HTTP)          |
+| **Sensors DB**   | localhost:5436 (PostgreSQL) | `sensors_user` / `sensors_password` |
 | MinIO Console    | http://localhost:9001       | `minio_user` / `minio_password` |
 
 ---
@@ -265,6 +270,39 @@ docker network inspect app_default
 
 2. Проверьте настройки User Federation в Keycloak Admin Console:
    - Realm → User Federation → user-ldap → Test connection
+
+---
+
+## 🗄️ Базы данных
+
+### Sensors DB (PostgreSQL)
+
+**sensors-db** - PostgreSQL база данных для хранения данных ЭМГ сенсоров протезов.
+
+| Параметр | Значение |
+|----------|----------|
+| Внешний порт | 5436 |
+| Внутренний порт | 5432 |
+| База данных | sensors-data |
+| Пользователь | sensors_user |
+| Пароль | sensors_password |
+| Таблица | emg_sensor_data (структура аналогична olap_db в ClickHouse) |
+| Персистентность | ./.data/sensors-data |
+
+#### Файлы инициализации
+
+- `app/sensors-db/init.sql` - SQL-скрипт для создания таблиц и начальных данных
+- `app/sensors-db/sensors.csv` - CSV-файл с данными ЭМГ сенсоров
+
+#### Подключение
+
+```bash
+# Подключение к БД через psql
+psql -h localhost -p 5436 -U sensors_user -d sensors-data
+
+# Через docker
+docker exec -it sensors-db psql -U sensors_user -d sensors-data
+```
 
 ---
 

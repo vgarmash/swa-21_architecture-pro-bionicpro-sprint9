@@ -1,0 +1,11 @@
+user_id,prosthesis_type,muscle_group,signal_frequency,signal_duration,signal_amplitude,signal_time
+512,arm,Biceps,256,5000,4.25,2026-01-15 10:30:00
+887,hand,Triceps,512,3500,3.87,2026-01-15 11:45:30
+316,leg,Gastrocnemius,384,4200,5.12,2026-01-15 12:00:15
+779,arm,Hamstrings,256,2800,2.94,2026-01-15 13:20:45
+355,hand,Biceps,448,3100,4.56,2026-01-15 14:10:20
+256,leg,Quadriceps,320,4500,3.21,2026-01-15 15:35:10
+961,arm,Deltoid,512,2200,4.78,2026-01-15 16:50:00
+428,hand,Triceps,384,3800,3.45,2026-01-16 09:15:25
+643,leg,Gastrocnemius,256,5100,2.89,2026-01-16 10:30:40
+127,arm,Biceps,448,2900,5.01,2026-01-16 11:45:55

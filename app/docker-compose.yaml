@@ -72,6 +72,19 @@ services:
     ports:
       - "5444:5432"
 
+  sensors-db:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: sensors-data
+      POSTGRES_USER: sensors_user
+      POSTGRES_PASSWORD: sensors_password
+    volumes:
+      - ./sensors-db:/docker-entrypoint-initdb.d
+      - ./.data/sensors-data:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"
+    restart: unless-stopped
+
   olap_db:
     image: clickhouse/clickhouse-server:latest
     ports:
