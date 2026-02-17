@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
@@ -82,19 +83,60 @@ public class AuthController {
         
         // Store tokens in session
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof OidcIdToken) {
-            OidcIdToken idToken = (OidcIdToken) authentication.getPrincipal();
-            OAuth2AccessToken accessToken = (OAuth2AccessToken) authentication.getTokenCredentials().getAccessToken();
-            OAuth2RefreshToken refreshToken = (OAuth2RefreshToken) authentication.getTokens()
-                    .stream()
-                    .filter(t -> t instanceof OAuth2RefreshToken)
-                    .findFirst()
-                    .orElse(null);
+        if (authentication != null && authentication instanceof OAuth2AuthenticationToken) {
+            OAuth2AuthenticationToken oauth2Auth = (OAuth2AuthenticationToken) authentication;
+            
+            // Get tokens from OAuth2User attributes
+            Map<String, Object> attributes = oauth2Auth.getPrincipal().getAttributes();
+            
+            // Extract ID token
+            OidcIdToken idToken = null;
+            Object idTokenObj = attributes.get("id_token");
+            if (idTokenObj instanceof OidcIdToken) {
+                idToken = (OidcIdToken) idTokenObj;
+            } else if (attributes.containsKey("id_token")) {
+                // If id_token is a string, we need to reconstruct it
+                // For now, create a basic OidcIdToken from available data
+                String tokenValue = attributes.get("id_token").toString();
+                idToken = new OidcIdToken(
+                    tokenValue,
+                    Instant.now(),
+                    Instant.now().plusSeconds(3600),
+                    attributes
+                );
+            }
+            
+            // Extract access token from attributes
+            OAuth2AccessToken accessToken = null;
+            Object accessTokenObj = attributes.get("access_token");
+            if (accessTokenObj instanceof OAuth2AccessToken) {
+                accessToken = (OAuth2AccessToken) accessTokenObj;
+            } else if (attributes.containsKey("access_token")) {
+                // Create OAuth2AccessToken from string value
+                String tokenValue = attributes.get("access_token").toString();
+                accessToken = new OAuth2AccessToken(
+                    OAuth2AccessToken.TokenType.BEARER,
+                    tokenValue,
+                    Instant.now(),
+                    Instant.now().plusSeconds(3600)
+                );
+            }
+            
+            // Extract refresh token from attributes
+            OAuth2RefreshToken refreshToken = null;
+            Object refreshTokenObj = attributes.get("refresh_token");
+            if (refreshTokenObj instanceof OAuth2RefreshToken) {
+                refreshToken = (OAuth2RefreshToken) refreshTokenObj;
+            } else if (attributes.containsKey("refresh_token")) {
+                String tokenValue = attributes.get("refresh_token").toString();
+                refreshToken = new OAuth2RefreshToken(tokenValue, Instant.now(), Instant.now().plusSeconds(86400));
+            }
             
             // Create session data
-            sessionService.createSession(request, response, idToken, accessToken, refreshToken);
-            
-            log.info("Session created for user: {}", idToken.getSubject());
+            if (idToken != null && accessToken != null) {
+                sessionService.createSession(request, response, idToken, accessToken, refreshToken);
+                log.info("Session created for user: {}", idToken.getSubject());
+            }
         }
         
         // Redirect to the original requested page or default

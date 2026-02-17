@@ -1,5 +1,6 @@
 package com.bionicpro.config;
 
+import com.bionicpro.filter.TokenPropagationFilter;
 import com.bionicpro.service.SessionService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -38,6 +39,7 @@ public class SecurityConfig {
     private final ClientRegistrationRepository clientRegistrationRepository;
     private final SessionService sessionService;
     private final SecurityContextRepository securityContextRepository;
+    private final TokenPropagationFilter tokenPropagationFilter;
 
     @Bean
     @Order(1)
@@ -92,7 +94,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").authenticated()
                 .anyRequest().authenticated())
-            .addFilterBefore(new TokenPropagationFilter(sessionService), UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(tokenPropagationFilter, UsernamePasswordAuthenticationFilter.class)
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((request, response, authException) -> {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -119,10 +121,13 @@ public class SecurityConfig {
      * Filter for session rotation on each authenticated request.
      */
     @Slf4j
-    @RequiredArgsConstructor
     public static class SessionRotationFilter extends OncePerRequestFilter {
 
         private final SessionService sessionService;
+
+        public SessionRotationFilter(SessionService sessionService) {
+            this.sessionService = sessionService;
+        }
 
         @Override
         protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, 

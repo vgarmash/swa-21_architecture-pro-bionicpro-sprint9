@@ -133,7 +133,6 @@ bionicpro-auth:
     KEYCLOAK_SERVER_URL: http://keycloak:8080
     KEYCLOAK_REALM: reports-realm
     KEYCLOAK_CLIENT_ID: bionicpro-auth
-    KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:}
     KEYCLOAK_REDIRECT_URI: http://localhost:8000/api/auth/callback
 ```
 
