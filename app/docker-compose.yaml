@@ -15,6 +15,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    networks:
+      - app-network
 
   keycloak:
     image: quay.io/keycloak/keycloak:21.1
@@ -33,6 +35,8 @@ services:
     depends_on:
       keycloak_db:
         condition: service_healthy
+    networks:
+      - app-network
 
   frontend:
     build:
@@ -41,10 +45,12 @@ services:
     ports:
       - "3000:3000"
     environment:
-      REACT_APP_API_URL: http://localhost:8000
+      REACT_APP_API_URL: http://bionicpro-reports:8081/api/v1
       REACT_APP_KEYCLOAK_URL: http://localhost:8080
       REACT_APP_KEYCLOAK_REALM: reports-realm
       REACT_APP_KEYCLOAK_CLIENT_ID: reports-frontend
+    networks:
+      - app-network
 
   openldap:
     image: osixia/openldap:1.5.0
@@ -59,6 +65,8 @@ services:
     ports:
       - "389:389"
       - "636:636"
+    networks:
+      - app-network
 
   crm_db:
     image: postgres:14
@@ -71,6 +79,8 @@ services:
       - ./.data/postgres-crm-data:/var/lib/postgresql/data
     ports:
       - "5444:5432"
+    networks:
+      - app-network
 
   sensors-db:
     image: postgres:14
@@ -84,6 +94,8 @@ services:
     ports:
       - "5436:5432"
     restart: unless-stopped
+    networks:
+      - app-network
 
   olap_db:
     image: clickhouse/clickhouse-server:latest
@@ -100,6 +112,8 @@ services:
       interval: 1s
       timeout: 3s
       retries: 30
+    networks:
+      - app-network
 
   minio:
     image: minio/minio
@@ -112,6 +126,8 @@ services:
       MINIO_ROOT_USER: minio_user
       MINIO_ROOT_PASSWORD: minio_password
     command: server --console-address ":9001" /data
+    networks:
+      - app-network
 
   redis:
     image: redis:7-alpine
@@ -125,6 +141,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - app-network
 
   bionicpro-auth:
     build:
@@ -145,6 +163,64 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_started
+    networks:
+      - app-network
+
+  bionicpro-reports:
+    build:
+      context: ./bionicpro-reports
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      CLICKHOUSE_HOST: olap_db
+      CLICKHOUSE_PORT: 8123
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/reports-realm
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/reports-realm/protocol/openid-connect/certs
+    depends_on:
+      olap_db:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    networks:
+      - app-network
+
+  airflow-webserver:
+    image: apache/airflow:2.8.1
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db/airflow
+      AIRFLOW__CORE__FERNET_KEY: ''
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
+      AIRFLOW_HOME: /opt/airflow
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+    ports:
+      - "8090:8080"
+    depends_on:
+      - airflow-db
+    networks:
+      - app-network
+
+  airflow-db:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: airflow
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+    volumes:
+      - ./airflow/db-data:/var/lib/postgresql/data
+    networks:
+      - app-network
 
 volumes:
   minio_storage: {}
+
+networks:
+  app-network:
+    driver: bridge

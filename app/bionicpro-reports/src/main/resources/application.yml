@@ -1,0 +1,51 @@
+server:
+  port: 8081
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: bionicpro-reports
+  
+  # ClickHouse datasource configuration
+  datasource:
+    url: jdbc:clickhouse://${CLICKHOUSE_HOST:olap_db}:${CLICKHOUSE_PORT:8123}/default
+    driver-class-name: com.clickhouse.jdbc.ClickHouseDriver
+    username: ${CLICKHOUSE_USER:default}
+    password: ${CLICKHOUSE_PASSWORD:}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 2000ms
+      idle-timeout: 300000ms
+      max-lifetime: 1200000ms
+  
+  # OAuth2 Resource Server configuration with Keycloak
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/reports-realm}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8080/realms/reports-realm/protocol/openid-connect/certs}
+
+# Application-specific configuration
+app:
+  auth:
+    # Timeout for external integrations (≤2000ms)
+    timeout-ms: 2000
+
+# Logging
+logging:
+  level:
+    com.bionicpro: DEBUG
+    org.springframework.security: DEBUG
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized

@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: bionicpro-reports
+  
+  datasource:
+    url: jdbc:clickhouse://localhost:8123/test
+    username: default
+    password: 
+    driver-class-name: com.clickhouse.jdbc.ClickHouseDriver
+  
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8180/realms/bionicpro
+          jwk-set-uri: http://localhost:8180/realms/bionicpro/protocol/openid-connect/certs
+          mock-jwk-set-uri: https://mock-keycloak.example.com/.well-known/jwks.json
+
+server:
+  port: 8082
+
+logging:
+  level:
+    com.bionicpro.reports: DEBUG
