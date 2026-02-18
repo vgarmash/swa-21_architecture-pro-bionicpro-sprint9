@@ -29,8 +29,8 @@ public class ClickHouseConfig {
     @Value("${spring.datasource.hikari.minimum-idle:2}")
     private int minimumIdle;
 
-    @Value("${spring.datasource.hikari.connection-timeout:2000ms}")
-    private String connectionTimeout;
+    @Value("${spring.datasource.hikari.connection-timeout:2000}")
+    private long connectionTimeout;
 
     /**
      * Creates a HikariCP DataSource for ClickHouse connection pooling.
@@ -43,7 +43,7 @@ public class ClickHouseConfig {
         dataSource.setPassword(password);
         dataSource.setMaximumPoolSize(maximumPoolSize);
         dataSource.setMinimumIdle(minimumIdle);
-        dataSource.setConnectionTimeout(2000); // 2000ms as per requirements
+        dataSource.setConnectionTimeout(connectionTimeout);
         dataSource.setDriverClassName("com.clickhouse.jdbc.ClickHouseDriver");
         
         return dataSource;

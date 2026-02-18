@@ -38,6 +38,22 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles ReportNotFoundException - thrown when requested report is not found.
+     */
+    @ExceptionHandler(ReportNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleReportNotFoundException(
+            ReportNotFoundException ex) {
+        
+        logger.warn("Report not found: {}", ex.getMessage());
+        
+        return buildErrorResponse(
+                HttpStatus.NOT_FOUND,
+                "Not Found",
+                ex.getMessage()
+        );
+    }
+
+    /**
      * Handles AccessDeniedException - thrown by Spring Security for access denied scenarios.
      */
     @ExceptionHandler(AccessDeniedException.class)

@@ -20,7 +20,7 @@ cn: John
 sn: Doe
 uid: john.doe
 mail: john@bionicpro.com
-userPassword: password
+userPassword: ${LDAP_USER_PASSWORD}
 
 dn: uid=jane.smith,ou=users,dc=bionicpro,dc=local
 objectClass: top
@@ -29,7 +29,7 @@ cn: Jane
 sn: Smith
 uid: jane.smith
 mail: jane@bionicpro.com
-userPassword: password
+userPassword: ${LDAP_USER_PASSWORD}
 
 dn: uid=alex,ou=users,dc=bionicpro,dc=local
 objectClass: inetOrgPerson
@@ -37,7 +37,7 @@ cn: Alex
 sn: Johnson
 uid: alex.johnson
 mail: alex@bionicpro.com
-userPassword: password
+userPassword: ${LDAP_USER_PASSWORD}
 
 dn: uid=admin,ou=users,dc=bionicpro,dc=local
 objectClass: inetOrgPerson
@@ -45,7 +45,7 @@ cn: Admin
 sn: User
 uid: admin
 mail: admin@bionicpro.com
-userPassword: admin
+userPassword: ${LDAP_ADMIN_PASSWORD}
 
 # LDAP Groups (mapped to Keycloak roles)
 dn: cn=user,ou=groups,dc=bionicpro,dc=local

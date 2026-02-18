@@ -12,8 +12,6 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.oidc.IdTokenClaimNames;
 
-import java.util.UUID;
-
 /**
  * OAuth2 Client configuration for Keycloak integration.
  * Configures Authorization Code Flow with PKCE.
@@ -57,10 +55,15 @@ public class OAuth2ClientConfig {
         return new InMemoryClientRegistrationRepository(registration);
     }
 
+    @Value("${oauth2.aes-key}")
+    private String aesKey;
+
+    @Value("${oauth2.salt}")
+    private String salt;
+
     @Bean
     public BytesEncryptor bytesEncryptor() {
-        // Generate a secure key for encryption
-        String secret = UUID.randomUUID().toString() + UUID.randomUUID().toString();
-        return new AesBytesEncryptor(secret, "salt");
+        // Use persistent key from environment variable
+        return new AesBytesEncryptor(aesKey, salt);
     }
 }

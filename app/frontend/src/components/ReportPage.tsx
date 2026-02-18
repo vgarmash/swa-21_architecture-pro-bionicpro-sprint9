@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useKeycloak } from '@react-keycloak/web';
+import React, { useState, useEffect, useCallback } from 'react';
 
 interface UserInfo {
   name: string;
@@ -27,32 +26,63 @@ interface ReportData {
   statistics: Statistics;
 }
 
+interface AuthStatus {
+  authenticated: boolean;
+  userId?: string;
+  username?: string;
+  roles?: string[];
+  sessionExpiresAt?: string;
+}
+
 const ReportPage: React.FC = () => {
-  const { keycloak, initialized } = useKeycloak();
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
-  const fetchReport = async (showLoading = true) => {
-    if (!keycloak?.token) {
-      setError('Not authenticated');
-      return;
+  // BFF API base URL - pointing to bionicpro-auth service
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
+  // Check authentication status using BFF
+  const checkAuthStatus = useCallback(async () => {
+    try {
+      // Use /api/auth/status (BFF endpoint)
+      const response = await fetch(`${apiUrl}/api/auth/status`, {
+        credentials: 'include', // Important: send session cookie
+      });
+
+      if (response.ok) {
+        const authStatus: AuthStatus = await response.json();
+        setIsAuthenticated(authStatus.authenticated);
+        return authStatus.authenticated;
+      } else if (response.status === 401) {
+        setIsAuthenticated(false);
+        return false;
+      } else {
+        setError('Failed to check authentication status');
+        return false;
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Network error');
+      return false;
     }
+  }, [apiUrl]);
 
+  // Fetch report data using BFF
+  const fetchReport = async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
       setError(null);
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/reports`, {
-        headers: {
-          'Authorization': `Bearer ${keycloak.token}`
-        }
+      // Use /api/reports (BFF endpoint - needs proxy to bionicpro-reports)
+      const response = await fetch(`${apiUrl}/api/reports`, {
+        credentials: 'include', // Important: send session cookie
       });
 
       if (!response.ok) {
         if (response.status === 401) {
+          setIsAuthenticated(false);
           setError('Unauthorized. Please login again.');
-          keycloak.logout();
         } else if (response.status === 403) {
           setError('Access forbidden. You do not have permission to view this report.');
         } else if (response.status === 404) {
@@ -74,74 +104,47 @@ const ReportPage: React.FC = () => {
     }
   };
 
-  // Автоматическая загрузка данных при монтировании компонента
-  useEffect(() => {
-    if (initialized && keycloak.authenticated) {
-      fetchReport(false);
-    }
-  }, [initialized, keycloak.authenticated]);
+  // Handle login - redirect to BFF login
+  const handleLogin = () => {
+    window.location.href = `${apiUrl}/api/auth/login`;
+  };
 
-  const downloadReport = async () => {
-    if (!keycloak?.token) {
-      setError('Not authenticated');
-      return;
-    }
-
+  // Handle logout
+  const handleLogout = async () => {
     try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/reports`, {
-        headers: {
-          'Authorization': `Bearer ${keycloak.token}`
-        }
+      await fetch(`${apiUrl}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
       });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          setError('Unauthorized. Please login again.');
-          keycloak.logout();
-        } else if (response.status === 403) {
-          setError('Access forbidden. You do not have permission to view this report.');
-        } else if (response.status === 404) {
-          setError('Report not found.');
-        } else if (response.status === 500) {
-          setError('Server error. Please try again later.');
-        } else {
-          setError(`Error: ${response.status} ${response.statusText}`);
-        }
-        return;
-      }
-
-      const data = await response.json();
-      setReportData(data);
-
-      // Скачивание отчёта в JSON формате
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `report_${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      setIsAuthenticated(false);
+      setReportData(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setLoading(false);
+      console.error('Logout error:', err);
     }
   };
 
-  if (!initialized) {
-    return <div>Loading...</div>;
+  // Check auth status on mount
+  useEffect(() => {
+    const initAuth = async () => {
+      const authenticated = await checkAuthStatus();
+      if (authenticated) {
+        fetchReport(false);
+      }
+    };
+    initAuth();
+  }, [checkAuthStatus]);
+
+  // Show loading while checking auth
+  if (isAuthenticated === null) {
+    return <div className="flex items-center justify-center min-h-screen bg-gray-100">Loading...</div>;
   }
 
-  if (!keycloak.authenticated) {
+  // Show login button if not authenticated
+  if (!isAuthenticated) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
         <button
-          onClick={() => keycloak.login()}
+          onClick={handleLogin}
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
         >
           Login
@@ -153,10 +156,18 @@ const ReportPage: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
       <div className="p-8 bg-white rounded-lg shadow-md w-full max-w-2xl">
-        <h1 className="text-2xl font-bold mb-6">Usage Reports</h1>
-        
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Usage Reports</h1>
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+          >
+            Logout
+          </button>
+        </div>
+
         <button
-          onClick={downloadReport}
+          onClick={() => fetchReport(true)}
           disabled={loading}
           className={`px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mb-6 ${
             loading ? 'opacity-50 cursor-not-allowed' : ''

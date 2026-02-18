@@ -193,8 +193,8 @@ public class AuthController {
         
         log.info("Processing logout request");
         
-        // Invalidate session
-        sessionService.invalidateSession(request, response);
+        // Invalidate session and revoke tokens in Keycloak
+        sessionService.invalidateSessionWithTokenRevocation(request, response);
         
         // Logout from Spring Security
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

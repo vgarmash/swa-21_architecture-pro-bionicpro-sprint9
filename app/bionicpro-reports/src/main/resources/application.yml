@@ -16,7 +16,7 @@ spring:
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
-      connection-timeout: 2000ms
+      connection-timeout: 2000
       idle-timeout: 300000ms
       max-lifetime: 1200000ms
   
@@ -33,6 +33,10 @@ app:
   auth:
     # Timeout for external integrations (≤2000ms)
     timeout-ms: 2000
+
+# ClickHouse configuration
+clickhouse:
+  password: ${CLICKHOUSE_PASSWORD}
 
 # Logging
 logging:

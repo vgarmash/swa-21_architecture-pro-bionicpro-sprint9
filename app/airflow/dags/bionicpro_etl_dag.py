@@ -2,6 +2,7 @@
 BionicPRO ETL DAG для агрегации данных о работе протезов
 """
 from datetime import datetime, timedelta
+import os
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 
@@ -41,7 +42,7 @@ def extract_sensors_data(**context):
         port=5432,
         dbname='sensors-data',
         user='sensors_user',
-        password='sensors_password'
+        password=os.environ.get('SENSORS_DB_PASSWORD', '')
     )
     
     # SQL запрос для извлечения данных
@@ -90,7 +91,7 @@ def extract_crm_data(**context):
         port=5432,
         dbname='crm_db',
         user='crm_user',
-        password='crm_password'
+        password=os.environ.get('CRM_DB_PASSWORD', '')
     )
     
     # SQL запрос

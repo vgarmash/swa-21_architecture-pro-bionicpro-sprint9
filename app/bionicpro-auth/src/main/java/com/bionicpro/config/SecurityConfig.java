@@ -1,6 +1,8 @@
 package com.bionicpro.config;
 
 import com.bionicpro.filter.TokenPropagationFilter;
+import com.bionicpro.filter.RateLimitFilter;
+import com.bionicpro.model.SessionData;
 import com.bionicpro.service.SessionService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -40,6 +42,7 @@ public class SecurityConfig {
     private final SessionService sessionService;
     private final SecurityContextRepository securityContextRepository;
     private final TokenPropagationFilter tokenPropagationFilter;
+    private final RateLimitFilter rateLimitFilter;
 
     @Bean
     @Order(1)
@@ -78,6 +81,7 @@ public class SecurityConfig {
                 .deleteCookies("BIONICPRO_SESSION"))
             .securityContext(context -> context
                 .securityContextRepository(securityContextRepository))
+            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(new SessionRotationFilter(sessionService), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -119,6 +123,7 @@ public class SecurityConfig {
 
     /**
      * Filter for session rotation on each authenticated request.
+     * Rotates session ID for all authenticated requests to enhance security.
      */
     @Slf4j
     public static class SessionRotationFilter extends OncePerRequestFilter {
@@ -133,15 +138,32 @@ public class SecurityConfig {
         protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, 
                                         FilterChain filterChain) throws ServletException, IOException {
             
-            // Only rotate session for authenticated users on status/refresh endpoints
-            String uri = request.getRequestURI();
-            if ((uri.equals("/api/auth/status") || uri.equals("/api/auth/refresh")) 
-                    && request.getUserPrincipal() != null) {
-                sessionService.rotateSession(request, response);
-                log.debug("Session rotated for request: {}", uri);
+            // Rotate session for all authenticated requests
+            if (request.getUserPrincipal() != null) {
+                String sessionId = getSessionIdFromRequest(request);
+                if (sessionId != null) {
+                    SessionData newSession = sessionService.rotateSession(sessionId);
+                    if (newSession != null) {
+                        // Set new cookie with rotated session ID
+                        sessionService.setSessionCookieFromFilter(response, newSession.getSessionId());
+                        log.debug("Session rotated for user: {}", newSession.getUserId());
+                    }
+                }
             }
             
             filterChain.doFilter(request, response);
+        }
+        
+        private String getSessionIdFromRequest(HttpServletRequest request) {
+            Cookie[] cookies = request.getCookies();
+            if (cookies != null) {
+                for (Cookie cookie : cookies) {
+                    if ("BIONICPRO_SESSION".equals(cookie.getName())) {
+                        return cookie.getValue();
+                    }
+                }
+            }
+            return null;
         }
     }
 }

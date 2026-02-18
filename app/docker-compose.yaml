@@ -3,8 +3,8 @@ services:
     image: postgres:14
     environment:
       POSTGRES_DB: keycloak_db
-      POSTGRES_USER: keycloak_user
-      POSTGRES_PASSWORD: keycloak_password
+      POSTGRES_USER: ${KEYCLOAK_DB_USER}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
     volumes:
       - ./.data/postgres-keycloak-data:/var/lib/postgresql/data
     ports:
@@ -22,11 +22,11 @@ services:
     image: quay.io/keycloak/keycloak:21.1
     environment:
       KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloak_db:5432/keycloak_db
-      KC_DB_USERNAME: keycloak_user
-      KC_DB_PASSWORD: keycloak_password
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
     command: ["start-dev", "--import-realm"]
     volumes:
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
@@ -45,10 +45,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      REACT_APP_API_URL: http://bionicpro-reports:8081/api/v1
-      REACT_APP_KEYCLOAK_URL: http://localhost:8080
-      REACT_APP_KEYCLOAK_REALM: reports-realm
-      REACT_APP_KEYCLOAK_CLIENT_ID: reports-frontend
+      # BFF (bionicpro-auth) base URL
+      REACT_APP_API_URL: http://bionicpro-auth:8000
     networks:
       - app-network
 
@@ -61,7 +59,7 @@ services:
     environment:
       - LDAP_ORGANISATION=BionicPRO
       - LDAP_DOMAIN=bionicpro.local
-      - LDAP_ADMIN_PASSWORD=admin
+      - LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
     ports:
       - "389:389"
       - "636:636"
@@ -72,8 +70,8 @@ services:
     image: postgres:14
     environment:
       POSTGRES_DB: crm_db
-      POSTGRES_USER: crm_user
-      POSTGRES_PASSWORD: crm_password
+      POSTGRES_USER: ${CRM_DB_USER}
+      POSTGRES_PASSWORD: ${CRM_DB_PASSWORD}
     volumes:
       - ./crm-db:/docker-entrypoint-initdb.d
       - ./.data/postgres-crm-data:/var/lib/postgresql/data
@@ -86,8 +84,8 @@ services:
     image: postgres:14
     environment:
       POSTGRES_DB: sensors-data
-      POSTGRES_USER: sensors_user
-      POSTGRES_PASSWORD: sensors_password
+      POSTGRES_USER: ${SENSORS_DB_USER}
+      POSTGRES_PASSWORD: ${SENSORS_DB_PASSWORD}
     volumes:
       - ./sensors-db:/docker-entrypoint-initdb.d
       - ./.data/sensors-data:/var/lib/postgresql/data
@@ -99,14 +97,13 @@ services:
 
   olap_db:
     image: clickhouse/clickhouse-server:latest
-    ports:
-      - "8123:8123"
-      - "9431:9000"
     volumes:
       - ./.data/clickhouse-data:/var/lib/clickhouse
       - ./olap-db:/docker-entrypoint-initdb.d
       - ./olap-db:/var/lib/clickhouse/user_files
       - ./olap-db/users.xml:/etc/clickhouse-server/users.d/users.xml
+    environment:
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
     healthcheck:
       test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1'"]
       interval: 1s
@@ -123,8 +120,8 @@ services:
     volumes:
       - minio_storage:/data
     environment:
-      MINIO_ROOT_USER: minio_user
-      MINIO_ROOT_PASSWORD: minio_password
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     command: server --console-address ":9001" /data
     networks:
       - app-network
@@ -135,7 +132,9 @@ services:
       - "6379:6379"
     volumes:
       - ./.data/data:/data
-    command: redis-server --appendonly yes
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -154,6 +153,7 @@ services:
       SPRING_PROFILES_ACTIVE: dev
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
       KEYCLOAK_SERVER_URL: http://keycloak:8080
       KEYCLOAK_REALM: reports-realm
       KEYCLOAK_CLIENT_ID: bionicpro-auth
@@ -176,7 +176,7 @@ services:
       CLICKHOUSE_HOST: olap_db
       CLICKHOUSE_PORT: 8123
       CLICKHOUSE_USER: default
-      CLICKHOUSE_PASSWORD: ""
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
       KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/reports-realm
       KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/reports-realm/protocol/openid-connect/certs
     depends_on:
@@ -191,8 +191,8 @@ services:
     image: apache/airflow:2.8.1
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db/airflow
-      AIRFLOW__CORE__FERNET_KEY: ''
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@airflow-db/airflow
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
       AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
@@ -211,8 +211,8 @@ services:
     image: postgres:14
     environment:
       POSTGRES_DB: airflow
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
+      POSTGRES_USER: ${AIRFLOW_DB_USER}
+      POSTGRES_PASSWORD: ${AIRFLOW_DB_PASSWORD}
     volumes:
       - ./airflow/db-data:/var/lib/postgresql/data
     networks:
@@ -224,3 +224,17 @@ volumes:
 networks:
   app-network:
     driver: bridge
+
+x-airflow-common:
+  &airflow-common
+  image: apache/airflow:2.8.1
+  environment:
+    &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@airflow-db/airflow
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
+    AIRFLOW_HOME: /opt/airflow
+    AIRFLOW_FERNET_KEY: ${AIRFLOW_FERNET_KEY}

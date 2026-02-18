@@ -19,133 +19,219 @@
 
 ## 1. Критические проблемы безопасности (CRITICAL)
 
-### 1.1 Hardcoded Credentials — Множественные файлы
+[//]: # ()
+[//]: # (### 1.1 Hardcoded Credentials — Множественные файлы)
 
-**Описание проблемы:** Пароли и учётные данные захардкожены в нескольких файлах проекта в открытом виде.
+[//]: # ()
+[//]: # (**Описание проблемы:** Пароли и учётные данные захардкожены в нескольких файлах проекта в открытом виде.)
 
-**Файлы и проблемы:**
+[//]: # ()
+[//]: # (**Файлы и проблемы:**)
 
-| Исходный отчёт | Файл | Проблема |
-|----------------|------|----------|
-| audit_report_2026-02-18 | `app/keycloak/realm-export.json` | Все пароли пользователей и client secrets в plaintext |
-| audit_report_2026-02-18 | `app/ldap/config.ldif` | Пароли LDAP пользователей в plaintext (`userPassword: password`) |
-| audit_report_2026-02-18 | `app/airflow/dags/bionicpro_etl_dag.py:35,62` | `sensors_password`, `crm_password` захардкожены |
-| audit_report_2026-02-18 | `app/docker-compose.yaml` | Keycloak admin, MinIO, пароли БД в plaintext |
-| CODE_AUDIT_REPORT | `app/airflow/dags/bionicpro_etl_dag.py` | Хардкод credentials в psycopg2.connect() |
-| Gemini_audit_report | `app/airflow/dags/bionicpro_etl_dag.py` | Жёстко закодированные учетные данные БД |
+[//]: # ()
+[//]: # (| Исходный отчёт | Файл | Проблема |)
 
-**Требуемое действие:** 
-- Удалить все захардкоженные пароли
-- Использовать переменные окружения или Docker secrets
-- Для Airflow — использовать Airflow Connections API
+[//]: # (|----------------|------|----------|)
 
----
+[//]: # (| audit_report_2026-02-18 | `app/keycloak/realm-export.json` | Все пароли пользователей и client secrets в plaintext |)
 
-### 1.2 Redis без аутентификации
+[//]: # (| audit_report_2026-02-18 | `app/ldap/config.ldif` | Пароли LDAP пользователей в plaintext &#40;`userPassword: password`&#41; |)
 
-**Описание проблемы:** Redis запущен без пароля (`--requirepass`).
+[//]: # (| audit_report_2026-02-18 | `app/airflow/dags/bionicpro_etl_dag.py:35,62` | `sensors_password`, `crm_password` захардкожены |)
 
-**Исходный отчёт:** audit_report_2026-02-18 (SEC-005)  
-**Файл:** `app/docker-compose.yaml`
+[//]: # (| audit_report_2026-02-18 | `app/docker-compose.yaml` | Keycloak admin, MinIO, пароли БД в plaintext |)
 
-**Требуемое действие:**
-- Добавить `--requirepass <strong_password>` в конфигурацию Redis
-- Обновить `application.yml` с соответствующими настройками
+[//]: # (| CODE_AUDIT_REPORT | `app/airflow/dags/bionicpro_etl_dag.py` | Хардкод credentials в psycopg2.connect&#40;&#41; |)
 
----
+[//]: # (| Gemini_audit_report | `app/airflow/dags/bionicpro_etl_dag.py` | Жёстко закодированные учетные данные БД |)
 
-### 1.3 ClickHouse без пароля и открытый сетевой доступ
+[//]: # ()
+[//]: # (**Требуемое действие:** )
 
-**Описание проблемы:** 
-- `CLICKHOUSE_PASSWORD: ""` — пустой пароль
-- `networks/ip = ::/0` — доступ с любого IP
+[//]: # (- Удалить все захардкоженные пароли)
 
-**Исходные отчёты:** 
-- audit_report_2026-02-18 (SEC-004, SEC-006)  
-- CODE_AUDIT_REPORT
+[//]: # (- Использовать переменные окружения или Docker secrets)
 
-**Файлы:** 
-- `app/olap-db/users.xml`
-- `app/bionicpro-reports/src/main/resources/application.yml`
+[//]: # (- Для Airflow — использовать Airflow Connections API)
 
-**Требуемое действие:**
-- Установить сложный пароль для ClickHouse
-- Ограничить сетевой доступ до внутренних сетей Docker
+[//]: # ()
+[//]: # (---)
 
----
+[//]: # ()
+[//]: # (### 1.2 Redis без аутентификации)
 
-### 1.4 Airflow пустой FERNET_KEY
+[//]: # ()
+[//]: # (**Описание проблемы:** Redis запущен без пароля &#40;`--requirepass`&#41;.)
 
-**Описание проблемы:** `AIRFLOW__CORE__FERNET_KEY: ''` — Connections и Variables не шифруются.
+[//]: # ()
+[//]: # (**Исходный отчёт:** audit_report_2026-02-18 &#40;SEC-005&#41;  )
 
-**Исходные отчёты:** 
-- audit_report_2026-02-18 (SEC-007)  
-- Gemini_audit_report (раздел 5)
+[//]: # (**Файл:** `app/docker-compose.yaml`)
 
-**Файл:** `app/docker-compose.yaml:195`
+[//]: # ()
+[//]: # (**Требуемое действие:**)
 
-**Требуемое действие:** Сгенерировать валидный FERNET_KEY и добавить в конфигурацию
+[//]: # (- Добавить `--requirepass <strong_password>` в конфигурацию Redis)
 
----
+[//]: # (- Обновить `application.yml` с соответствующими настройками)
 
-### 1.5 Nginx CORS — Allow All Origins
+[//]: # ()
+[//]: # (---)
 
-**Описание проблемы:** `Access-Control-Allow-Origin: '*'` разрешает запросы с любого домена.
+[//]: # ()
+[//]: # (### 1.3 ClickHouse без пароля и открытый сетевой доступ)
 
-**Исходные отчёты:** 
-- audit_report_2026-02-18 (SEC-008)  
-- Gemini_audit_report (раздел 4, пункт 1)
+[//]: # ()
+[//]: # (**Описание проблемы:** )
 
-**Файл:** `app/frontend/nginx.conf`
+[//]: # (- `CLICKHOUSE_PASSWORD: ""` — пустой пароль)
 
-**Требуемое действие:** Указать конкретные домены вместо `*`
+[//]: # (- `networks/ip = ::/0` — доступ с любого IP)
 
----
+[//]: # ()
+[//]: # (**Исходные отчёты:** )
 
-### 1.6 OAuth2 Encryption Key — Non-persistent
+[//]: # (- audit_report_2026-02-18 &#40;SEC-004, SEC-006&#41;  )
 
-**Описание проблемы:** AES ключ генерируется случайным UUID при каждом запуске — токены теряются при рестарте. Также захардкожена соль "salt".
+[//]: # (- CODE_AUDIT_REPORT)
 
-**Исходные отчёты:** 
-- audit_report_2026-02-18 (SEC-009, CQ-002)  
-- CODE_AUDIT_REPORT  
-- Gemini_audit_report (раздел 1, пункт 1)
+[//]: # ()
+[//]: # (**Файлы:** )
 
-**Файл:** `app/bionicpro-auth/src/main/java/com/bionicpro/config/OAuth2ClientConfig.java`
+[//]: # (- `app/olap-db/users.xml`)
 
-**Требуемое действие:**
-- Использовать постоянный ключ из environment variable
-- Вынести salt в конфигурацию
+[//]: # (- `app/bionicpro-reports/src/main/resources/application.yml`)
 
----
+[//]: # ()
+[//]: # (**Требуемое действие:**)
 
-### 1.7 Frontend нарушает архитектуру BFF
+[//]: # (- Установить сложный пароль для ClickHouse)
 
-**Описание проблемы:** Frontend напрямую интегрируется с Keycloak и Reports API, нарушая архитектуру BFF.
+[//]: # (- Ограничить сетевой доступ до внутренних сетей Docker)
 
-**Исходные отчёты:** CODE_AUDIT_REPORT (FE-001, FE-002, FE-003)
+[//]: # ()
+[//]: # (---)
 
-**Файлы:**
-- `app/frontend/src/components/ReportPage.tsx:15` — использует `@react-keycloak/web`
-- `app/frontend/src/components/ReportPage.tsx:35` — `'Authorization': Bearer ${keycloak.token}`
-- `app/frontend/.env` — `REACT_APP_API_URL=http://localhost:8081/api/v1`
+[//]: # ()
+[//]: # (### 1.4 Airflow пустой FERNET_KEY)
 
-**Доказательство из CODE_AUDIT_REPORT:**
-```tsx
-const { keycloak, initialized } = useKeycloak();  // Прямая интеграция с Keycloak
-const response = await fetch(`${process.env.REACT_APP_API_URL}/reports`, {
-    headers: {
-        'Authorization': `Bearer ${keycloak.token}`  // Token в браузере!
-    }
-});
-```
+[//]: # ()
+[//]: # (**Описание проблемы:** `AIRFLOW__CORE__FERNET_KEY: ''` — Connections и Variables не шифруются.)
 
-**Требуемое действие:**
-- Удалить `@react-keycloak/web` из frontend
-- Использовать session cookie для аутентификации
-- Все API запросы проксировать через BFF (bionicpro-auth)
+[//]: # ()
+[//]: # (**Исходные отчёты:** )
 
----
+[//]: # (- audit_report_2026-02-18 &#40;SEC-007&#41;  )
+
+[//]: # (- Gemini_audit_report &#40;раздел 5&#41;)
+
+[//]: # ()
+[//]: # (**Файл:** `app/docker-compose.yaml:195`)
+
+[//]: # ()
+[//]: # (**Требуемое действие:** Сгенерировать валидный FERNET_KEY и добавить в конфигурацию)
+
+[//]: # ()
+[//]: # (---)
+
+[//]: # ()
+[//]: # (### 1.5 Nginx CORS — Allow All Origins)
+
+[//]: # ()
+[//]: # (**Описание проблемы:** `Access-Control-Allow-Origin: '*'` разрешает запросы с любого домена.)
+
+[//]: # ()
+[//]: # (**Исходные отчёты:** )
+
+[//]: # (- audit_report_2026-02-18 &#40;SEC-008&#41;  )
+
+[//]: # (- Gemini_audit_report &#40;раздел 4, пункт 1&#41;)
+
+[//]: # ()
+[//]: # (**Файл:** `app/frontend/nginx.conf`)
+
+[//]: # ()
+[//]: # (**Требуемое действие:** Указать конкретные домены вместо `*`)
+
+[//]: # ()
+[//]: # (---)
+
+[//]: # ()
+[//]: # (### 1.6 OAuth2 Encryption Key — Non-persistent)
+
+[//]: # ()
+[//]: # (**Описание проблемы:** AES ключ генерируется случайным UUID при каждом запуске — токены теряются при рестарте. Также захардкожена соль "salt".)
+
+[//]: # ()
+[//]: # (**Исходные отчёты:** )
+
+[//]: # (- audit_report_2026-02-18 &#40;SEC-009, CQ-002&#41;  )
+
+[//]: # (- CODE_AUDIT_REPORT  )
+
+[//]: # (- Gemini_audit_report &#40;раздел 1, пункт 1&#41;)
+
+[//]: # ()
+[//]: # (**Файл:** `app/bionicpro-auth/src/main/java/com/bionicpro/config/OAuth2ClientConfig.java`)
+
+[//]: # ()
+[//]: # (**Требуемое действие:**)
+
+[//]: # (- Использовать постоянный ключ из environment variable)
+
+[//]: # (- Вынести salt в конфигурацию)
+
+[//]: # ()
+[//]: # (---)
+
+[//]: # ()
+[//]: # (### 1.7 Frontend нарушает архитектуру BFF)
+
+[//]: # ()
+[//]: # (**Описание проблемы:** Frontend напрямую интегрируется с Keycloak и Reports API, нарушая архитектуру BFF.)
+
+[//]: # ()
+[//]: # (**Исходные отчёты:** CODE_AUDIT_REPORT &#40;FE-001, FE-002, FE-003&#41;)
+
+[//]: # ()
+[//]: # (**Файлы:**)
+
+[//]: # (- `app/frontend/src/components/ReportPage.tsx:15` — использует `@react-keycloak/web`)
+
+[//]: # (- `app/frontend/src/components/ReportPage.tsx:35` — `'Authorization': Bearer ${keycloak.token}`)
+
+[//]: # (- `app/frontend/.env` — `REACT_APP_API_URL=http://localhost:8081/api/v1`)
+
+[//]: # ()
+[//]: # (**Доказательство из CODE_AUDIT_REPORT:**)
+
+[//]: # (```tsx)
+
+[//]: # (const { keycloak, initialized } = useKeycloak&#40;&#41;;  // Прямая интеграция с Keycloak)
+
+[//]: # (const response = await fetch&#40;`${process.env.REACT_APP_API_URL}/reports`, {)
+
+[//]: # (    headers: {)
+
+[//]: # (        'Authorization': `Bearer ${keycloak.token}`  // Token в браузере!)
+
+[//]: # (    })
+
+[//]: # (}&#41;;)
+
+[//]: # (```)
+
+[//]: # ()
+[//]: # (**Требуемое действие:**)
+
+[//]: # (- Удалить `@react-keycloak/web` из frontend)
+
+[//]: # (- Использовать session cookie для аутентификации)
+
+[//]: # (- Все API запросы проксировать через BFF &#40;bionicpro-auth&#41;)
+
+[//]: # ()
+[//]: # (---)
 
 ### 1.8 Token Refresh не реализован
 

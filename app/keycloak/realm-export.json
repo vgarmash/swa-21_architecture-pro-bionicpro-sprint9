@@ -47,7 +47,7 @@
         "credentials": [
           {
             "type": "password",
-            "value": "password123",
+            "value": "${KEYCLOAK_USER1_PASSWORD}",
             "temporary": false
           }
         ],
@@ -62,7 +62,7 @@
         "credentials": [
           {
             "type": "password",
-            "value": "password123",
+            "value": "${KEYCLOAK_USER1_PASSWORD}",
             "temporary": false
           }
         ],
@@ -77,7 +77,7 @@
         "credentials": [
           {
             "type": "password",
-            "value": "admin123",
+            "value": "${KEYCLOAK_ADMIN1_PASSWORD}",
             "temporary": false
           }
         ],
@@ -92,7 +92,7 @@
         "credentials": [
           {
             "type": "password",
-            "value": "prothetic123",
+            "value": "${KEYCLOAK_PROTHETIC_PASSWORD}",
             "temporary": false
           }
         ],
@@ -107,7 +107,7 @@
         "credentials": [
           {
             "type": "password",
-            "value": "prothetic123",
+            "value": "${KEYCLOAK_PROTHETIC_PASSWORD}",
             "temporary": false
           }
         ],
@@ -122,7 +122,7 @@
         "credentials": [
           {
             "type": "password",
-            "value": "prothetic123",
+            "value": "${KEYCLOAK_PROTHETIC_PASSWORD}",
             "temporary": false
           }
         ],
@@ -147,7 +147,7 @@
         "clientId": "reports-api",
         "enabled": true,
         "clientAuthenticatorType": "client-secret",
-        "secret": "oNwoLQdvJAvRcL89SydqCWCe5ry1jMgq", 
+        "secret": "${KEYCLOAK_REPORTS_API_CLIENT_SECRET}",
         "bearerOnly": true
       }
     ],
@@ -233,7 +233,7 @@
             "connectionUrl": ["ldap://ldap:389"],
             "baseDn": ["dc=bionicpro,dc=local"],
             "bindDn": ["cn=admin,dc=bionicpro,dc=local"],
-            "bindCredential": ["admin"],
+            "bindCredential": ["${LDAP_BIND_PASSWORD}"],
             "searchScope": ["1"],
             "useTruststoreSpi": ["ldapsOnly"],
             "connectionTimeout": ["2000"],

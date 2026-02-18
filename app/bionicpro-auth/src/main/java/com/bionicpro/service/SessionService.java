@@ -9,19 +9,21 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.*;
 import org.springframework.security.crypto.encrypt.BytesEncryptor;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Service for session management with Redis storage.
@@ -41,14 +43,33 @@ public class SessionService {
     @Value("${auth.session.cookie-name:BIONICPRO_SESSION}")
     private String cookieName;
 
-    // In-memory store for auth request state (temporary, until callback)
-    private final Map<String, String> authRequestStore = new ConcurrentHashMap<>();
+    @Value("${keycloak.server-url:http://localhost:8080}")
+    private String keycloakUrl;
+
+    @Value("${keycloak.realm:reports-realm}")
+    private String keycloakRealm;
+
+    @Value("${keycloak.client-id:bionicpro-auth}")
+    private String clientId;
+
+    private static final String TOKEN_URL_FORMAT = "%s/realms/%s/protocol/openid-connect/token";
+
+    private final RestTemplate restTemplate = new RestTemplate();
+
+    // Redis template for auth request storage
+    private final RedisTemplate<String, String> redisTemplateString;
+
+    // Redis key prefix for auth requests
+    private static final String AUTH_REQUEST_PREFIX = "auth:request:";
+    // TTL for auth requests (10 minutes)
+    private static final Duration AUTH_REQUEST_TTL = Duration.ofMinutes(10);
 
     /**
      * Store auth request parameters before redirect to Keycloak.
      */
     public void storeAuthRequest(String state, String redirectUri) {
-        authRequestStore.put(state, redirectUri);
+        String key = AUTH_REQUEST_PREFIX + state;
+        redisTemplateString.opsForValue().set(key, redirectUri, AUTH_REQUEST_TTL);
         log.debug("Stored auth request for state: {}", state);
     }
 
@@ -56,7 +77,8 @@ public class SessionService {
      * Get and remove stored auth request.
      */
     public String getAuthRequest(String state) {
-        String redirectUri = authRequestStore.remove(state);
+        String key = AUTH_REQUEST_PREFIX + state;
+        String redirectUri = redisTemplateString.opsForValue().getAndDelete(key);
         log.debug("Retrieved auth request for state: {}, redirectUri: {}", state, redirectUri);
         return redirectUri;
     }
@@ -128,9 +150,21 @@ public class SessionService {
         // Check if access token needs refresh (expired or about to expire within 30 seconds)
         if (sessionData.getAccessTokenExpiresAt() != null 
                 && Instant.now().plusSeconds(30).isAfter(sessionData.getAccessTokenExpiresAt())) {
-            // Token needs refresh - in production, would call Keycloak to refresh
+            // Token needs refresh - call Keycloak to refresh
             log.debug("Access token needs refresh for user: {}", sessionData.getUserId());
-            // TODO: Implement token refresh with Keycloak
+            
+            if (sessionData.getRefreshToken() != null) {
+                sessionData = refreshAccessToken(sessionData);
+                
+                if (sessionData == null) {
+                    // Refresh failed - invalidate session
+                    log.warn("Token refresh failed for user: {}", sessionData.getUserId());
+                    invalidateSessionById(sessionId);
+                    return null;
+                }
+            } else {
+                log.warn("No refresh token available for user: {}", sessionData.getUserId());
+            }
         }
         
         // Update last accessed time
@@ -141,7 +175,120 @@ public class SessionService {
     }
 
     /**
+     * Refresh access token using refresh token.
+     * Calls Keycloak token endpoint with grant_type=refresh_token.
+     */
+    public SessionData refreshAccessToken(SessionData sessionData) {
+        try {
+            String tokenUrl = String.format(TOKEN_URL_FORMAT, keycloakUrl, keycloakRealm);
+            
+            // Get decrypted refresh token
+            String refreshToken = decryptToken(sessionData.getRefreshToken());
+            
+            // Prepare request parameters
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("grant_type", "refresh_token");
+            params.add("client_id", clientId);
+            params.add("refresh_token", refreshToken);
+            
+            // Set headers
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            
+            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+            
+            // Make POST request to Keycloak
+            ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Map<String, Object> tokenResponse = response.getBody();
+                
+                // Extract new tokens
+                String newAccessToken = (String) tokenResponse.get("access_token");
+                String newRefreshToken = (String) tokenResponse.get("refresh_token");
+                Integer expiresIn = (Integer) tokenResponse.get("expires_in");
+                
+                // Update session data with new tokens
+                sessionData.setAccessToken(encryptToken(newAccessToken));
+                if (newRefreshToken != null) {
+                    sessionData.setRefreshToken(encryptToken(newRefreshToken));
+                }
+                
+                // Calculate new expiration times
+                Instant now = Instant.now();
+                sessionData.setAccessTokenExpiresAt(now.plusSeconds(expiresIn != null ? expiresIn : 300));
+                
+                // Update refresh token expiration if provided
+                if (tokenResponse.get("refresh_expires_in") != null) {
+                    Integer refreshExpiresIn = (Integer) tokenResponse.get("refresh_expires_in");
+                    sessionData.setRefreshTokenExpiresAt(now.plusSeconds(refreshExpiresIn));
+                }
+                
+                log.info("Successfully refreshed token for user: {}", sessionData.getUserId());
+                return sessionData;
+            } else {
+                log.error("Unexpected response from Keycloak during token refresh: {}", response.getStatusCode());
+                return null;
+            }
+            
+        } catch (Exception e) {
+            log.error("Failed to refresh access token for user: {} - Error: {}", 
+                    sessionData.getUserId(), e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Rotate session - generate new session ID, invalidate old one.
+     * This method takes sessionId as parameter and returns new SessionData.
+     * Should be called on every authenticated request.
+     */
+    public SessionData rotateSession(String sessionId) {
+        if (sessionId == null) {
+            log.debug("No session to rotate");
+            return null;
+        }
+        
+        SessionData oldSession = getSession(sessionId);
+        
+        if (oldSession == null) {
+            log.debug("Session not found for rotation");
+            return null;
+        }
+        
+        // Generate new session ID
+        String newSessionId = UUID.randomUUID().toString();
+        
+        // Copy data to new session
+        SessionData newSession = SessionData.builder()
+                .sessionId(newSessionId)
+                .userId(oldSession.getUserId())
+                .username(oldSession.getUsername())
+                .roles(oldSession.getRoles())
+                .accessToken(oldSession.getAccessToken())
+                .refreshToken(oldSession.getRefreshToken())
+                .accessTokenExpiresAt(oldSession.getAccessTokenExpiresAt())
+                .refreshTokenExpiresAt(oldSession.getRefreshTokenExpiresAt())
+                .createdAt(oldSession.getCreatedAt())
+                .expiresAt(oldSession.getExpiresAt())
+                .lastAccessedAt(Instant.now())
+                .build();
+        
+        // Store new session
+        String newRedisKey = getSessionKey(newSessionId);
+        redisTemplate.opsForValue().set(newRedisKey, newSession, Duration.ofMinutes(sessionTimeoutMinutes));
+        
+        // Invalidate old session
+        invalidateSessionById(sessionId);
+        
+        log.info("Rotated session for user: {} from {} to {}", oldSession.getUserId(), sessionId, newSessionId);
+        
+        return newSession;
+    }
+
+    /**
+     * Rotate session from request - generate new session ID, invalidate old one.
+     * This method extracts sessionId from request and sets new cookie.
      */
     public void rotateSession(HttpServletRequest request, HttpServletResponse response) {
         String oldSessionId = getSessionIdFromRequest(request);
@@ -151,33 +298,77 @@ public class SessionService {
             return;
         }
         
-        SessionData oldSession = getSession(oldSessionId);
+        SessionData newSession = rotateSession(oldSessionId);
         
-        if (oldSession == null) {
-            log.debug("Session not found for rotation");
-            return;
+        if (newSession != null) {
+            // Set new cookie with new session ID
+            setSessionCookie(response, newSession.getSessionId());
         }
-        
-        // Create new session ID
-        String newSessionId = UUID.randomUUID().toString();
-        
-        // Update session data with new ID
-        oldSession.setSessionId(newSessionId);
-        oldSession.setLastAccessedAt(Instant.now());
-        
-        // Store new session
-        String newRedisKey = getSessionKey(newSessionId);
-        redisTemplate.opsForValue().set(newRedisKey, oldSession, Duration.ofMinutes(sessionTimeoutMinutes));
-        
-        // Invalidate old session
-        invalidateSessionById(oldSessionId);
-        
-        // Set new cookie
-        setSessionCookie(response, newSessionId);
-        
-        log.info("Rotated session for user: {} from {} to {}", oldSession.getUserId(), oldSessionId, newSessionId);
     }
 
+    /**
+     * Revoke access and refresh tokens by calling Keycloak logout endpoint.
+     * Should be called on user logout to invalidate tokens in Keycloak.
+     */
+    public boolean revokeTokens(String refreshToken) {
+        if (refreshToken == null) {
+            log.debug("No refresh token to revoke");
+            return true; // No token to revoke, consider it success
+        }
+        
+        try {
+            String tokenUrl = String.format(TOKEN_URL_FORMAT, keycloakUrl, keycloakRealm);
+            
+            // Prepare request parameters for logout endpoint
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("client_id", clientId);
+            params.add("refresh_token", refreshToken);
+            
+            // Set headers
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            
+            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+            
+            // Use POST to Keycloak logout endpoint
+            restTemplate.postForEntity(tokenUrl + "/logout", request, String.class);
+            
+            log.info("Successfully revoked tokens in Keycloak");
+            return true;
+            
+        } catch (Exception e) {
+            log.warn("Failed to revoke tokens in Keycloak: {}", e.getMessage());
+            // Return true anyway - local session is being invalidated anyway
+            return true;
+        }
+    }
+    
+    /**
+     * Invalidate session and revoke tokens.
+     * Should be called on user logout to properly revoke tokens in Keycloak.
+     */
+    public void invalidateSessionWithTokenRevocation(HttpServletRequest request, HttpServletResponse response) {
+        String sessionId = getSessionIdFromRequest(request);
+        
+        if (sessionId != null) {
+            // Get session data to revoke tokens
+            SessionData sessionData = getSession(sessionId);
+            if (sessionData != null && sessionData.getRefreshToken() != null) {
+                // Revoke tokens in Keycloak
+                String refreshToken = decryptToken(sessionData.getRefreshToken());
+                revokeTokens(refreshToken);
+            }
+            
+            // Invalidate session
+            invalidateSessionById(sessionId);
+        }
+        
+        // Clear cookie
+        clearSessionCookie(response);
+        
+        log.info("Session invalidated with token revocation");
+    }
+    
     /**
      * Invalidate session from request.
      */
@@ -259,6 +450,14 @@ public class SessionService {
 
     /**
      * Set session cookie with security attributes.
+     * Public method to allow filters to set cookies.
+     */
+    public void setSessionCookieFromFilter(HttpServletResponse response, String sessionId) {
+        setSessionCookie(response, sessionId);
+    }
+    
+    /**
+     * Set session cookie with security attributes.
      */
     private void setSessionCookie(HttpServletResponse response, String sessionId) {
         Cookie cookie = new Cookie(cookieName, sessionId);
@@ -266,7 +465,7 @@ public class SessionService {
         cookie.setSecure(true);
         cookie.setPath("/");
         cookie.setMaxAge(sessionTimeoutMinutes * 60);
-        cookie.setAttribute("SameSite", "Lax");
+        cookie.setAttribute("SameSite", "Strict");
         
         response.addCookie(cookie);
         log.debug("Set session cookie: {}", sessionId);
