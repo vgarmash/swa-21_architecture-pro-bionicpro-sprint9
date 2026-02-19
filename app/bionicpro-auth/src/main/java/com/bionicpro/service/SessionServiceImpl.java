@@ -57,7 +57,7 @@ public class SessionServiceImpl implements SessionService {
     private static final String TOKEN_URL_FORMAT = "%s/realms/%s/protocol/openid-connect/token";
 
     // Redis template for auth request storage
-    private final RedisTemplate<String, String> redisTemplateString;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     // Redis key prefix for auth requests
     private static final String AUTH_REQUEST_PREFIX = "auth:request:";
@@ -71,7 +71,7 @@ public class SessionServiceImpl implements SessionService {
     public void storeAuthRequest(String state, String redirectUri) {
         // Для auth request storage используем Redis напрямую, так как это специфичная логика
         String key = AUTH_REQUEST_PREFIX + state;
-        redisTemplateString.opsForValue().set(key, redirectUri, AUTH_REQUEST_TTL);
+        redisTemplate.opsForValue().set(key, redirectUri, AUTH_REQUEST_TTL);
         log.debug("Stored auth request for state: {}", state);
     }
 
@@ -82,7 +82,7 @@ public class SessionServiceImpl implements SessionService {
     public String getAuthRequest(String state) {
         // Для auth request storage используем Redis напрямую, так как это специфичная логика
         String key = AUTH_REQUEST_PREFIX + state;
-        String redirectUri = redisTemplateString.opsForValue().getAndDelete(key);
+        String redirectUri = (String) redisTemplate.opsForValue().getAndDelete(key);
         log.debug("Retrieved auth request for state: {}, redirectUri: {}", state, redirectUri);
         return redirectUri;
     }

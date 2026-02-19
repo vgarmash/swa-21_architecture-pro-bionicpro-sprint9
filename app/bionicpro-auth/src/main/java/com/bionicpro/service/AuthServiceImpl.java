@@ -6,6 +6,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -17,8 +22,12 @@ import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -35,6 +44,7 @@ public class AuthServiceImpl implements AuthService {
     private final ClientRegistrationRepository clientRegistrationRepository;
     private final OAuth2AuthorizedClientService authorizedClientService;
     private final SessionService sessionService;
+    private final RestTemplate restTemplate = new RestTemplate();
     
     @Value("${keycloak.server-url:http://localhost:8080}")
     private String keycloakUrl;
@@ -98,19 +108,41 @@ public class AuthServiceImpl implements AuthService {
             // Get the client registration
             ClientRegistration clientRegistration = clientRegistrationRepository.findByRegistrationId("keycloak");
             
-            // Exchange authorization code for tokens
-            OAuth2AuthorizedClient authorizedClient = authorizedClientService
-                    .authorizeClient(clientRegistration.getRegistrationId(), code);
+            // Exchange authorization code for tokens using REST template
+            String tokenUrl = String.format("%s/realms/%s/protocol/openid-connect/token", keycloakUrl, keycloakRealm);
             
-            // Get tokens
-            OAuth2AccessToken accessToken = authorizedClient.getAccessToken();
-            OAuth2RefreshToken refreshToken = authorizedClient.getRefreshToken();
-            OidcIdToken idToken = (OidcIdToken) authorizedClient.getPrincipal().getAuthorities().stream()
-                    .filter(auth -> auth instanceof OidcUser)
-                    .map(auth -> (OidcUser) auth)
-                    .findFirst()
-                    .map(OidcUser::getIdToken)
-                    .orElse(null);
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("grant_type", "authorization_code");
+            params.add("client_id", clientId);
+            params.add("code", code);
+            params.add("redirect_uri", clientRegistration.getRedirectUri());
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            
+            HttpEntity<MultiValueMap<String, String>> httpEntity = new HttpEntity<>(params, headers);
+            
+            ResponseEntity<Map> tokenResponse = restTemplate.postForEntity(tokenUrl, httpEntity, Map.class);
+            
+            if (tokenResponse.getStatusCode() != HttpStatus.OK || tokenResponse.getBody() == null) {
+                log.error("Failed to exchange authorization code for tokens");
+                result.put("error", "Token exchange failed");
+                return result;
+            }
+            
+            Map<String, Object> tokenMap = tokenResponse.getBody();
+            String accessTokenValue = (String) tokenMap.get("access_token");
+            String refreshTokenValue = (String) tokenMap.get("refresh_token");
+            String idTokenValue = (String) tokenMap.get("id_token");
+            
+            OAuth2AccessToken accessToken = new OAuth2AccessToken(OAuth2AccessToken.TokenType.BEARER, accessTokenValue, Instant.now(), Instant.now().plusSeconds(300));
+            OAuth2RefreshToken refreshToken = refreshTokenValue != null ? new OAuth2RefreshToken(refreshTokenValue, Instant.now(), Instant.now().plusSeconds(1800)) : null;
+            
+            // Parse ID token
+            OidcIdToken idToken = OidcIdToken.withTokenValue(idTokenValue)
+                    .subject((String) tokenMap.get("sub"))
+                    .claim("preferred_username", tokenMap.get("preferred_username"))
+                    .build();
             
             if (idToken == null) {
                 log.warn("ID token not found in authorized client");

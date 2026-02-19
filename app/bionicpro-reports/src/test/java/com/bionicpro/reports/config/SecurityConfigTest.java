@@ -13,6 +13,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -57,9 +58,9 @@ class SecurityConfigTest {
     void test_valid_jwt_token() throws Exception {
         // Act & Assert - Using jwt() builder from spring-security-test
         mockMvc.perform(get("/api/v1/reports")
-                        .with(jwt().jwt(builder -> builder
-                                .subject("user-123")
-                                .claims(c -> c.put("realm_access.roles", new String[]{"user"})))))
+                        .with(jwt()
+                                .jwt(builder -> builder.subject("user-123"))
+                                .authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_prothetic_user"))))
                 .andExpect(status().isOk());
     }
 

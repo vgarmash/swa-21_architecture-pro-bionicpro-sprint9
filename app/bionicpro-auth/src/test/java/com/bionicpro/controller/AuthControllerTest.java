@@ -273,7 +273,7 @@ class AuthControllerTest {
             // Assert
             assertEquals(HttpStatus.OK, result.getStatusCode());
             assertEquals("Logged out successfully", result.getBody().get("message"));
-            verify(sessionService).invalidateSession(request, servletResponse);
+            verify(sessionService).invalidateSessionWithTokenRevocation(request, servletResponse);
         }
     }
 

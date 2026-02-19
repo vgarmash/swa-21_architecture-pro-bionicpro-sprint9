@@ -1,6 +1,7 @@
 package com.bionicpro.service;
 
 import com.bionicpro.model.SessionData;
+import com.bionicpro.repository.SessionRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -22,6 +23,7 @@ import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -35,6 +37,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SessionService Tests")
 class SessionServiceTest {
+
+    @Mock
+    private SessionRepository sessionRepository;
 
     @Mock
     private RedisTemplate<String, Object> redisTemplate;
@@ -51,11 +56,11 @@ class SessionServiceTest {
     @Mock
     private HttpServletResponse response;
 
-    private SessionService sessionService;
+    private SessionServiceImpl sessionService;
 
     @BeforeEach
     void setUp() {
-        sessionService = new SessionService(redisTemplate, bytesEncryptor);
+        sessionService = new SessionServiceImpl(sessionRepository, bytesEncryptor, redisTemplate);
     }
 
     private void setFieldValue(Object target, String fieldName, Object value) throws Exception {
@@ -75,6 +80,9 @@ class SessionServiceTest {
             String state = "test-state";
             String redirectUri = "/dashboard";
 
+            when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+            when(valueOperations.getAndDelete("auth:request:" + state)).thenReturn(redirectUri);
+
             // Act
             sessionService.storeAuthRequest(state, redirectUri);
 
@@ -88,6 +96,9 @@ class SessionServiceTest {
         void getAuthRequest_shouldReturnNullForNonExistentState() {
             // Arrange
             String state = "non-existent-state";
+
+            when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+            when(valueOperations.getAndDelete("auth:request:" + state)).thenReturn(null);
 
             // Act
             String result = sessionService.getAuthRequest(state);
@@ -193,8 +204,7 @@ class SessionServiceTest {
                 .username("testuser")
                 .build();
 
-            when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-            when(valueOperations.get("bionicpro:session:session-123")).thenReturn(expectedSession);
+            when(sessionRepository.findById("session-123")).thenReturn(Optional.of(expectedSession));
 
             // Act
             SessionData result = sessionService.getSession("session-123");
@@ -209,8 +219,7 @@ class SessionServiceTest {
         @DisplayName("Should return null when session not found")
         void getSession_shouldReturnNullWhenNotFound() {
             // Arrange
-            when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-            when(valueOperations.get(anyString())).thenReturn(null);
+            when(sessionRepository.findById(anyString())).thenReturn(Optional.empty());
 
             // Act
             SessionData result = sessionService.getSession("non-existent");
@@ -238,8 +247,7 @@ class SessionServiceTest {
                 .lastAccessedAt(Instant.now())
                 .build();
 
-            when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-            when(valueOperations.get("bionicpro:session:session-123")).thenReturn(sessionData);
+            when(sessionRepository.findById("session-123")).thenReturn(Optional.of(sessionData));
 
             // Act
             SessionData result = sessionService.validateAndRefreshSession("session-123");
@@ -261,23 +269,21 @@ class SessionServiceTest {
                 .expiresAt(Instant.now().minusSeconds(100)) // Expired
                 .build();
 
-            when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-            when(valueOperations.get("bionicpro:session:session-123")).thenReturn(sessionData);
+            when(sessionRepository.findById("session-123")).thenReturn(Optional.of(sessionData));
 
             // Act
             SessionData result = sessionService.validateAndRefreshSession("session-123");
 
             // Assert
             assertNull(result);
-            verify(redisTemplate).delete("bionicpro:session:session-123");
+            verify(sessionRepository).deleteById("session-123");
         }
 
         @Test
         @DisplayName("Should return null when session not found")
         void validateAndRefreshSession_shouldReturnNullWhenNotFound() {
             // Arrange
-            when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-            when(valueOperations.get(anyString())).thenReturn(null);
+            when(sessionRepository.findById(anyString())).thenReturn(Optional.empty());
 
             // Act
             SessionData result = sessionService.validateAndRefreshSession("non-existent");
@@ -308,15 +314,15 @@ class SessionServiceTest {
                 .build();
 
             when(request.getCookies()).thenReturn(new Cookie[]{sessionCookie});
+            when(sessionRepository.findById("old-session-id")).thenReturn(Optional.of(oldSession));
             when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-            when(valueOperations.get("bionicpro:session:old-session-id")).thenReturn(oldSession);
 
             // Act
             sessionService.rotateSession(request, response);
 
             // Assert
             verify(valueOperations).set(anyString(), any(SessionData.class), any(Duration.class));
-            verify(redisTemplate).delete("bionicpro:session:old-session-id");
+            verify(sessionRepository).deleteById("old-session-id");
             
             // Verify new cookie is set
             ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
@@ -364,7 +370,7 @@ class SessionServiceTest {
             sessionService.invalidateSession(request, response);
 
             // Assert
-            verify(redisTemplate).delete("bionicpro:session:session-123");
+            verify(sessionRepository).deleteById("session-123");
             
             // Verify cookie is cleared
             ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
@@ -396,8 +402,7 @@ class SessionServiceTest {
                 .build();
 
             when(request.getCookies()).thenReturn(new Cookie[]{sessionCookie});
-            when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-            when(valueOperations.get("bionicpro:session:session-123")).thenReturn(sessionData);
+            when(sessionRepository.findById("session-123")).thenReturn(Optional.of(sessionData));
 
             // Act
             Instant result = sessionService.getSessionExpiration(request);
@@ -429,7 +434,8 @@ class SessionServiceTest {
         @DisplayName("Should return decrypted access token")
         void getAccessToken_shouldReturnDecryptedToken() throws Exception {
             // Arrange
-            String encryptedToken = "encryptedToken123";
+            // encryptedToken must be a valid Base64 string (Base64 of "someTokenData")
+            String encryptedToken = "c29tZVRva2VuRGF0YQ==";
             String decryptedToken = "decryptedToken456";
             
             SessionData sessionData = SessionData.builder()
@@ -437,8 +443,7 @@ class SessionServiceTest {
                 .accessToken(encryptedToken)
                 .build();
 
-            when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-            when(valueOperations.get("bionicpro:session:session-123")).thenReturn(sessionData);
+            when(sessionRepository.findById("session-123")).thenReturn(Optional.of(sessionData));
             when(bytesEncryptor.decrypt(any(byte[].class))).thenReturn(decryptedToken.getBytes());
 
             // Act
@@ -458,8 +463,7 @@ class SessionServiceTest {
                 .accessToken(null)
                 .build();
 
-            when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-            when(valueOperations.get("bionicpro:session:session-123")).thenReturn(sessionData);
+            when(sessionRepository.findById("session-123")).thenReturn(Optional.of(sessionData));
 
             // Act
             String result = sessionService.getAccessToken("session-123");

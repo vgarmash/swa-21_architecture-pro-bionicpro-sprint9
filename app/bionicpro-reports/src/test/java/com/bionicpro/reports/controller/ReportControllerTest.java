@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.anyString;
@@ -90,10 +91,12 @@ class ReportControllerTest {
 
         // Act & Assert
         mockMvc.perform(get("/api/v1/reports")
-                        .with(jwt().jwt(builder -> builder
-                                .subject("user-123")
-                                .claim("preferred_username", "testuser")
-                                .claim("email", "test@example.com"))))
+                        .with(jwt()
+                                .jwt(builder -> builder
+                                        .subject("user-123")
+                                        .claim("preferred_username", "testuser")
+                                        .claim("email", "test@example.com"))
+                                .authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_prothetic_user"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(1))
                 .andExpect(jsonPath("$[0].userId").value("user-123"))
@@ -111,7 +114,9 @@ class ReportControllerTest {
 
         // Act & Assert
         mockMvc.perform(get("/api/v1/reports/user-123/999")
-                        .with(jwt().jwt(builder -> builder.subject("user-123"))))
+                        .with(jwt()
+                                .jwt(builder -> builder.subject("user-123"))
+                                .authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_prothetic_user"))))
                 .andExpect(status().isNotFound());
     }
 
@@ -141,7 +146,9 @@ class ReportControllerTest {
 
         // Act & Assert
         mockMvc.perform(get("/api/v1/reports")
-                        .with(jwt().jwt(builder -> builder.subject("user-123"))))
+                        .with(jwt()
+                                .jwt(builder -> builder.subject("user-123"))
+                                .authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_prothetic_user"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$").isEmpty());
@@ -169,7 +176,9 @@ class ReportControllerTest {
 
         // Act & Assert
         mockMvc.perform(get("/api/v1/reports/user-123/1")
-                        .with(jwt().jwt(builder -> builder.subject("user-123"))))
+                        .with(jwt()
+                                .jwt(builder -> builder.subject("user-123"))
+                                .authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_prothetic_user"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.title").value("Monthly Performance Report"));

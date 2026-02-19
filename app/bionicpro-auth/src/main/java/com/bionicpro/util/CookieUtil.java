@@ -45,7 +45,7 @@ public class CookieUtil {
         Cookie cookie = new Cookie(cookieName, sessionValue);
         cookie.setHttpOnly(true);
         cookie.setSecure(true);
-        cookie.setSameSite("Lax");
+        cookie.setAttribute("SameSite", "Lax");
         cookie.setPath("/");
         cookie.setMaxAge(sessionTimeoutMinutes * 60); // в секундах
         response.addCookie(cookie);
@@ -60,7 +60,7 @@ public class CookieUtil {
         Cookie cookie = new Cookie(cookieName, "");
         cookie.setHttpOnly(true);
         cookie.setSecure(true);
-        cookie.setSameSite("Lax");
+        cookie.setAttribute("SameSite", "Lax");
         cookie.setPath("/");
         cookie.setMaxAge(0); // Установка 0 удаляет куку
         response.addCookie(cookie);
