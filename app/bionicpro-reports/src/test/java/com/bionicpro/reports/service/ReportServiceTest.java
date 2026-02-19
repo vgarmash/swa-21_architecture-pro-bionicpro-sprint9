@@ -12,10 +12,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -35,21 +37,27 @@ class ReportServiceTest {
     private ReportService reportService;
 
     private UserReport testReport;
-    private final String TEST_USER_ID = "user-123";
+    private final Long TEST_USER_ID = 123L;
 
     @BeforeEach
     void setUp() {
-        LocalDateTime now = LocalDateTime.now();
         testReport = UserReport.builder()
-                .id(1L)
                 .userId(TEST_USER_ID)
-                .reportType("daily_summary")
-                .title("Daily Summary Report")
-                .content("{\"key\": \"value\"}")
-                .generatedAt(now)
-                .periodStart(now.minusDays(1))
-                .periodEnd(now)
-                .status("READY")
+                .reportDate(LocalDate.of(2024, 1, 15))
+                .totalSessions(45)
+                .avgSignalAmplitude(0.75f)
+                .maxSignalAmplitude(1.2f)
+                .minSignalAmplitude(0.3f)
+                .avgSignalFrequency(150.5f)
+                .totalUsageHours(12.5f)
+                .prosthesisType("upper_limb")
+                .muscleGroup("biceps")
+                .customerName("Ivan Ivanov")
+                .customerEmail("ivanov@example.com")
+                .customerAge(35)
+                .customerGender("male")
+                .customerCountry("Russia")
+                .createdAt(LocalDateTime.now())
                 .build();
     }
 
@@ -57,17 +65,16 @@ class ReportServiceTest {
     @DisplayName("test_extract_user_id_from_token - User ID is correctly extracted from JWT subject")
     void test_extract_user_id_from_token() {
         // Arrange
-        String userId = "user-123";
-        when(reportRepository.findByUserId(userId))
+        when(reportRepository.findByUserId(TEST_USER_ID))
                 .thenReturn(Arrays.asList(testReport));
 
         // Act
-        List<ReportResponse> result = reportService.getReportsForUser(userId);
+        List<ReportResponse> result = reportService.getReportsForUser(TEST_USER_ID);
 
         // Assert
         assertThat(result).isNotEmpty();
-        assertThat(result.get(0).getUserId()).isEqualTo(userId);
-        verify(reportRepository, times(1)).findByUserId(userId);
+        assertThat(result.get(0).getUserId()).isEqualTo(TEST_USER_ID);
+        verify(reportRepository, times(1)).findByUserId(TEST_USER_ID);
     }
 
     @Test
@@ -83,17 +90,27 @@ class ReportServiceTest {
         // Assert
         assertThat(result).hasSize(1);
         ReportResponse response = result.get(0);
-        
+
         // Verify all fields are mapped correctly
-        assertThat(response.getId()).isEqualTo(1L);
         assertThat(response.getUserId()).isEqualTo(TEST_USER_ID);
-        assertThat(response.getReportType()).isEqualTo("daily_summary");
-        assertThat(response.getTitle()).isEqualTo("Daily Summary Report");
-        assertThat(response.getContent()).isEqualTo("{\"key\": \"value\"}");
-        assertThat(response.getStatus()).isEqualTo("READY");
-        assertThat(response.getGeneratedAt()).isNotNull();
-        assertThat(response.getPeriodStart()).isNotNull();
-        assertThat(response.getPeriodEnd()).isNotNull();
+        assertThat(response.getReportDate()).isEqualTo("2024-01-15");
+        assertThat(response.getTotalSessions()).isEqualTo(45);
+        // Use tolerance for Float->Double conversion precision
+        assertThat(response.getAvgSignalAmplitude()).isCloseTo(0.75, org.assertj.core.data.Offset.offset(0.001));
+        assertThat(response.getMaxSignalAmplitude()).isCloseTo(1.2, org.assertj.core.data.Offset.offset(0.001));
+        assertThat(response.getMinSignalAmplitude()).isCloseTo(0.3, org.assertj.core.data.Offset.offset(0.001));
+        assertThat(response.getAvgSignalFrequency()).isCloseTo(150.5, org.assertj.core.data.Offset.offset(0.001));
+        assertThat(response.getTotalUsageHours()).isCloseTo(12.5, org.assertj.core.data.Offset.offset(0.001));
+        assertThat(response.getProsthesisType()).isEqualTo("upper_limb");
+        assertThat(response.getMuscleGroup()).isEqualTo("biceps");
+
+        // Verify customer info
+        assertThat(response.getCustomerInfo()).isNotNull();
+        assertThat(response.getCustomerInfo().getName()).isEqualTo("Ivan Ivanov");
+        assertThat(response.getCustomerInfo().getEmail()).isEqualTo("ivanov@example.com");
+        assertThat(response.getCustomerInfo().getAge()).isEqualTo(35);
+        assertThat(response.getCustomerInfo().getGender()).isEqualTo("male");
+        assertThat(response.getCustomerInfo().getCountry()).isEqualTo("Russia");
     }
 
     @Test
@@ -112,34 +129,30 @@ class ReportServiceTest {
     }
 
     @Test
-    @DisplayName("Returns user's report by ID when found")
-    void test_get_report_by_id_found() {
+    @DisplayName("Returns latest report for user")
+    void test_get_latest_report_found() {
         // Arrange
-        Long reportId = 1L;
-        when(reportRepository.findByIdAndUserId(reportId, TEST_USER_ID))
-                .thenReturn(testReport);
+        when(reportRepository.findLatestByUserId(TEST_USER_ID))
+                .thenReturn(Optional.of(testReport));
 
         // Act
-        ReportResponse result = reportService.getReportById(reportId, TEST_USER_ID);
+        ReportResponse result = reportService.getLatestReport(TEST_USER_ID, TEST_USER_ID);
 
         // Assert
         assertThat(result).isNotNull();
-        assertThat(result.getId()).isEqualTo(reportId);
-        assertThat(result.getTitle()).isEqualTo("Daily Summary Report");
+        assertThat(result.getUserId()).isEqualTo(TEST_USER_ID);
+        assertThat(result.getProsthesisType()).isEqualTo("upper_limb");
     }
 
     @Test
-    @DisplayName("Returns null when report not found")
-    void test_get_report_by_id_not_found() {
+    @DisplayName("Returns null when latest report not found")
+    void test_get_latest_report_not_found() {
         // Arrange
-        Long reportId = 999L;
-        when(reportRepository.findByIdAndUserId(reportId, TEST_USER_ID))
-                .thenReturn(null);
-        when(reportRepository.existsById(reportId))
-                .thenReturn(false);
+        when(reportRepository.findLatestByUserId(TEST_USER_ID))
+                .thenReturn(Optional.empty());
 
         // Act
-        ReportResponse result = reportService.getReportById(reportId, TEST_USER_ID);
+        ReportResponse result = reportService.getLatestReport(TEST_USER_ID, TEST_USER_ID);
 
         // Assert
         assertThat(result).isNull();
@@ -147,16 +160,9 @@ class ReportServiceTest {
 
     @Test
     @DisplayName("Throws UnauthorizedAccessException when accessing another user's report")
-    void test_get_report_by_id_unauthorized_access() {
-        // Arrange
-        Long reportId = 1L;
-        when(reportRepository.findByIdAndUserId(reportId, TEST_USER_ID))
-                .thenReturn(null);
-        when(reportRepository.existsById(reportId))
-                .thenReturn(true); // Report exists but belongs to another user
-
+    void test_get_latest_report_unauthorized_access() {
         // Act & Assert
-        assertThatThrownBy(() -> reportService.getReportById(reportId, TEST_USER_ID))
+        assertThatThrownBy(() -> reportService.getLatestReport(999L, TEST_USER_ID))
                 .isInstanceOf(UnauthorizedAccessException.class)
                 .hasMessageContaining("You don't have permission to access this report");
     }
@@ -180,17 +186,22 @@ class ReportServiceTest {
     @DisplayName("Multiple reports are correctly mapped to response DTOs")
     void test_multiple_reports_mapping() {
         // Arrange
-        LocalDateTime now = LocalDateTime.now();
         UserReport report2 = UserReport.builder()
-                .id(2L)
                 .userId(TEST_USER_ID)
-                .reportType("monthly_performance")
-                .title("Monthly Performance")
-                .content("Content 2")
-                .generatedAt(now)
-                .periodStart(now.minusMonths(1))
-                .periodEnd(now)
-                .status("READY")
+                .reportDate(LocalDate.of(2024, 1, 16))
+                .totalSessions(50)
+                .avgSignalAmplitude(0.8f)
+                .maxSignalAmplitude(1.3f)
+                .minSignalAmplitude(0.4f)
+                .avgSignalFrequency(155.0f)
+                .totalUsageHours(13.0f)
+                .prosthesisType("lower_limb")
+                .muscleGroup("quadriceps")
+                .customerName("Ivan Ivanov")
+                .customerEmail("ivanov@example.com")
+                .customerAge(35)
+                .customerGender("male")
+                .customerCountry("Russia")
                 .build();
 
         when(reportRepository.findByUserId(TEST_USER_ID))
@@ -201,7 +212,31 @@ class ReportServiceTest {
 
         // Assert
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).getId()).isEqualTo(1L);
-        assertThat(result.get(1).getId()).isEqualTo(2L);
+        assertThat(result.get(0).getReportDate()).isEqualTo("2024-01-15");
+        assertThat(result.get(1).getReportDate()).isEqualTo("2024-01-16");
+    }
+
+    @Test
+    @DisplayName("Returns recent reports with limit")
+    void test_get_recent_reports() {
+        // Arrange
+        when(reportRepository.findLatestByUserId(TEST_USER_ID, 10))
+                .thenReturn(Arrays.asList(testReport));
+
+        // Act
+        List<ReportResponse> result = reportService.getRecentReports(TEST_USER_ID, TEST_USER_ID, 10);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        verify(reportRepository, times(1)).findLatestByUserId(TEST_USER_ID, 10);
+    }
+
+    @Test
+    @DisplayName("Throws UnauthorizedAccessException when getting recent reports for another user")
+    void test_get_recent_reports_unauthorized_access() {
+        // Act & Assert
+        assertThatThrownBy(() -> reportService.getRecentReports(999L, TEST_USER_ID, 10))
+                .isInstanceOf(UnauthorizedAccessException.class)
+                .hasMessageContaining("You don't have permission to access these reports");
     }
 }

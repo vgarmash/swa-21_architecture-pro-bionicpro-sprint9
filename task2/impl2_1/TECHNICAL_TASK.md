@@ -1,7 +1,7 @@
 # Техническое задание на исправление проблем BionicPRO
 
 **Дата:** 2026-02-18  
-**Источники:** audit_report_2026-02-18.md, CODE_AUDIT_REPORT.md, Gemini_audit_report.md  
+**Источники:** analysis/task2/impl_round1/audit_report_2026-02-18.md, analysis/task2/impl_round1/CODE_AUDIT_REPORT.md, analysis/task2/impl_round1/Gemini_audit_report.md  
 **Версия:** Sprint 9
 
 ---
@@ -33,17 +33,17 @@
 
 [//]: # (|----------------|------|----------|)
 
-[//]: # (| audit_report_2026-02-18 | `app/keycloak/realm-export.json` | Все пароли пользователей и client secrets в plaintext |)
+[//]: # (| analysis/task2/impl_round1/audit_report_2026-02-18 | `app/keycloak/realm-export.json` | Все пароли пользователей и client secrets в plaintext |)
 
-[//]: # (| audit_report_2026-02-18 | `app/ldap/config.ldif` | Пароли LDAP пользователей в plaintext &#40;`userPassword: password`&#41; |)
+[//]: # (| analysis/task2/impl_round1/audit_report_2026-02-18 | `app/ldap/config.ldif` | Пароли LDAP пользователей в plaintext &#40;`userPassword: password`&#41; |)
 
-[//]: # (| audit_report_2026-02-18 | `app/airflow/dags/bionicpro_etl_dag.py:35,62` | `sensors_password`, `crm_password` захардкожены |)
+[//]: # (| analysis/task2/impl_round1/audit_report_2026-02-18 | `app/airflow/dags/bionicpro_etl_dag.py:35,62` | `sensors_password`, `crm_password` захардкожены |)
 
-[//]: # (| audit_report_2026-02-18 | `app/docker-compose.yaml` | Keycloak admin, MinIO, пароли БД в plaintext |)
+[//]: # (| analysis/task2/impl_round1/audit_report_2026-02-18 | `app/docker-compose.yaml` | Keycloak admin, MinIO, пароли БД в plaintext |)
 
-[//]: # (| CODE_AUDIT_REPORT | `app/airflow/dags/bionicpro_etl_dag.py` | Хардкод credentials в psycopg2.connect&#40;&#41; |)
+[//]: # (| analysis/task2/impl_round1/CODE_AUDIT_REPORT | `app/airflow/dags/bionicpro_etl_dag.py` | Хардкод credentials в psycopg2.connect&#40;&#41; |)
 
-[//]: # (| Gemini_audit_report | `app/airflow/dags/bionicpro_etl_dag.py` | Жёстко закодированные учетные данные БД |)
+[//]: # (| analysis/task2/impl_round1/Gemini_audit_report | `app/airflow/dags/bionicpro_etl_dag.py` | Жёстко закодированные учетные данные БД |)
 
 [//]: # ()
 [//]: # (**Требуемое действие:** )
@@ -64,7 +64,7 @@
 [//]: # (**Описание проблемы:** Redis запущен без пароля &#40;`--requirepass`&#41;.)
 
 [//]: # ()
-[//]: # (**Исходный отчёт:** audit_report_2026-02-18 &#40;SEC-005&#41;  )
+[//]: # (**Исходный отчёт:** analysis/task2/impl_round1/audit_report_2026-02-18 &#40;SEC-005&#41;  )
 
 [//]: # (**Файл:** `app/docker-compose.yaml`)
 
@@ -91,9 +91,9 @@
 [//]: # ()
 [//]: # (**Исходные отчёты:** )
 
-[//]: # (- audit_report_2026-02-18 &#40;SEC-004, SEC-006&#41;  )
+[//]: # (- analysis/task2/impl_round1/audit_report_2026-02-18 &#40;SEC-004, SEC-006&#41;  )
 
-[//]: # (- CODE_AUDIT_REPORT)
+[//]: # (- analysis/task2/impl_round1/CODE_AUDIT_REPORT)
 
 [//]: # ()
 [//]: # (**Файлы:** )
@@ -121,9 +121,9 @@
 [//]: # ()
 [//]: # (**Исходные отчёты:** )
 
-[//]: # (- audit_report_2026-02-18 &#40;SEC-007&#41;  )
+[//]: # (- analysis/task2/impl_round1/audit_report_2026-02-18 &#40;SEC-007&#41;  )
 
-[//]: # (- Gemini_audit_report &#40;раздел 5&#41;)
+[//]: # (- analysis/task2/impl_round1/Gemini_audit_report &#40;раздел 5&#41;)
 
 [//]: # ()
 [//]: # (**Файл:** `app/docker-compose.yaml:195`)
@@ -143,9 +143,9 @@
 [//]: # ()
 [//]: # (**Исходные отчёты:** )
 
-[//]: # (- audit_report_2026-02-18 &#40;SEC-008&#41;  )
+[//]: # (- analysis/task2/impl_round1/audit_report_2026-02-18 &#40;SEC-008&#41;  )
 
-[//]: # (- Gemini_audit_report &#40;раздел 4, пункт 1&#41;)
+[//]: # (- analysis/task2/impl_round1/Gemini_audit_report &#40;раздел 4, пункт 1&#41;)
 
 [//]: # ()
 [//]: # (**Файл:** `app/frontend/nginx.conf`)
@@ -165,11 +165,11 @@
 [//]: # ()
 [//]: # (**Исходные отчёты:** )
 
-[//]: # (- audit_report_2026-02-18 &#40;SEC-009, CQ-002&#41;  )
+[//]: # (- analysis/task2/impl_round1/audit_report_2026-02-18 &#40;SEC-009, CQ-002&#41;  )
 
-[//]: # (- CODE_AUDIT_REPORT  )
+[//]: # (- analysis/task2/impl_round1/CODE_AUDIT_REPORT  )
 
-[//]: # (- Gemini_audit_report &#40;раздел 1, пункт 1&#41;)
+[//]: # (- analysis/task2/impl_round1/Gemini_audit_report &#40;раздел 1, пункт 1&#41;)
 
 [//]: # ()
 [//]: # (**Файл:** `app/bionicpro-auth/src/main/java/com/bionicpro/config/OAuth2ClientConfig.java`)
@@ -191,7 +191,7 @@
 [//]: # (**Описание проблемы:** Frontend напрямую интегрируется с Keycloak и Reports API, нарушая архитектуру BFF.)
 
 [//]: # ()
-[//]: # (**Исходные отчёты:** CODE_AUDIT_REPORT &#40;FE-001, FE-002, FE-003&#41;)
+[//]: # (**Исходные отчёты:** analysis/task2/impl_round1/CODE_AUDIT_REPORT &#40;FE-001, FE-002, FE-003&#41;)
 
 [//]: # ()
 [//]: # (**Файлы:**)
@@ -203,7 +203,7 @@
 [//]: # (- `app/frontend/.env` — `REACT_APP_API_URL=http://localhost:8081/api/v1`)
 
 [//]: # ()
-[//]: # (**Доказательство из CODE_AUDIT_REPORT:**)
+[//]: # (**Доказательство из analysis/task2/impl_round1/CODE_AUDIT_REPORT:**)
 
 [//]: # (```tsx)
 
@@ -241,17 +241,17 @@
 [//]: # ()
 [//]: # (**Исходные отчёты:** )
 
-[//]: # (- audit_report_2026-02-18 &#40;SEC-019, CQ-004&#41;  )
+[//]: # (- analysis/task2/impl_round1/audit_report_2026-02-18 &#40;SEC-019, CQ-004&#41;  )
 
-[//]: # (- CODE_AUDIT_REPORT &#40;AUTH-001&#41;  )
+[//]: # (- analysis/task2/impl_round1/CODE_AUDIT_REPORT &#40;AUTH-001&#41;  )
 
-[//]: # (- Gemini_audit_report &#40;раздел 1, пункт 5&#41;)
+[//]: # (- analysis/task2/impl_round1/Gemini_audit_report &#40;раздел 1, пункт 5&#41;)
 
 [//]: # ()
 [//]: # (**Файл:** `app/bionicpro-auth/src/main/java/com/bionicpro/service/SessionService.java:117`)
 
 [//]: # ()
-[//]: # (**Доказательство из CODE_AUDIT_REPORT:**)
+[//]: # (**Доказательство из analysis/task2/impl_round1/CODE_AUDIT_REPORT:**)
 
 [//]: # (```java)
 
@@ -284,15 +284,15 @@
 [//]: # ()
 [//]: # (**Исходные отчёты:** )
 
-[//]: # (- CODE_AUDIT_REPORT &#40;RPT-001&#41;  )
+[//]: # (- analysis/task2/impl_round1/CODE_AUDIT_REPORT &#40;RPT-001&#41;  )
 
-[//]: # (- Gemini_audit_report &#40;раздел 2, пункт 3&#41;)
+[//]: # (- analysis/task2/impl_round1/Gemini_audit_report &#40;раздел 2, пункт 3&#41;)
 
 [//]: # ()
 [//]: # (**Файл:** `app/bionicpro-reports/src/main/java/com/bionicpro/reports/config/SecurityConfig.java:27`)
 
 [//]: # ()
-[//]: # (**Доказательство из CODE_AUDIT_REPORT:**)
+[//]: # (**Доказательство из analysis/task2/impl_round1/CODE_AUDIT_REPORT:**)
 
 [//]: # (```java)
 
@@ -325,9 +325,9 @@
 [//]: # ()
 [//]: # (**Исходные отчёты:** )
 
-[//]: # (- CODE_AUDIT_REPORT &#40;AUTH-002&#41;  )
+[//]: # (- analysis/task2/impl_round1/CODE_AUDIT_REPORT &#40;AUTH-002&#41;  )
 
-[//]: # (- Gemini_audit_report &#40;раздел 1, пункт 6&#41;)
+[//]: # (- analysis/task2/impl_round1/Gemini_audit_report &#40;раздел 1, пункт 6&#41;)
 
 [//]: # ()
 [//]: # (**Файл:** `app/bionicpro-auth/src/main/java/com/bionicpro/service/SessionService.java:40`)
@@ -344,7 +344,7 @@
 [//]: # (**Описание проблемы:** Отсутствует свойство `keycloak.client-secret` для аутентификации bionicpro-auth в Keycloak.)
 
 [//]: # ()
-[//]: # (**Исходный отчёт:** Gemini_audit_report &#40;раздел 1, пункт 7&#41;)
+[//]: # (**Исходный отчёт:** analysis/task2/impl_round1/Gemini_audit_report &#40;раздел 1, пункт 7&#41;)
 
 [//]: # ()
 [//]: # (**Файл:** `app/bionicpro-auth/src/main/resources/application.yml`)
@@ -363,97 +363,92 @@
 [//]: # ()
 [//]: # (**Исходные отчёты:** )
 
-[//]: # (- audit_report_2026-02-18 &#40;SEC-016&#41;  )
+[//]: # (- analysis/task2/impl_round1/audit_report_2026-02-18 &#40;SEC-016&#41;  )
 
-[//]: # (- Gemini_audit_report &#40;раздел 1, пункт 2&#41;)
+[//]: # (- analysis/task2/impl_round1/Gemini_audit_report &#40;раздел 1, пункт 2&#41;)
 
 [//]: # ()
 [//]: # (**Требуемое действие:** Изменить SessionRotationFilter для запуска на всех аутентифицированных запросах)
 
-### 1.13 CSRF защита отключена
+[//]: # (### 1.13 CSRF защита отключена)
 
-**Описание проблемы:** CSRF отключён во всех SecurityFilterChain бинах.
+[//]: # ()
+[//]: # (**Описание проблемы:** CSRF отключён во всех SecurityFilterChain бинах.)
 
-**Исходные отчёты:** 
-- CODE_AUDIT_REPORT (AUTH-006)  
-- Gemini_audit_report (раздел 1, пункт 3)
+[//]: # ()
+[//]: # (**Исходные отчёты:** )
 
-**Файл:** `app/bionicpro-auth/src/main/java/com/bionicpro/config/SecurityConfig.java:43`
+[//]: # (- analysis/task2/impl_round1/CODE_AUDIT_REPORT &#40;AUTH-006&#41;  )
 
-**Требуемое действие:** Включить CSRF защиту, особенно для apiProxySecurityFilterChain и defaultSecurityFilterChain
+[//]: # (- analysis/task2/impl_round1/Gemini_audit_report &#40;раздел 1, пункт 3&#41;)
 
----
+[//]: # ()
+[//]: # (**Файл:** `app/bionicpro-auth/src/main/java/com/bionicpro/config/SecurityConfig.java:43`)
 
-### 1.14 Отзыв токена при logout не реализован
+[//]: # ()
+[//]: # (**Требуемое действие:** Включить CSRF защиту, особенно для apiProxySecurityFilterChain и defaultSecurityFilterChain)
 
-**Описание проблемы:** Метод logout() только очищает локальный BFF сеанс. Refresh token в Keycloak остаётся действительным.
+[//]: # ()
+[//]: # (---)
 
-**Исходный отчёт:** Gemini_audit_report (раздел 1, пункт 4)
+[//]: # (### 1.14 Отзыв токена при logout не реализован)
 
-**Файлы:** 
-- `app/bionicpro-auth/src/main/java/com/bionicpro/controller/AuthController.java`
-- `app/bionicpro-auth/src/main/java/com/bionicpro/service/SessionService.java`
+[//]: # ()
+[//]: # (**Описание проблемы:** Метод logout&#40;&#41; только очищает локальный BFF сеанс. Refresh token в Keycloak остаётся действительным.)
 
-**Требуемое действие:** Реализовать механизм отзыва токена в Keycloak token revocation endpoint
+[//]: # ()
+[//]: # (**Исходный отчёт:** analysis/task2/impl_round1/Gemini_audit_report &#40;раздел 1, пункт 4&#41;)
 
----
+[//]: # ()
+[//]: # (**Файлы:** )
+
+[//]: # (- `app/bionicpro-auth/src/main/java/com/bionicpro/controller/AuthController.java`)
+
+[//]: # (- `app/bionicpro-auth/src/main/java/com/bionicpro/service/SessionService.java`)
+
+[//]: # ()
+[//]: # (**Требуемое действие:** Реализовать механизм отзыва токена в Keycloak token revocation endpoint)
+
+[//]: # ()
+[//]: # (---)
 
 ## 2. Критические проблемы архитектуры (CRITICAL)
 
-### 2.1 Отсутствуют обязательные компоненты (ARCH-001)
 
-**Описание проблемы:** Согласно ТЗ требуются, но отсутствуют:
+[//]: # (### 2.3 Data Model Mismatch — bionicpro-reports)
 
-**Исходный отчёт:** audit_report_2026-02-18 (ARCH-001)
+[//]: # ()
+[//]: # (**Описание проблемы:** Модели данных не соответствуют схеме БД ClickHouse.)
 
-**Отсутствующие компоненты:**
-- `AuthService` interface
-- `AuthServiceImpl` implementation
-- `SessionService` interface (есть только конкретный класс)
-- `SessionServiceImpl` implementation
-- `InMemorySessionRepository` (fallback при недоступности Redis)
-- `CookieUtil` utility class
-- `TokenEncryptor` utility class
+[//]: # ()
+[//]: # (**Исходные отчёты:** analysis/task2/impl_round1/Gemini_audit_report &#40;раздел 2, пункты 4, 5, 6&#41;)
 
-**Требуемое действие:** Создать все требуемые интерфейсы и классы согласно task1/impl/03_task3_bionicpro_auth.md
+[//]: # ()
+[//]: # (**Проблемы:**)
 
----
+[//]: # (1. `UserReport.java` не соответствует схеме таблицы `user_reports` — отсутствуют аналитические поля)
 
-### 2.2 Отсутствует ReportNotFoundException
+[//]: # (2. `ReportResponse.java` не соответствует структуре из ТЗ)
 
-**Описание проблемы:** ТЗ требует отдельный класс исключения, но он не реализован.
+[//]: # (3. `ReportRepository.java` — RowMapper и SQL запросы ожидают несуществующие столбцы)
 
-**Исходные отчёты:** 
-- audit_report_2026-02-18 (ARCH-004)  
-- CODE_AUDIT_REPORT (RPT-002)
+[//]: # ()
+[//]: # (**Требуемое действие:**)
 
-**Требуемое действие:** Создать класс `ReportNotFoundException`
+[//]: # (- Обновить `UserReport.java` для соответствия схеме таблицы `user_reports`)
 
----
+[//]: # (- Обновить `ReportResponse.java` согласно task2/impl/03_reports_api_service.md)
 
-### 2.3 Data Model Mismatch — bionicpro-reports
+[//]: # (- Исправить `userReportRowMapper` и SQL запросы в `ReportRepository.java`)
 
-**Описание проблемы:** Модели данных не соответствуют схеме БД ClickHouse.
-
-**Исходные отчёты:** Gemini_audit_report (раздел 2, пункты 4, 5, 6)
-
-**Проблемы:**
-1. `UserReport.java` не соответствует схеме таблицы `user_reports` — отсутствуют аналитические поля
-2. `ReportResponse.java` не соответствует структуре из ТЗ
-3. `ReportRepository.java` — RowMapper и SQL запросы ожидают несуществующие столбцы
-
-**Требуемое действие:**
-- Обновить `UserReport.java` для соответствия схеме таблицы `user_reports`
-- Обновить `ReportResponse.java` согласно task2/impl/03_reports_api_service.md
-- Исправить `userReportRowMapper` и SQL запросы в `ReportRepository.java`
-
----
+[//]: # ()
+[//]: # (---)
 
 ### 2.4 Несоответствие типов userId
 
 **Описание проблемы:** userId передаётся как String из JWT, но в ClickHouse столбец user_id имеет тип UInt32.
 
-**Исходный отчёт:** Gemini_audit_report (раздел 2, пункт 8)
+**Исходный отчёт:** analysis/task2/impl_round1/Gemini_audit_report (раздел 2, пункт 8)
 
 **Файлы:**
 - `app/bionicpro-reports/src/main/java/com/bionicpro/reports/controller/ReportController.java`
@@ -467,7 +462,7 @@
 
 **Описание проблемы:** connectionTimeout загружается из application.yml, но затем игнорируется.
 
-**Исходный отчёт:** Gemini_audit_report (раздел 2, пункт 2)
+**Исходный отчёт:** analysis/task2/impl_round1/Gemini_audit_report (раздел 2, пункт 2)
 
 **Файл:** `app/bionicpro-reports/src/main/java/com/bionicpro/reports/config/ClickHouseConfig.java`
 
@@ -482,7 +477,7 @@
 **Описание проблемы:** ТЗ требует: "10 попыток входа в минуту с одного IP", "5 попыток refresh в минуту".
 
 **Исходные отчёты:** 
-- audit_report_2026-02-18 (SEC-018)  
+- analysis/task2/impl_round1/audit_report_2026-02-18 (SEC-018)  
 - CODE_AUTHIT_REPORT (AUTH-003)
 
 **Требуемое действие:** Реализовать Rate Limiting в SecurityConfig
@@ -494,9 +489,9 @@
 **Описание проблемы:** ТЗ требует SameSite=Strict, код использует Lax.
 
 **Исходные отчёты:** 
-- audit_report_2026-02-18 (SEC-017)  
-- CODE_AUDIT_REPORT (AUTH-005)  
-- Gemini_audit_report (раздел 1, пункт 1)
+- analysis/task2/impl_round1/audit_report_2026-02-18 (SEC-017)  
+- analysis/task2/impl_round1/CODE_AUDIT_REPORT (AUTH-005)  
+- analysis/task2/impl_round1/Gemini_audit_report (раздел 1, пункт 1)
 
 **Файл:** `app/bionicpro-auth/src/main/java/com/bionicpro/service/SessionService.java:197`
 
@@ -508,7 +503,7 @@
 
 **Описание проблемы:** Отсутствует confidential клиент для BFF в realm-export.json.
 
-**Исходный отчёт:** CODE_AUDIT_REPORT (KC-001)
+**Исходный отчёт:** analysis/task2/impl_round1/CODE_AUDIT_REPORT (KC-001)
 
 **Файл:** `app/keycloak/realm-export.json`
 
@@ -520,7 +515,7 @@
 
 **Описание проблемы:** `"defaultAction": false` — ТЗ требует обязательную MFA.
 
-**Исходный отчёт:** CODE_AUDIT_REPORT (KC-002)
+**Исходный отчёт:** analysis/task2/impl_round1/CODE_AUDIT_REPORT (KC-002)
 
 **Файл:** `app/keycloak/realm-export.json:22`
 
@@ -532,7 +527,7 @@
 
 **Описание проблемы:** ТЗ требует логирование всех операций аутентификации.
 
-**Исходный отчёт:** CODE_AUDIT_REPORT (AUTH-007)
+**Исходный отчёт:** analysis/task2/impl_round1/CODE_AUDIT_REPORT (AUTH-007)
 
 **Требуемое действие:** Реализовать Audit Logging для auth операций
 
@@ -542,7 +537,7 @@
 
 **Описание проблемы:** `/tmp/sensors_data.csv` — не работает в распределённой среде.
 
-**Исходный отчёт:** CODE_AUDIT_REPORT (ETL-004)
+**Исходный отчёт:** analysis/task2/impl_round1/CODE_AUDIT_REPORT (ETL-004)
 
 **Файл:** `app/airflow/dags/bionicpro_etl_dag.py:48`
 
@@ -554,7 +549,7 @@
 
 **Описание проблемы:** ТЗ требует timeout 1 час, но он не настроен.
 
-**Исходный отчёт:** CODE_AUDIT_REPORT (ETL-005)
+**Исходный отчёт:** analysis/task2/impl_round1/CODE_AUDIT_REPORT (ETL-005)
 
 **Требуемое действие:** Добавить timeout на таски DAG
 
@@ -564,7 +559,7 @@
 
 **Описание проблемы:** Отсутствуют try/except блоки в DAG.
 
-**Исходный отчёт:** CODE_AUDIT_REPORT (ETL-003)
+**Исходный отчёт:** analysis/task2/impl_round1/CODE_AUDIT_REPORT (ETL-003)
 
 **Требуемое действие:** Добавить обработку ошибок в DAG
 
@@ -576,7 +571,7 @@
 
 **Описание проблемы:** pandas и clickhouse_driver не импортируются явно внутри функции.
 
-**Исходный отчёт:** Gemini_audit_report (раздел 3, пункт 2)
+**Исходный отчёт:** analysis/task2/impl_round1/Gemini_audit_report (раздел 3, пункт 2)
 
 **Файл:** `app/airflow/dags/bionicpro_etl_dag.py`
 
@@ -588,7 +583,7 @@
 
 **Описание проблемы:** TRACE/DEBUG logging раскрывает JWT токены.
 
-**Исходный отчёт:** audit_report_2026-02-18 (SEC-014)
+**Исходный отчёт:** analysis/task2/impl_round1/audit_report_2026-02-18 (SEC-014)
 
 **Файлы:**
 - `app/bionicpro-auth/src/main/resources/application.yml`
@@ -602,7 +597,7 @@
 
 **Описание проблемы:** react-scripts 5.0.1 — устаревший с уязвимостями.
 
-**Исходный отчёт:** audit_report_2026-02-18 (SEC-015)
+**Исходный отчёт:** analysis/task2/impl_round1/audit_report_2026-02-18 (SEC-015)
 
 **Файл:** `app/frontend/package.json`
 
@@ -614,7 +609,7 @@
 
 **Описание проблемы:** ТЗ требует MapStruct для маппинга DTO.
 
-**Исходный отчёт:** CODE_AUDIT_REPORT (AUTH-009)
+**Исходный отчёт:** analysis/task2/impl_round1/CODE_AUDIT_REPORT (AUTH-009)
 
 **Файл:** `app/bionicpro-auth/pom.xml`
 
@@ -628,7 +623,7 @@
 - Basic Auth для Airflow API (SEC-021)
 - Database ports exposed externally (SEC-022)
 
-**Исходный отчёт:** audit_report_2026-02-18 (SEC-021, SEC-022)
+**Исходный отчёт:** analysis/task2/impl_round1/audit_report_2026-02-18 (SEC-021, SEC-022)
 
 **Требуемое действие:**
 - Убрать внешние port mappings для БД
@@ -640,7 +635,7 @@
 
 **Описание проблемы:** Зависимости используют `condition: service_started` вместо healthcheck.
 
-**Исходный отчёт:** CODE_AUDIT_REPORT (DC-001)
+**Исходный отчёт:** analysis/task2/impl_round1/CODE_AUDIT_REPORT (DC-001)
 
 **Требуемое действие:** Добавить healthcheck для keycloak
 
@@ -650,7 +645,7 @@
 
 **Описание проблемы:** Объект keycloakConfig не включает `pkceMethod: 'S256'`.
 
-**Исходный отчёт:** Gemini_audit_report (раздел 4, пункт 1)
+**Исходный отчёт:** analysis/task2/impl_round1/Gemini_audit_report (раздел 4, пункт 1)
 
 **Файл:** `app/frontend/src/App.tsx`
 
@@ -664,7 +659,7 @@
 
 **Описание:** Интеграционные тесты практически отсутствуют (~5% покрытие).
 
-**Исходный отчёт:** audit_report_2026-02-18 (раздел 7)
+**Исходный отчёт:** analysis/task2/impl_round1/audit_report_2026-02-18 (раздел 7)
 
 **Требуемое действие:** Добавить интеграционные тесты с Testcontainers для всех БД
 
@@ -674,7 +669,7 @@
 
 **Описание:** E2E тесты полностью отсутствуют (0%).
 
-**Исходный отчёт:** audit_report_2026-02-18 (раздел 7)
+**Исходный отчёт:** analysis/task2/impl_round1/audit_report_2026-02-18 (раздел 7)
 
 **Требуемое действие:** Добавить E2E тесты (Playwright/Cypress)
 
@@ -682,7 +677,7 @@
 
 ### 5.3 Отсутствуют тесты для ключевых классов
 
-**Исходный отчёт:** audit_report_2026-02-18 (TC-AUTH-01..03, TC-REP-01..03)
+**Исходный отчёт:** analysis/task2/impl_round1/audit_report_2026-02-18 (TC-AUTH-01..03, TC-REP-01..03)
 
 **Не покрыто:**
 - SecurityConfig в bionicpro-auth
@@ -763,6 +758,6 @@ graph TD
 ---
 
 *Документ создан на основе анализа трёх отчётов аудита:*
-- *audit_report_2026-02-18.md*
-- *CODE_AUDIT_REPORT.md*
-- *Gemini_audit_report.md*
+- *analysis/task2/impl_round1/audit_report_2026-02-18.md*
+- *analysis/task2/impl_round1/CODE_AUDIT_REPORT.md*
+- *analysis/task2/impl_round1/Gemini_audit_report.md*

@@ -8,7 +8,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -32,7 +34,7 @@ public class ReportService {
      * @param currentUserId the ID of the authenticated user from JWT token
      * @return list of report responses for the user
      */
-    public List<ReportResponse> getReportsForUser(String currentUserId) {
+    public List<ReportResponse> getReportsForUser(Long currentUserId) {
         logger.debug("Fetching reports for user: {}", currentUserId);
         
         List<UserReport> reports = reportRepository.findByUserId(currentUserId);
@@ -43,33 +45,80 @@ public class ReportService {
     }
 
     /**
-     * Retrieves a specific report by ID for the authenticated user.
+     * Retrieves a specific report by user ID and report date.
      * Validates that the user has access to the requested report.
      *
-     * @param reportId the ID of the requested report
+     * @param requestedUserId the user ID from the request
+     * @param reportDate the report date
      * @param currentUserId the ID of the authenticated user from JWT token
-     * @return the report response
+     * @return the report response or null if not found
      * @throws UnauthorizedAccessException if user tries to access another user's report
      */
-    public ReportResponse getReportById(Long reportId, String currentUserId) {
-        logger.debug("Fetching report {} for user: {}", reportId, currentUserId);
+    public ReportResponse getReportByUserIdAndDate(Long requestedUserId, LocalDate reportDate, Long currentUserId) {
+        logger.debug("Fetching report for user {} on date {} (authenticated user: {})", 
+                requestedUserId, reportDate, currentUserId);
         
-        UserReport report = reportRepository.findByIdAndUserId(reportId, currentUserId);
-        
-        if (report == null) {
-            // Check if report exists at all to provide appropriate error message
-            if (!reportRepository.existsById(reportId)) {
-                logger.warn("Report not found: {}", reportId);
-                return null;
-            }
-            // Report exists but belongs to another user - throw authorization error
-            logger.warn("User {} attempted to access report {} belonging to another user", 
-                    currentUserId, reportId);
+        // Authorization check: users can only access their own reports
+        if (!currentUserId.equals(requestedUserId)) {
+            logger.warn("User {} attempted to access report for user {}", currentUserId, requestedUserId);
             throw new UnauthorizedAccessException(
                     "You don't have permission to access this report");
         }
         
-        return mapToResponse(report);
+        Optional<UserReport> report = reportRepository.findByUserIdAndReportDate(requestedUserId, reportDate);
+        
+        return report.map(this::mapToResponse).orElse(null);
+    }
+
+    /**
+     * Retrieves the latest report for the authenticated user.
+     *
+     * @param requestedUserId the user ID from the request
+     * @param currentUserId the ID of the authenticated user from JWT token
+     * @return the report response or null if not found
+     * @throws UnauthorizedAccessException if user tries to access another user's report
+     */
+    public ReportResponse getLatestReport(Long requestedUserId, Long currentUserId) {
+        logger.debug("Fetching latest report for user {} (authenticated user: {})", 
+                requestedUserId, currentUserId);
+        
+        // Authorization check: users can only access their own reports
+        if (!currentUserId.equals(requestedUserId)) {
+            logger.warn("User {} attempted to access report for user {}", currentUserId, requestedUserId);
+            throw new UnauthorizedAccessException(
+                    "You don't have permission to access this report");
+        }
+        
+        Optional<UserReport> report = reportRepository.findLatestByUserId(requestedUserId);
+        
+        return report.map(this::mapToResponse).orElse(null);
+    }
+
+    /**
+     * Retrieves a limited number of recent reports for the authenticated user.
+     *
+     * @param requestedUserId the user ID from the request
+     * @param currentUserId the ID of the authenticated user from JWT token
+     * @param limit maximum number of reports to return
+     * @return list of report responses
+     * @throws UnauthorizedAccessException if user tries to access another user's report
+     */
+    public List<ReportResponse> getRecentReports(Long requestedUserId, Long currentUserId, int limit) {
+        logger.debug("Fetching {} recent reports for user {} (authenticated user: {})", 
+                limit, requestedUserId, currentUserId);
+        
+        // Authorization check: users can only access their own reports
+        if (!currentUserId.equals(requestedUserId)) {
+            logger.warn("User {} attempted to access reports for user {}", currentUserId, requestedUserId);
+            throw new UnauthorizedAccessException(
+                    "You don't have permission to access these reports");
+        }
+        
+        List<UserReport> reports = reportRepository.findLatestByUserId(requestedUserId, limit);
+        
+        return reports.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -90,18 +139,32 @@ public class ReportService {
 
     /**
      * Maps UserReport entity to ReportResponse DTO.
+     * Converts Float values to Double for API consistency.
      */
     private ReportResponse mapToResponse(UserReport report) {
         return ReportResponse.builder()
-                .id(report.getId())
                 .userId(report.getUserId())
-                .reportType(report.getReportType())
-                .title(report.getTitle())
-                .content(report.getContent())
-                .generatedAt(report.getGeneratedAt())
-                .periodStart(report.getPeriodStart())
-                .periodEnd(report.getPeriodEnd())
-                .status(report.getStatus())
+                .reportDate(report.getReportDate() != null ? report.getReportDate().toString() : null)
+                .totalSessions(report.getTotalSessions())
+                .avgSignalAmplitude(report.getAvgSignalAmplitude() != null ? 
+                        report.getAvgSignalAmplitude().doubleValue() : null)
+                .maxSignalAmplitude(report.getMaxSignalAmplitude() != null ? 
+                        report.getMaxSignalAmplitude().doubleValue() : null)
+                .minSignalAmplitude(report.getMinSignalAmplitude() != null ? 
+                        report.getMinSignalAmplitude().doubleValue() : null)
+                .avgSignalFrequency(report.getAvgSignalFrequency() != null ? 
+                        report.getAvgSignalFrequency().doubleValue() : null)
+                .totalUsageHours(report.getTotalUsageHours() != null ? 
+                        report.getTotalUsageHours().doubleValue() : null)
+                .prosthesisType(report.getProsthesisType())
+                .muscleGroup(report.getMuscleGroup())
+                .customerInfo(ReportResponse.CustomerInfo.builder()
+                        .name(report.getCustomerName())
+                        .email(report.getCustomerEmail())
+                        .age(report.getCustomerAge())
+                        .gender(report.getCustomerGender())
+                        .country(report.getCustomerCountry())
+                        .build())
                 .build();
     }
 }

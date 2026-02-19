@@ -5,11 +5,30 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
  * Entity representing a user report stored in ClickHouse.
  * Maps to the user_reports table in the OLAP database.
+ *
+ * Schema matches the table created by ETL DAG:
+ * - user_id UInt32
+ * - report_date Date
+ * - total_sessions UInt32
+ * - avg_signal_amplitude Float32
+ * - max_signal_amplitude Float32
+ * - min_signal_amplitude Float32
+ * - avg_signal_frequency Float32
+ * - total_usage_hours Float32
+ * - prosthesis_type String
+ * - muscle_group String
+ * - customer_name String
+ * - customer_email String
+ * - customer_age UInt8
+ * - customer_gender String
+ * - customer_country String
+ * - created_at DateTime
  */
 @Data
 @Builder
@@ -18,47 +37,82 @@ import java.time.LocalDateTime;
 public class UserReport {
 
     /**
-     * Unique identifier of the report
-     */
-    private Long id;
-
-    /**
      * User ID (corresponds to Keycloak user ID)
      */
-    private String userId;
+    private Long userId;
 
     /**
-     * Report type (e.g., "daily_summary", "monthly_performance", etc.)
+     * Date of the report
      */
-    private String reportType;
+    private LocalDate reportDate;
 
     /**
-     * Report title
+     * Total number of EMG signal sessions recorded
      */
-    private String title;
+    private Integer totalSessions;
 
     /**
-     * Report content/data in JSON format
+     * Average signal amplitude across all sessions
      */
-    private String content;
+    private Float avgSignalAmplitude;
 
     /**
-     * Timestamp when the report was generated
+     * Maximum signal amplitude recorded
      */
-    private LocalDateTime generatedAt;
+    private Float maxSignalAmplitude;
 
     /**
-     * Report period start date
+     * Minimum signal amplitude recorded
      */
-    private LocalDateTime periodStart;
+    private Float minSignalAmplitude;
 
     /**
-     * Report period end date
+     * Average signal frequency in Hz
      */
-    private LocalDateTime periodEnd;
+    private Float avgSignalFrequency;
 
     /**
-     * Status of the report (e.g., "READY", "PENDING", "FAILED")
+     * Total usage time in hours
      */
-    private String status;
+    private Float totalUsageHours;
+
+    /**
+     * Type of prosthesis (e.g., "upper_limb", "lower_limb")
+     */
+    private String prosthesisType;
+
+    /**
+     * Muscle group being monitored (e.g., "biceps", "quadriceps")
+     */
+    private String muscleGroup;
+
+    /**
+     * Customer's full name from CRM
+     */
+    private String customerName;
+
+    /**
+     * Customer's email from CRM
+     */
+    private String customerEmail;
+
+    /**
+     * Customer's age from CRM
+     */
+    private Integer customerAge;
+
+    /**
+     * Customer's gender from CRM
+     */
+    private String customerGender;
+
+    /**
+     * Customer's country from CRM
+     */
+    private String customerCountry;
+
+    /**
+     * Timestamp when the report was created in ClickHouse
+     */
+    private LocalDateTime createdAt;
 }

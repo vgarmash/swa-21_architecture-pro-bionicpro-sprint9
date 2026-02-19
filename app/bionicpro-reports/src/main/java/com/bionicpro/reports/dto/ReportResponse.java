@@ -5,10 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 /**
  * Data Transfer Object for API responses containing user report information.
+ * Conforms to task2/impl/03_reports_api_service.md specification.
  */
 @Data
 @Builder
@@ -17,47 +16,91 @@ import java.time.LocalDateTime;
 public class ReportResponse {
 
     /**
-     * Unique identifier of the report
-     */
-    private Long id;
-
-    /**
      * User ID who owns this report
      */
-    private String userId;
+    private Long userId;
 
     /**
-     * Report type
+     * Date of the report in ISO format (yyyy-MM-dd)
      */
-    private String reportType;
+    private String reportDate;
 
     /**
-     * Report title
+     * Total number of EMG signal sessions recorded
      */
-    private String title;
+    private Integer totalSessions;
 
     /**
-     * Report content/data
+     * Average signal amplitude across all sessions
      */
-    private String content;
+    private Double avgSignalAmplitude;
 
     /**
-     * Timestamp when the report was generated
+     * Maximum signal amplitude recorded
      */
-    private LocalDateTime generatedAt;
+    private Double maxSignalAmplitude;
 
     /**
-     * Report period start date
+     * Minimum signal amplitude recorded
      */
-    private LocalDateTime periodStart;
+    private Double minSignalAmplitude;
 
     /**
-     * Report period end date
+     * Average signal frequency in Hz
      */
-    private LocalDateTime periodEnd;
+    private Double avgSignalFrequency;
 
     /**
-     * Status of the report
+     * Total usage time in hours
      */
-    private String status;
+    private Double totalUsageHours;
+
+    /**
+     * Type of prosthesis (e.g., "upper_limb", "lower_limb")
+     */
+    private String prosthesisType;
+
+    /**
+     * Muscle group being monitored (e.g., "biceps", "quadriceps")
+     */
+    private String muscleGroup;
+
+    /**
+     * Customer information from CRM
+     */
+    private CustomerInfo customerInfo;
+
+    /**
+     * Nested DTO for customer information
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CustomerInfo {
+        /**
+         * Customer's full name
+         */
+        private String name;
+
+        /**
+         * Customer's email address
+         */
+        private String email;
+
+        /**
+         * Customer's age
+         */
+        private Integer age;
+
+        /**
+         * Customer's gender
+         */
+        private String gender;
+
+        /**
+         * Customer's country
+         */
+        private String country;
+    }
 }

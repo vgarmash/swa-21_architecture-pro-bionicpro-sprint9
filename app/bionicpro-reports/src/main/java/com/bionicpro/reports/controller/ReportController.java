@@ -11,10 +11,13 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * REST Controller for Reports API endpoints.
  * Provides endpoints for retrieving user reports from ClickHouse.
+ * 
+ * Conforms to task2/impl/03_reports_api_service.md specification.
  */
 @RestController
 @RequestMapping("/api/v1/reports")
@@ -30,82 +33,129 @@ public class ReportController {
 
     /**
      * GET /api/v1/reports
-     * Retrieves all reports for the authenticated user.
+     * Retrieves the latest report for the authenticated user.
      * 
      * @param jwt the JWT token containing user information
-     * @return list of user's reports
+     * @return the latest report or a message if no data available
      */
     @GetMapping
-    public ResponseEntity<List<ReportResponse>> getReports(@AuthenticationPrincipal Jwt jwt) {
-        String userId = jwt.getSubject();
-        logger.info("Getting reports for user: {}", userId);
+    public ResponseEntity<?> getReport(@AuthenticationPrincipal Jwt jwt) {
+        Long userId = extractUserId(jwt);
+        logger.info("Getting latest report for user: {}", userId);
         
-        List<ReportResponse> reports = reportService.getReportsForUser(userId);
-        
-        return ResponseEntity.ok(reports);
+        try {
+            ReportResponse report = reportService.getLatestReport(userId, userId);
+            
+            if (report == null) {
+                return ResponseEntity.ok(Map.of(
+                    "message", "No report data available",
+                    "userId", userId
+                ));
+            }
+            
+            return ResponseEntity.ok(report);
+            
+        } catch (Exception e) {
+            logger.error("Error retrieving report for user {}: {}", userId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Internal Server Error", "message", e.getMessage()));
+        }
     }
 
     /**
-     * GET /api/v1/reports/{userId}
-     * Retrieves all reports for a specific user.
-     * Only accessible if the authenticated user is requesting their own reports
-     * or has admin privileges.
+     * GET /api/v1/reports/{requestedUserId}
+     * Retrieves the latest report for a specific user.
+     * Only accessible if the authenticated user is requesting their own reports.
      * 
-     * @param userId the user ID to get reports for
+     * @param requestedUserId the user ID to get reports for
      * @param jwt the JWT token containing user information
-     * @return list of reports for the specified user
+     * @return the latest report for the specified user
      */
-    @GetMapping("/{userId}")
-    public ResponseEntity<List<ReportResponse>> getReportsByUserId(
-            @PathVariable String userId,
+    @GetMapping("/{requestedUserId}")
+    public ResponseEntity<?> getReportByUserId(
+            @PathVariable Long requestedUserId,
             @AuthenticationPrincipal Jwt jwt) {
         
-        String currentUserId = jwt.getSubject();
-        logger.info("User {} requesting reports for user: {}", currentUserId, userId);
+        Long currentUserId = extractUserId(jwt);
+        logger.info("User {} requesting report for user: {}", currentUserId, requestedUserId);
         
-        // Authorization check: users can only access their own reports
-        if (!userId.equals(currentUserId)) {
-            logger.warn("User {} attempted to access reports for user {}", currentUserId, userId);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        try {
+            ReportResponse report = reportService.getLatestReport(requestedUserId, currentUserId);
+            
+            if (report == null) {
+                return ResponseEntity.ok(Map.of(
+                    "message", "No report data available",
+                    "userId", requestedUserId
+                ));
+            }
+            
+            return ResponseEntity.ok(report);
+            
+        } catch (com.bionicpro.reports.exception.UnauthorizedAccessException e) {
+            logger.warn("Unauthorized access attempt: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", "Forbidden", "message", e.getMessage()));
         }
-        
-        List<ReportResponse> reports = reportService.getReportsForUser(userId);
-        
-        return ResponseEntity.ok(reports);
     }
 
     /**
-     * GET /api/v1/reports/{userId}/{reportId}
-     * Retrieves a specific report by ID for a user.
-     * Only accessible if the authenticated user owns the report or has admin privileges.
+     * GET /api/v1/reports/{requestedUserId}/history
+     * Retrieves recent reports for a specific user.
+     * Only accessible if the authenticated user is requesting their own reports.
      * 
-     * @param userId the user ID
-     * @param reportId the report ID
+     * @param requestedUserId the user ID to get reports for
+     * @param limit maximum number of reports to return (default 10)
      * @param jwt the JWT token containing user information
-     * @return the report if found and accessible
+     * @return list of recent reports for the specified user
      */
-    @GetMapping("/{userId}/{reportId}")
-    public ResponseEntity<ReportResponse> getReportById(
-            @PathVariable String userId,
-            @PathVariable Long reportId,
+    @GetMapping("/{requestedUserId}/history")
+    public ResponseEntity<?> getReportHistory(
+            @PathVariable Long requestedUserId,
+            @RequestParam(defaultValue = "10") int limit,
             @AuthenticationPrincipal Jwt jwt) {
         
-        String currentUserId = jwt.getSubject();
-        logger.info("User {} requesting report {} for user: {}", currentUserId, reportId, userId);
+        Long currentUserId = extractUserId(jwt);
+        logger.info("User {} requesting report history for user: {} (limit: {})", 
+                currentUserId, requestedUserId, limit);
         
-        // Authorization check: users can only access their own reports
-        if (!userId.equals(currentUserId)) {
-            logger.warn("User {} attempted to access report {} for user {}", 
-                    currentUserId, reportId, userId);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        try {
+            List<ReportResponse> reports = reportService.getRecentReports(
+                    requestedUserId, currentUserId, Math.min(limit, 100));
+            
+            return ResponseEntity.ok(reports);
+            
+        } catch (com.bionicpro.reports.exception.UnauthorizedAccessException e) {
+            logger.warn("Unauthorized access attempt: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", "Forbidden", "message", e.getMessage()));
+        }
+    }
+
+    /**
+     * Extracts the user ID from the JWT token.
+     * Tries multiple claims in order: user_id, sub.
+     * 
+     * @param jwt the JWT token
+     * @return the user ID as Long
+     */
+    private Long extractUserId(Jwt jwt) {
+        // Try user_id claim first (custom claim)
+        Object userIdClaim = jwt.getClaim("user_id");
+        
+        if (userIdClaim == null) {
+            // Fall back to subject claim
+            userIdClaim = jwt.getClaim("sub");
         }
         
-        ReportResponse report = reportService.getReportById(reportId, userId);
-        
-        if (report == null) {
-            return ResponseEntity.notFound().build();
+        if (userIdClaim instanceof Number) {
+            return ((Number) userIdClaim).longValue();
         }
         
-        return ResponseEntity.ok(report);
+        try {
+            return Long.parseLong(userIdClaim.toString());
+        } catch (NumberFormatException e) {
+            logger.error("Failed to parse user ID from JWT: {}", userIdClaim);
+            throw new IllegalArgumentException("Invalid user ID in token");
+        }
     }
 }

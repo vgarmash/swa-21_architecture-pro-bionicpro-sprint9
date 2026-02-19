@@ -1,21 +1,25 @@
 package com.bionicpro.reports.config;
 
 import com.bionicpro.reports.repository.ReportRepository;
+import com.bionicpro.reports.service.ReportService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
-import java.util.List;
+import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -39,18 +43,22 @@ class SecurityConfigTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @Test
+    @BeforeEach
     void setUp() {
         // Setup mock JWT decoder
-        when(jwtDecoder.decode(anyString())).thenReturn(
+        when(jwtDecoder.decode(any())).thenReturn(
             Jwt.withTokenValue("mock-token")
                 .header("alg", "RS256")
-                .subject("user-123")
+                .subject("123")
                 .issuedAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(3600))
+                .claim("user_id", 123L)
                 .claim("realm_access.roles", new String[]{"user"})
                 .build()
         );
+        
+        // Mock repository to return empty for any query
+        when(reportRepository.findLatestByUserId(anyLong())).thenReturn(Optional.empty());
     }
 
     @Test
@@ -59,8 +67,8 @@ class SecurityConfigTest {
         // Act & Assert - Using jwt() builder from spring-security-test
         mockMvc.perform(get("/api/v1/reports")
                         .with(jwt()
-                                .jwt(builder -> builder.subject("user-123"))
-                                .authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_prothetic_user"))))
+                                .jwt(builder -> builder.subject("123").claim("user_id", 123L))
+                                .authorities(new SimpleGrantedAuthority("ROLE_prothetic_user"))))
                 .andExpect(status().isOk());
     }
 
