@@ -99,6 +99,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").authenticated()
                 .anyRequest().authenticated())
             .addFilterBefore(tokenPropagationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(new SessionRotationFilter(sessionService), UsernamePasswordAuthenticationFilter.class)
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((request, response, authException) -> {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

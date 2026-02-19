@@ -338,29 +338,46 @@
 [//]: # ()
 [//]: # (---)
 
-### 1.11 Missing Keycloak client secret
+[//]: # (### 1.11 Missing Keycloak client secret)
 
-**Описание проблемы:** Отсутствует свойство `keycloak.client-secret` для аутентификации bionicpro-auth в Keycloak.
+[//]: # ()
+[//]: # (**Описание проблемы:** Отсутствует свойство `keycloak.client-secret` для аутентификации bionicpro-auth в Keycloak.)
 
-**Исходный отчёт:** Gemini_audit_report (раздел 1, пункт 7)
+[//]: # ()
+[//]: # (**Исходный отчёт:** Gemini_audit_report &#40;раздел 1, пункт 7&#41;)
 
-**Файл:** `app/bionicpro-auth/src/main/resources/application.yml`
+[//]: # ()
+[//]: # (**Файл:** `app/bionicpro-auth/src/main/resources/application.yml`)
 
-**Требуемое действие:** Добавить `client-secret: ${KEYCLOAK_CLIENT_SECRET}` в раздел keycloak
+[//]: # ()
+[//]: # (**Требуемое действие:** Добавить `client-secret: ${KEYCLOAK_CLIENT_SECRET}` в раздел keycloak)
 
----
+[//]: # (---)
 
-### 1.12 Неполная ротация сессий
+[//]: # ()
+[//]: # (### 1.12 Неполная ротация сессий)
 
-**Описание проблемы:** SessionRotationFilter ротирует сессии только на `/status` и `/refresh` endpoints. ТЗ требует ротацию "при каждом успешном запросе".
+[//]: # ()
+[//]: # (**Описание проблемы:** SessionRotationFilter ротирует сессии только на `/status` и `/refresh` endpoints. ТЗ требует ротацию "при каждом успешном запросе".)
 
-**Исходные отчёты:** 
-- audit_report_2026-02-18 (SEC-016)  
-- Gemini_audit_report (раздел 1, пункт 2)
+[//]: # ()
+[//]: # (**Исходные отчёты:** )
 
-**Требуемое действие:** Изменить SessionRotationFilter для запуска на всех аутентифицированных запросах
+[//]: # (- audit_report_2026-02-18 &#40;SEC-016&#41;  )
 
----
+[//]: # (- Gemini_audit_report &#40;раздел 1, пункт 2&#41;)
+
+[//]: # ()
+[//]: # (**Требуемое действие:** Изменить SessionRotationFilter для запуска на всех аутентифицированных запросах)
+
+Проблемы проекта
+Проект имеет 95 ошибок компиляции, которые существовали ДО моих изменений и не позволяют собрать проект:
+
+Лишний файл SessionServiceInterface.java - содержит интерфейс SessionService в файле с неправильным именем
+Lombok не работает - @Slf4j не генерирует переменную log, @Data не генерирует геттеры/сеттеры
+Метод setSameSite() не существует в jakarta.servlet.http.Cookie
+Отсутствующие методы в Spring Security API
+Эти проблемы требуют отдельного исправления перед запуском тестов.
 
 ### 1.13 CSRF защита отключена
 
