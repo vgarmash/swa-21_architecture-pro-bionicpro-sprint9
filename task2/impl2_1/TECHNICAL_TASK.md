@@ -232,69 +232,111 @@
 
 [//]: # ()
 [//]: # (---)
+[//]: # ()
+[//]: # (### 1.8 Token Refresh не реализован)
 
-### 1.8 Token Refresh не реализован
+[//]: # ()
+[//]: # (**Описание проблемы:** Критическая функциональность помечена как TODO в коде. Пользователи вынуждены повторно аутентифицироваться после истечения срока действия access token.)
 
-**Описание проблемы:** Критическая функциональность помечена как TODO в коде. Пользователи вынуждены повторно аутентифицироваться после истечения срока действия access token.
+[//]: # ()
+[//]: # (**Исходные отчёты:** )
 
-**Исходные отчёты:** 
-- audit_report_2026-02-18 (SEC-019, CQ-004)  
-- CODE_AUDIT_REPORT (AUTH-001)  
-- Gemini_audit_report (раздел 1, пункт 5)
+[//]: # (- audit_report_2026-02-18 &#40;SEC-019, CQ-004&#41;  )
 
-**Файл:** `app/bionicpro-auth/src/main/java/com/bionicpro/service/SessionService.java:117`
+[//]: # (- CODE_AUDIT_REPORT &#40;AUTH-001&#41;  )
 
-**Доказательство из CODE_AUDIT_REPORT:**
-```java
-// SessionService.java, строка ~117
-if (sessionData.getAccessTokenExpiresAt() != null 
-        && Instant.now().plusSeconds(30).isAfter(sessionData.getAccessTokenExpiresAt())) {
-    log.debug("Access token needs refresh for user: {}", sessionData.getUserId());
-    // TODO: Implement token refresh with Keycloak  <-- НЕ РЕАЛИЗОВАНО!
-}
-```
+[//]: # (- Gemini_audit_report &#40;раздел 1, пункт 5&#41;)
 
-**Требуемое действие:** Реализовать логику вызова Keycloak token endpoint с использованием refreshToken
+[//]: # ()
+[//]: # (**Файл:** `app/bionicpro-auth/src/main/java/com/bionicpro/service/SessionService.java:117`)
 
----
+[//]: # ()
+[//]: # (**Доказательство из CODE_AUDIT_REPORT:**)
 
-### 1.9 Отсутствует проверка роли prothetic_user
+[//]: # (```java)
 
-**Описание проблемы:** Любой аутентифицированный пользователь имеет доступ к отчётам, без проверки роли.
+[//]: # (// SessionService.java, строка ~117)
 
-**Исходные отчёты:** 
-- CODE_AUDIT_REPORT (RPT-001)  
-- Gemini_audit_report (раздел 2, пункт 3)
+[//]: # (if &#40;sessionData.getAccessTokenExpiresAt&#40;&#41; != null )
 
-**Файл:** `app/bionicpro-reports/src/main/java/com/bionicpro/reports/config/SecurityConfig.java:27`
+[//]: # (        && Instant.now&#40;&#41;.plusSeconds&#40;30&#41;.isAfter&#40;sessionData.getAccessTokenExpiresAt&#40;&#41;&#41;&#41; {)
 
-**Доказательство из CODE_AUDIT_REPORT:**
-```java
-.authorizeHttpRequests(auth -> auth
-    .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-    .requestMatchers("/api/v1/reports/**").authenticated()  // <-- Нет проверки роли!
-    .anyRequest().permitAll())  // <-- Любой аутентифицированный имеет доступ!
-```
+[//]: # (    log.debug&#40;"Access token needs refresh for user: {}", sessionData.getUserId&#40;&#41;&#41;;)
 
-**Требуемое действие:**
-- Добавить `.hasRole("prothetic_user")` в SecurityConfig
-- Изменить `anyRequest().permitAll()` на `anyRequest().authenticated()`
+[//]: # (    // TODO: Implement token refresh with Keycloak  <-- НЕ РЕАЛИЗОВАНО!)
 
----
+[//]: # (})
 
-### 1.10 In-memory хранилище authRequestStore
+[//]: # (```)
 
-**Описание проблемы:** ConcurrentHashMap не работает в распределённой среде с несколькими инстансами.
+[//]: # ()
+[//]: # (**Требуемое действие:** Реализовать логику вызова Keycloak token endpoint с использованием refreshToken)
 
-**Исходные отчёты:** 
-- CODE_AUDIT_REPORT (AUTH-002)  
-- Gemini_audit_report (раздел 1, пункт 6)
+[//]: # ()
+[//]: # (---)
 
-**Файл:** `app/bionicpro-auth/src/main/java/com/bionicpro/service/SessionService.java:40`
+[//]: # ()
+[//]: # (### 1.9 Отсутствует проверка роли prothetic_user)
 
-**Требуемое действие:** Использовать Redis для хранения state параметров
+[//]: # ()
+[//]: # (**Описание проблемы:** Любой аутентифицированный пользователь имеет доступ к отчётам, без проверки роли.)
 
----
+[//]: # ()
+[//]: # (**Исходные отчёты:** )
+
+[//]: # (- CODE_AUDIT_REPORT &#40;RPT-001&#41;  )
+
+[//]: # (- Gemini_audit_report &#40;раздел 2, пункт 3&#41;)
+
+[//]: # ()
+[//]: # (**Файл:** `app/bionicpro-reports/src/main/java/com/bionicpro/reports/config/SecurityConfig.java:27`)
+
+[//]: # ()
+[//]: # (**Доказательство из CODE_AUDIT_REPORT:**)
+
+[//]: # (```java)
+
+[//]: # (.authorizeHttpRequests&#40;auth -> auth)
+
+[//]: # (    .requestMatchers&#40;"/actuator/health", "/actuator/info"&#41;.permitAll&#40;&#41;)
+
+[//]: # (    .requestMatchers&#40;"/api/v1/reports/**"&#41;.authenticated&#40;&#41;  // <-- Нет проверки роли!)
+
+[//]: # (    .anyRequest&#40;&#41;.permitAll&#40;&#41;&#41;  // <-- Любой аутентифицированный имеет доступ!)
+
+[//]: # (```)
+
+[//]: # ()
+[//]: # (**Требуемое действие:**)
+
+[//]: # (- Добавить `.hasRole&#40;"prothetic_user"&#41;` в SecurityConfig)
+
+[//]: # (- Изменить `anyRequest&#40;&#41;.permitAll&#40;&#41;` на `anyRequest&#40;&#41;.authenticated&#40;&#41;`)
+
+[//]: # ()
+[//]: # (---)
+
+[//]: # ()
+[//]: # (### 1.10 In-memory хранилище authRequestStore)
+
+[//]: # ()
+[//]: # (**Описание проблемы:** ConcurrentHashMap не работает в распределённой среде с несколькими инстансами.)
+
+[//]: # ()
+[//]: # (**Исходные отчёты:** )
+
+[//]: # (- CODE_AUDIT_REPORT &#40;AUTH-002&#41;  )
+
+[//]: # (- Gemini_audit_report &#40;раздел 1, пункт 6&#41;)
+
+[//]: # ()
+[//]: # (**Файл:** `app/bionicpro-auth/src/main/java/com/bionicpro/service/SessionService.java:40`)
+
+[//]: # ()
+[//]: # (**Требуемое действие:** Использовать Redis для хранения state параметров)
+
+[//]: # ()
+[//]: # (---)
 
 ### 1.11 Missing Keycloak client secret
 
