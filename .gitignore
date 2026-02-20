@@ -30,3 +30,4 @@ replay_pid*
 **/out
 /app/.data/**
 **/*.drawio.bkp
+/.proxyai/

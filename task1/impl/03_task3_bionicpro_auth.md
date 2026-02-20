@@ -618,7 +618,7 @@ security:
       name: BIONICPRO_SESSION
       http-only: true
       secure: true
-      same-site: strict
+      same-site: lax  # Lax required for OAuth2 callback compatibility
     timeout-minutes: 30
 
 token:
@@ -644,7 +644,7 @@ timeouts:
 |----|------|---------------------|
 | T3.1 | LoginRedirect | GET /api/auth/login возвращает 302 редирект на Keycloak |
 | T3.2 | CallbackExchange | Callback с кодом - обмен кода на токены, создание сессии |
-| T3.3 | CookieAttributes | Cookie имеет HttpOnly=true, Secure=true, SameSite=strict |
+| T3.3 | CookieAttributes | Cookie имеет HttpOnly=true, Secure=true, SameSite=lax |
 | T3.4 | TokenRefresh | При истечении access_token автоматическое получение нового |
 | T3.5 | SessionRotation | При повторном запросе session ID изменяется |
 | T3.6 | AuthTimeout | Ошибка при превышении timeout 2 секунд

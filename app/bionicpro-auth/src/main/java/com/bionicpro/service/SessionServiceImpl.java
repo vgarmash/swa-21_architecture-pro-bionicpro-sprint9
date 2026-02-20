@@ -1,7 +1,6 @@
 package com.bionicpro.service;
 
 import com.bionicpro.model.SessionData;
-import com.bionicpro.model.TokenData;
 import com.bionicpro.repository.SessionRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,7 +13,6 @@ import org.springframework.http.*;
 import org.springframework.security.crypto.encrypt.BytesEncryptor;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
-import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -477,7 +475,7 @@ public class SessionServiceImpl implements SessionService {
         cookie.setSecure(true);
         cookie.setPath("/");
         cookie.setMaxAge(sessionTimeoutMinutes * 60);
-        cookie.setAttribute("SameSite", "Strict");
+        cookie.setAttribute("SameSite", "Lax");
         
         response.addCookie(cookie);
         log.debug("Set session cookie: {}", sessionId);

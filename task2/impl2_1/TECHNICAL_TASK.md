@@ -444,60 +444,86 @@
 [//]: # ()
 [//]: # (---)
 
-### 2.4 Несоответствие типов userId
+[//]: # (### 2.4 Несоответствие типов userId)
 
-**Описание проблемы:** userId передаётся как String из JWT, но в ClickHouse столбец user_id имеет тип UInt32.
+[//]: # ()
+[//]: # (**Описание проблемы:** userId передаётся как String из JWT, но в ClickHouse столбец user_id имеет тип UInt32.)
 
-**Исходный отчёт:** analysis/task2/impl_round1/Gemini_audit_report (раздел 2, пункт 8)
+[//]: # ()
+[//]: # (**Исходный отчёт:** analysis/task2/impl_round1/Gemini_audit_report &#40;раздел 2, пункт 8&#41;)
 
-**Файлы:**
-- `app/bionicpro-reports/src/main/java/com/bionicpro/reports/controller/ReportController.java`
-- `app/bionicpro-reports/src/main/java/com/bionicpro/reports/repository/ReportRepository.java`
+[//]: # ()
+[//]: # (**Файлы:**)
 
-**Требуемое действие:** Реализовать преобразование subject JWT в Long/Integer для работы с БД
+[//]: # (- `app/bionicpro-reports/src/main/java/com/bionicpro/reports/controller/ReportController.java`)
 
----
+[//]: # (- `app/bionicpro-reports/src/main/java/com/bionicpro/reports/repository/ReportRepository.java`)
 
-### 2.5 Hardcoded connectionTimeout в ClickHouseConfig
+[//]: # ()
+[//]: # (**Требуемое действие:** Реализовать преобразование subject JWT в Long/Integer для работы с БД)
 
-**Описание проблемы:** connectionTimeout загружается из application.yml, но затем игнорируется.
+[//]: # ()
+[//]: # (---)
 
-**Исходный отчёт:** analysis/task2/impl_round1/Gemini_audit_report (раздел 2, пункт 2)
+[//]: # (### 2.5 Hardcoded connectionTimeout в ClickHouseConfig)
 
-**Файл:** `app/bionicpro-reports/src/main/java/com/bionicpro/reports/config/ClickHouseConfig.java`
+[//]: # ()
+[//]: # (**Описание проблемы:** connectionTimeout загружается из application.yml, но затем игнорируется.)
 
-**Требуемое действие:** Правильно разобрать connectionTimeout из конфигурации и применить к HikariDataSource
+[//]: # ()
+[//]: # (**Исходный отчёт:** analysis/task2/impl_round1/Gemini_audit_report &#40;раздел 2, пункт 2&#41;)
 
----
+[//]: # ()
+[//]: # (**Файл:** `app/bionicpro-reports/src/main/java/com/bionicpro/reports/config/ClickHouseConfig.java`)
+
+[//]: # ()
+[//]: # (**Требуемое действие:** Правильно разобрать connectionTimeout из конфигурации и применить к HikariDataSource)
+
+[//]: # ()
+[//]: # (---)
 
 ## 3. Высокоприоритетные проблемы (HIGH)
 
-### 3.1 Rate Limiting не реализован
+[//]: # (### 3.1 Rate Limiting не реализован)
 
-**Описание проблемы:** ТЗ требует: "10 попыток входа в минуту с одного IP", "5 попыток refresh в минуту".
+[//]: # ()
+[//]: # (**Описание проблемы:** ТЗ требует: "10 попыток входа в минуту с одного IP", "5 попыток refresh в минуту".)
 
-**Исходные отчёты:** 
-- analysis/task2/impl_round1/audit_report_2026-02-18 (SEC-018)  
-- CODE_AUTHIT_REPORT (AUTH-003)
+[//]: # ()
+[//]: # (**Исходные отчёты:** )
 
-**Требуемое действие:** Реализовать Rate Limiting в SecurityConfig
+[//]: # (- analysis/task2/impl_round1/audit_report_2026-02-18 &#40;SEC-018&#41;  )
 
----
+[//]: # (- CODE_AUTHIT_REPORT &#40;AUTH-003&#41;)
 
-### 3.2 SameSite=Lax вместо Strict
+[//]: # ()
+[//]: # (**Требуемое действие:** Реализовать Rate Limiting в SecurityConfig)
 
-**Описание проблемы:** ТЗ требует SameSite=Strict, код использует Lax.
+[//]: # ()
+[//]: # (---)
 
-**Исходные отчёты:** 
-- analysis/task2/impl_round1/audit_report_2026-02-18 (SEC-017)  
-- analysis/task2/impl_round1/CODE_AUDIT_REPORT (AUTH-005)  
-- analysis/task2/impl_round1/Gemini_audit_report (раздел 1, пункт 1)
+[//]: # (### 3.2 SameSite=Lax вместо Strict)
 
-**Файл:** `app/bionicpro-auth/src/main/java/com/bionicpro/service/SessionService.java:197`
+[//]: # ()
+[//]: # (**Описание проблемы:** ТЗ требует SameSite=Strict, код использует Lax.)
 
-**Требуемое действие:** Изменить `cookie.setAttribute("SameSite", "Lax")` на `"Strict"`
+[//]: # ()
+[//]: # (**Исходные отчёты:** )
 
----
+[//]: # (- analysis/task2/impl_round1/audit_report_2026-02-18 &#40;SEC-017&#41;  )
+
+[//]: # (- analysis/task2/impl_round1/CODE_AUDIT_REPORT &#40;AUTH-005&#41;  )
+
+[//]: # (- analysis/task2/impl_round1/Gemini_audit_report &#40;раздел 1, пункт 1&#41;)
+
+[//]: # ()
+[//]: # (**Файл:** `app/bionicpro-auth/src/main/java/com/bionicpro/service/SessionService.java:197`)
+
+[//]: # ()
+[//]: # (**Требуемое действие:** Изменить `cookie.setAttribute&#40;"SameSite", "Lax"&#41;` на `"Strict"`)
+
+[//]: # ()
+[//]: # (---)
 
 ### 3.3 Missing client bionicpro-auth в Keycloak
 
