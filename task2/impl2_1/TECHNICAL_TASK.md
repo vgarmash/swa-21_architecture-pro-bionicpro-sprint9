@@ -525,29 +525,39 @@
 [//]: # ()
 [//]: # (---)
 
-### 3.3 Missing client bionicpro-auth в Keycloak
+[//]: # (### 3.3 Missing client bionicpro-auth в Keycloak)
 
-**Описание проблемы:** Отсутствует confidential клиент для BFF в realm-export.json.
+[//]: # ()
+[//]: # (**Описание проблемы:** Отсутствует confidential клиент для BFF в realm-export.json.)
 
-**Исходный отчёт:** analysis/task2/impl_round1/CODE_AUDIT_REPORT (KC-001)
+[//]: # ()
+[//]: # (**Исходный отчёт:** analysis/task2/impl_round1/CODE_AUDIT_REPORT &#40;KC-001&#41;)
 
-**Файл:** `app/keycloak/realm-export.json`
+[//]: # ()
+[//]: # (**Файл:** `app/keycloak/realm-export.json`)
 
-**Требуемое действие:** Создать клиента "bionicpro-auth" в Keycloak
+[//]: # ()
+[//]: # (**Требуемое действие:** Создать клиента "bionicpro-auth" в Keycloak)
 
----
+[//]: # ()
+[//]: # (---)
 
-### 3.4 MFA не обязательна
+[//]: # (### 3.4 MFA не обязательна)
 
-**Описание проблемы:** `"defaultAction": false` — ТЗ требует обязательную MFA.
+[//]: # ()
+[//]: # (**Описание проблемы:** `"defaultAction": false` — ТЗ требует обязательную MFA.)
 
-**Исходный отчёт:** analysis/task2/impl_round1/CODE_AUDIT_REPORT (KC-002)
+[//]: # ()
+[//]: # (**Исходный отчёт:** analysis/task2/impl_round1/CODE_AUDIT_REPORT &#40;KC-002&#41;)
 
-**Файл:** `app/keycloak/realm-export.json:22`
+[//]: # ()
+[//]: # (**Файл:** `app/keycloak/realm-export.json:22`)
 
-**Требуемое действие:** Установить defaultAction в true
+[//]: # ()
+[//]: # (**Требуемое действие:** Установить defaultAction в true)
 
----
+[//]: # ()
+[//]: # (---)
 
 ### 3.5 Отсутствует Audit Logging
 
