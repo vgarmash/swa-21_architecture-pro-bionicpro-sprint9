@@ -559,15 +559,19 @@
 [//]: # ()
 [//]: # (---)
 
-### 3.5 Отсутствует Audit Logging
+[//]: # (### 3.5 Отсутствует Audit Logging)
 
-**Описание проблемы:** ТЗ требует логирование всех операций аутентификации.
+[//]: # ()
+[//]: # (**Описание проблемы:** ТЗ требует логирование всех операций аутентификации.)
 
-**Исходный отчёт:** analysis/task2/impl_round1/CODE_AUDIT_REPORT (AUTH-007)
+[//]: # ()
+[//]: # (**Исходный отчёт:** analysis/task2/impl_round1/CODE_AUDIT_REPORT &#40;AUTH-007&#41;)
 
-**Требуемое действие:** Реализовать Audit Logging для auth операций
+[//]: # ()
+[//]: # (**Требуемое действие:** Реализовать Audit Logging для auth операций)
 
----
+[//]: # ()
+[//]: # (---)
 
 ### 3.6 Airflow использует временные файлы вместо XCom
 
@@ -603,43 +607,6 @@
 
 ## 4. Проблемы качества кода (MEDIUM)
 
-### 4.1 Отсутствующие импорты в load_to_olap
-
-**Описание проблемы:** pandas и clickhouse_driver не импортируются явно внутри функции.
-
-**Исходный отчёт:** analysis/task2/impl_round1/Gemini_audit_report (раздел 3, пункт 2)
-
-**Файл:** `app/airflow/dags/bionicpro_etl_dag.py`
-
-**Требуемое действие:** Добавить `import pandas` и `from clickhouse_driver import Client` внутри функции
-
----
-
-### 4.2 TRACE/DEBUG logging в production
-
-**Описание проблемы:** TRACE/DEBUG logging раскрывает JWT токены.
-
-**Исходный отчёт:** analysis/task2/impl_round1/audit_report_2026-02-18 (SEC-014)
-
-**Файлы:**
-- `app/bionicpro-auth/src/main/resources/application.yml`
-- `app/bionicpro-auth/src/main/resources/application-dev.yml`
-
-**Требуемое действие:** Отключить TRACE/DEBUG в production профиле
-
----
-
-### 4.3 Устаревшие зависимости
-
-**Описание проблемы:** react-scripts 5.0.1 — устаревший с уязвимостями.
-
-**Исходный отчёт:** analysis/task2/impl_round1/audit_report_2026-02-18 (SEC-015)
-
-**Файл:** `app/frontend/package.json`
-
-**Требуемое действие:** Обновить react-scripts или мигрировать на Vite
-
----
 
 ### 4.4 Отсутствует MapStruct
 
