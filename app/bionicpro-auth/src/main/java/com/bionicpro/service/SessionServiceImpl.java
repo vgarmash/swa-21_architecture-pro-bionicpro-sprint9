@@ -1,6 +1,7 @@
 package com.bionicpro.service;
 
 import com.bionicpro.audit.AuditService;
+import com.bionicpro.mapper.SessionDataMapper;
 import com.bionicpro.model.SessionData;
 import com.bionicpro.repository.SessionRepository;
 import jakarta.servlet.http.Cookie;
@@ -38,6 +39,7 @@ public class SessionServiceImpl implements SessionService {
     private final SessionRepository sessionRepository;
     private final BytesEncryptor bytesEncryptor;
     private final AuditService auditService;
+    private final SessionDataMapper sessionDataMapper;
 
     @Value("${auth.session.timeout-minutes:30}")
     private int sessionTimeoutMinutes;
@@ -272,20 +274,8 @@ public class SessionServiceImpl implements SessionService {
         // Generate new session ID
         String newSessionId = UUID.randomUUID().toString();
         
-        // Copy data to new session
-        SessionData newSession = SessionData.builder()
-                .sessionId(newSessionId)
-                .userId(oldSession.getUserId())
-                .username(oldSession.getUsername())
-                .roles(oldSession.getRoles())
-                .accessToken(oldSession.getAccessToken())
-                .refreshToken(oldSession.getRefreshToken())
-                .accessTokenExpiresAt(oldSession.getAccessTokenExpiresAt())
-                .refreshTokenExpiresAt(oldSession.getRefreshTokenExpiresAt())
-                .createdAt(oldSession.getCreatedAt())
-                .expiresAt(oldSession.getExpiresAt())
-                .lastAccessedAt(Instant.now())
-                .build();
+        // Copy data to new session using mapper
+        SessionData newSession = sessionDataMapper.copyForRotation(oldSession, newSessionId);
         
         // Store new session
         String newRedisKey = getSessionKey(newSessionId);

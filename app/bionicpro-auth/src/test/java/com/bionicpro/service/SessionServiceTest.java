@@ -1,6 +1,8 @@
 package com.bionicpro.service;
 
 import com.bionicpro.audit.AuditService;
+import com.bionicpro.mapper.SessionDataMapper;
+import com.bionicpro.mapper.SessionDataMapperImpl;
 import com.bionicpro.model.SessionData;
 import com.bionicpro.repository.SessionRepository;
 import jakarta.servlet.http.Cookie;
@@ -51,6 +53,8 @@ class SessionServiceTest {
     @Mock
     private AuditService auditService;
 
+    private SessionDataMapper sessionDataMapper = new SessionDataMapperImpl();
+
     @Mock
     private ValueOperations<String, Object> valueOperations;
 
@@ -64,7 +68,7 @@ class SessionServiceTest {
 
     @BeforeEach
     void setUp() {
-        sessionService = new SessionServiceImpl(sessionRepository, bytesEncryptor, auditService, redisTemplate);
+        sessionService = new SessionServiceImpl(sessionRepository, bytesEncryptor, auditService, sessionDataMapper, redisTemplate);
     }
 
     private void setFieldValue(Object target, String fieldName, Object value) throws Exception {

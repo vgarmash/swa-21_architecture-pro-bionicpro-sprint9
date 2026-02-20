@@ -2,6 +2,8 @@ package com.bionicpro.controller;
 
 import com.bionicpro.audit.AuditService;
 import com.bionicpro.dto.AuthStatusResponse;
+import com.bionicpro.mapper.SessionDataMapper;
+import com.bionicpro.model.SessionData;
 import com.bionicpro.service.SessionService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,7 +23,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -37,6 +38,7 @@ public class AuthController {
 
     private final SessionService sessionService;
     private final AuditService auditService;
+    private final SessionDataMapper sessionDataMapper;
 
     /**
      * Initiate authentication - redirect to Keycloak login page.
@@ -161,33 +163,24 @@ public class AuthController {
         
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(AuthStatusResponse.builder()
-                            .authenticated(false)
-                            .build());
+                    .body(sessionDataMapper.toUnauthenticatedResponse());
         }
         
-        String userId = authentication.getName();
-        List<String> roles = List.of();
-        
-        // Extract roles from authentication
-        if (authentication.getAuthorities() != null) {
-            roles = authentication.getAuthorities().stream()
-                    .map(a -> a.getAuthority())
-                    .toList();
+        // Get session ID from request
+        String sessionId = sessionService.getSessionIdFromRequest(request);
+        if (sessionId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(sessionDataMapper.toUnauthenticatedResponse());
         }
         
-        // Get session expiration
-        Instant expiresAt = sessionService.getSessionExpiration(request);
+        // Get session data
+        SessionData sessionData = sessionService.getSession(sessionId);
+        if (sessionData == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(sessionDataMapper.toUnauthenticatedResponse());
+        }
         
-        AuthStatusResponse response = AuthStatusResponse.builder()
-                .authenticated(true)
-                .userId(userId)
-                .username(userId)
-                .roles(roles)
-                .sessionExpiresAt(expiresAt != null ? expiresAt.toString() : null)
-                .build();
-        
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(sessionDataMapper.toAuthStatusResponse(sessionData));
     }
 
     /**

@@ -21,6 +21,10 @@ keycloak:
   resource: bionicpro-auth
   public-client: true
 
+oauth2:
+  aes-key: "0123456789abcdef0123456789abcdef"
+  salt: "0123456789abcdef"
+
 logging:
   level:
     root: WARN

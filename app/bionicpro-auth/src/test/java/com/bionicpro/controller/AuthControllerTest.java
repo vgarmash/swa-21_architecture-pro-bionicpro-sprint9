@@ -2,6 +2,7 @@ package com.bionicpro.controller;
 
 import com.bionicpro.audit.AuditService;
 import com.bionicpro.dto.AuthStatusResponse;
+import com.bionicpro.mapper.SessionDataMapper;
 import com.bionicpro.service.SessionService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -47,6 +48,9 @@ class AuthControllerTest {
 
     @Mock
     private AuditService auditService;
+
+    @Mock
+    private SessionDataMapper sessionDataMapper;
 
     @InjectMocks
     private AuthController authController;
@@ -186,7 +190,9 @@ class AuthControllerTest {
         void status_shouldReturnUnauthorizedWhenNotAuthenticated() {
             // Arrange
             SecurityContextHolder.clearContext();
-            
+            when(sessionDataMapper.toUnauthenticatedResponse())
+                .thenReturn(AuthStatusResponse.builder().authenticated(false).build());
+
             // Act
             ResponseEntity<AuthStatusResponse> result = authController.getStatus(request);
             
@@ -196,30 +202,93 @@ class AuthControllerTest {
         }
 
         @Test
-        @DisplayName("Should return user info when authenticated")
-        void status_shouldReturnUserInfoWhenAuthenticated() {
+        @DisplayName("Should return 401 when session ID is null")
+        void status_shouldReturnUnauthorizedWhenSessionIdIsNull() {
             // Arrange
-            String userId = "user123";
-            List<String> roles = List.of("ROLE_USER", "ROLE_ADMIN");
-            Instant expiresAt = Instant.now().plusSeconds(1800);
-            
             Authentication authentication = mock(Authentication.class);
             when(authentication.isAuthenticated()).thenReturn(true);
-            when(authentication.getName()).thenReturn(userId);
-            List<GrantedAuthority> authorities = roles.stream()
-                .map(SimpleGrantedAuthority::new)
-                .collect(java.util.stream.Collectors.toList());
-            doReturn(authorities).when(authentication).getAuthorities();
-            
+
             SecurityContext securityContext = mock(SecurityContext.class);
             SecurityContextHolder.setContext(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authentication);
-            
-            when(sessionService.getSessionExpiration(request)).thenReturn(expiresAt);
-            
+
+            when(sessionService.getSessionIdFromRequest(request)).thenReturn(null);
+            when(sessionDataMapper.toUnauthenticatedResponse())
+                .thenReturn(AuthStatusResponse.builder().authenticated(false).build());
+
             // Act
             ResponseEntity<AuthStatusResponse> result = authController.getStatus(request);
-            
+
+            // Assert
+            assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+            assertFalse(result.getBody().isAuthenticated());
+        }
+
+        @Test
+        @DisplayName("Should return 401 when session data is null")
+        void status_shouldReturnUnauthorizedWhenSessionDataIsNull() {
+            // Arrange
+            String sessionId = "test-session-id";
+
+            Authentication authentication = mock(Authentication.class);
+            when(authentication.isAuthenticated()).thenReturn(true);
+
+            SecurityContext securityContext = mock(SecurityContext.class);
+            SecurityContextHolder.setContext(securityContext);
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+
+            when(sessionService.getSessionIdFromRequest(request)).thenReturn(sessionId);
+            when(sessionService.getSession(sessionId)).thenReturn(null);
+            when(sessionDataMapper.toUnauthenticatedResponse())
+                .thenReturn(AuthStatusResponse.builder().authenticated(false).build());
+
+            // Act
+            ResponseEntity<AuthStatusResponse> result = authController.getStatus(request);
+
+            // Assert
+            assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+            assertFalse(result.getBody().isAuthenticated());
+        }
+
+        @Test
+        @DisplayName("Should return user info when authenticated")
+        void status_shouldReturnUserInfoWhenAuthenticated() {
+            // Arrange
+            String sessionId = "test-session-id";
+            String userId = "user123";
+            List<String> roles = List.of("ROLE_USER", "ROLE_ADMIN");
+            Instant expiresAt = Instant.now().plusSeconds(1800);
+
+            Authentication authentication = mock(Authentication.class);
+            when(authentication.isAuthenticated()).thenReturn(true);
+
+            SecurityContext securityContext = mock(SecurityContext.class);
+            SecurityContextHolder.setContext(securityContext);
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+
+            com.bionicpro.model.SessionData sessionData = com.bionicpro.model.SessionData.builder()
+                .sessionId(sessionId)
+                .userId(userId)
+                .username("testuser")
+                .roles(roles)
+                .expiresAt(expiresAt)
+                .build();
+
+            when(sessionService.getSessionIdFromRequest(request)).thenReturn(sessionId);
+            when(sessionService.getSession(sessionId)).thenReturn(sessionData);
+
+            AuthStatusResponse expectedResponse = AuthStatusResponse.builder()
+                .authenticated(true)
+                .userId(userId)
+                .username("testuser")
+                .roles(roles)
+                .sessionExpiresAt(expiresAt.toString())
+                .build();
+            when(sessionDataMapper.toAuthStatusResponse(sessionData)).thenReturn(expectedResponse);
+
+            // Act
+            ResponseEntity<AuthStatusResponse> result = authController.getStatus(request);
+
             // Assert
             assertEquals(HttpStatus.OK, result.getStatusCode());
             assertNotNull(result.getBody());
@@ -233,18 +302,35 @@ class AuthControllerTest {
         @DisplayName("Should handle null session expiration")
         void status_shouldHandleNullSessionExpiration() {
             // Arrange
+            String sessionId = "test-session-id";
             String userId = "user123";
-            
+
             Authentication authentication = mock(Authentication.class);
             when(authentication.isAuthenticated()).thenReturn(true);
-            when(authentication.getName()).thenReturn(userId);
-            when(authentication.getAuthorities()).thenReturn(Collections.emptyList());
-            
+
             SecurityContext securityContext = mock(SecurityContext.class);
             SecurityContextHolder.setContext(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authentication);
-            
-            when(sessionService.getSessionExpiration(request)).thenReturn(null);
+
+            com.bionicpro.model.SessionData sessionData = com.bionicpro.model.SessionData.builder()
+                .sessionId(sessionId)
+                .userId(userId)
+                .username("testuser")
+                .roles(Collections.emptyList())
+                .expiresAt(null)
+                .build();
+
+            when(sessionService.getSessionIdFromRequest(request)).thenReturn(sessionId);
+            when(sessionService.getSession(sessionId)).thenReturn(sessionData);
+
+            AuthStatusResponse expectedResponse = AuthStatusResponse.builder()
+                .authenticated(true)
+                .userId(userId)
+                .username("testuser")
+                .roles(Collections.emptyList())
+                .sessionExpiresAt(null)
+                .build();
+            when(sessionDataMapper.toAuthStatusResponse(sessionData)).thenReturn(expectedResponse);
             
             // Act
             ResponseEntity<AuthStatusResponse> result = authController.getStatus(request);
