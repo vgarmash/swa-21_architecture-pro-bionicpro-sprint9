@@ -13,54 +13,83 @@ objectClass: organizationalUnit
 ou: groups
 
 # LDAP Users
-dn: uid=john.doe,ou=users,dc=bionicpro,dc=local
+# employeeNumber maps to sensors-db user_id for Keycloak LDAP federation
+
+dn: uid=user1,ou=users,dc=bionicpro,dc=local
 objectClass: top
 objectClass: inetOrgPerson
-cn: John
-sn: Doe
-uid: john.doe
-mail: john@bionicpro.com
+cn: User
+sn: One
+uid: user1
+mail: user1@example.com
+employeeNumber: 512
 userPassword: ${LDAP_USER_PASSWORD}
 
-dn: uid=jane.smith,ou=users,dc=bionicpro,dc=local
+dn: uid=user2,ou=users,dc=bionicpro,dc=local
 objectClass: top
 objectClass: inetOrgPerson
-cn: Jane
-sn: Smith
-uid: jane.smith
-mail: jane@bionicpro.com
+cn: User
+sn: Two
+uid: user2
+mail: user2@example.com
+employeeNumber: 887
 userPassword: ${LDAP_USER_PASSWORD}
 
-dn: uid=alex,ou=users,dc=bionicpro,dc=local
-objectClass: inetOrgPerson
-cn: Alex
-sn: Johnson
-uid: alex.johnson
-mail: alex@bionicpro.com
-userPassword: ${LDAP_USER_PASSWORD}
-
-dn: uid=admin,ou=users,dc=bionicpro,dc=local
+dn: uid=admin1,ou=users,dc=bionicpro,dc=local
+objectClass: top
 objectClass: inetOrgPerson
 cn: Admin
-sn: User
-uid: admin
-mail: admin@bionicpro.com
+sn: One
+uid: admin1
+mail: admin1@example.com
+employeeNumber: 316
 userPassword: ${LDAP_ADMIN_PASSWORD}
+
+dn: uid=prothetic1,ou=users,dc=bionicpro,dc=local
+objectClass: top
+objectClass: inetOrgPerson
+cn: Prothetic
+sn: One
+uid: prothetic1
+mail: prothetic1@example.com
+employeeNumber: 779
+userPassword: ${LDAP_PROTHETIC_PASSWORD}
+
+dn: uid=prothetic2,ou=users,dc=bionicpro,dc=local
+objectClass: top
+objectClass: inetOrgPerson
+cn: Prothetic
+sn: Two
+uid: prothetic2
+mail: prothetic2@example.com
+employeeNumber: 355
+userPassword: ${LDAP_PROTHETIC_PASSWORD}
+
+dn: uid=prothetic3,ou=users,dc=bionicpro,dc=local
+objectClass: top
+objectClass: inetOrgPerson
+cn: Prothetic
+sn: Three
+uid: prothetic3
+mail: prothetic3@example.com
+employeeNumber: 256
+userPassword: ${LDAP_PROTHETIC_PASSWORD}
 
 # LDAP Groups (mapped to Keycloak roles)
 dn: cn=user,ou=groups,dc=bionicpro,dc=local
 objectClass: groupOfNames
 cn: user
-member: uid=jane.smith,ou=users,dc=bionicpro,dc=local
-member: uid=john.doe,ou=users,dc=bionicpro,dc=local
+member: uid=user1,ou=users,dc=bionicpro,dc=local
+member: uid=user2,ou=users,dc=bionicpro,dc=local
 
 dn: cn=administrator,ou=groups,dc=bionicpro,dc=local
 objectClass: groupOfNames
 cn: administrator
-member: uid=admin,ou=users,dc=bionicpro,dc=local
+member: uid=admin1,ou=users,dc=bionicpro,dc=local
 
 dn: cn=prothetic_user,ou=groups,dc=bionicpro,dc=local
 objectClass: groupOfNames
 cn: prothetic_user
-member: uid=alex.johnson,ou=users,dc=bionicpro,dc=local
-member: uid=john.doe,ou=users,dc=bionicpro,dc=local
+member: uid=prothetic1,ou=users,dc=bionicpro,dc=local
+member: uid=prothetic2,ou=users,dc=bionicpro,dc=local
+member: uid=prothetic3,ou=users,dc=bionicpro,dc=local
