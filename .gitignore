@@ -29,5 +29,6 @@ replay_pid*
 **/target
 **/out
 /app/.data/**
+/app/.env
 **/*.drawio.bkp
 /.proxyai/

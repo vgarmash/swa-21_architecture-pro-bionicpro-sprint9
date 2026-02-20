@@ -183,6 +183,55 @@
         "clientAuthenticatorType": "client-secret",
         "secret": "${KEYCLOAK_REPORTS_API_CLIENT_SECRET}",
         "bearerOnly": true
+      },
+      {
+        "clientId": "bionicpro-auth",
+        "name": "BionicPRO BFF Service",
+        "enabled": true,
+        "clientAuthenticatorType": "client-secret",
+        "secret": "${KEYCLOAK_BIONICPRO_AUTH_CLIENT_SECRET}",
+        "publicClient": false,
+        "standardFlowEnabled": true,
+        "implicitFlowEnabled": false,
+        "directAccessGrantsEnabled": false,
+        "serviceAccountsEnabled": false,
+        "authorizationServicesEnabled": false,
+        "frontchannelLogout": true,
+        "protocol": "openid-connect",
+        "attributes": {
+          "access.token.lifespan": "900",
+          "pkce.code.challenge.method": "S256",
+          "display.on.consent.screen": "false",
+          "backchannel.logout.session.required": "true",
+          "backchannel.logout.revoke.offline.tokens": "false"
+        },
+        "redirectUris": [
+          "http://localhost:8000/api/auth/callback"
+        ],
+        "webOrigins": [
+          "http://localhost:8000"
+        ],
+        "protocolMappers": [
+          {
+            "name": "user_id",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-usermodel-attribute-mapper",
+            "consentRequired": false,
+            "config": {
+              "userinfo.token.claim": "true",
+              "user.attribute": "user_id",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "user_id",
+              "jsonType.label": "String"
+            }
+          }
+        ],
+        "access": {
+          "view": true,
+          "configure": true,
+          "manage": true
+        }
       }
     ],
     "identityProviders": [
