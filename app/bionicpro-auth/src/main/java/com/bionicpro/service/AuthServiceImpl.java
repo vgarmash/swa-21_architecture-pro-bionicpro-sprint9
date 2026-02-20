@@ -1,5 +1,6 @@
 package com.bionicpro.service;
 
+import com.bionicpro.audit.AuditService;
 import com.bionicpro.model.SessionData;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -44,6 +45,7 @@ public class AuthServiceImpl implements AuthService {
     private final ClientRegistrationRepository clientRegistrationRepository;
     private final OAuth2AuthorizedClientService authorizedClientService;
     private final SessionService sessionService;
+    private final AuditService auditService;
     private final RestTemplate restTemplate = new RestTemplate();
     
     @Value("${keycloak.server-url:http://localhost:8080}")
@@ -126,6 +128,8 @@ public class AuthServiceImpl implements AuthService {
             
             if (tokenResponse.getStatusCode() != HttpStatus.OK || tokenResponse.getBody() == null) {
                 log.error("Failed to exchange authorization code for tokens");
+                // Audit logging for failed authentication
+                auditService.logAuthenticationFailure("unknown", "Token exchange failed", request);
                 result.put("error", "Token exchange failed");
                 return result;
             }
@@ -146,6 +150,8 @@ public class AuthServiceImpl implements AuthService {
             
             if (idToken == null) {
                 log.warn("ID token not found in authorized client");
+                // Audit logging for failed authentication
+                auditService.logAuthenticationFailure("unknown", "ID token not found", request);
                 result.put("error", "ID token not found");
                 return result;
             }
@@ -153,11 +159,17 @@ public class AuthServiceImpl implements AuthService {
             // Create session
             sessionService.createSession(request, response, idToken, accessToken, refreshToken);
             
+            // Audit logging for successful authentication
+            String sessionId = sessionService.getSessionIdFromRequest(request);
+            auditService.logAuthenticationSuccess(idToken.getSubject(), sessionId, request);
+            
             // Redirect to stored redirect URI
             result.put("redirect", storedRedirectUri);
             
         } catch (Exception e) {
             log.error("Error handling callback", e);
+            // Audit logging for failed authentication
+            auditService.logAuthenticationFailure("unknown", "Authentication exception: " + e.getMessage(), request);
             result.put("error", "Authentication failed");
         }
         
@@ -203,7 +215,22 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void logout(HttpServletRequest request, HttpServletResponse response) {
         try {
+            // Get session info before invalidation for audit logging
+            String sessionId = sessionService.getSessionIdFromRequest(request);
+            String userId = null;
+            if (sessionId != null) {
+                SessionData sessionData = sessionService.getSession(sessionId);
+                if (sessionData != null) {
+                    userId = sessionData.getUserId();
+                }
+            }
+            
             sessionService.invalidateSessionWithTokenRevocation(request, response);
+            
+            // Audit logging for logout
+            if (userId != null && sessionId != null) {
+                auditService.logLogout(userId, sessionId, request);
+            }
         } catch (Exception e) {
             log.error("Error during logout", e);
         }

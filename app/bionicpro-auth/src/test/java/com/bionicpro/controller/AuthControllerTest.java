@@ -1,5 +1,6 @@
 package com.bionicpro.controller;
 
+import com.bionicpro.audit.AuditService;
 import com.bionicpro.dto.AuthStatusResponse;
 import com.bionicpro.service.SessionService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -43,6 +44,9 @@ class AuthControllerTest {
 
     @Mock
     private SessionService sessionService;
+
+    @Mock
+    private AuditService auditService;
 
     @InjectMocks
     private AuthController authController;

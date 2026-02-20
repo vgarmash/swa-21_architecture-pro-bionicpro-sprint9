@@ -1,5 +1,6 @@
 package com.bionicpro.controller;
 
+import com.bionicpro.audit.AuditService;
 import com.bionicpro.dto.AuthStatusResponse;
 import com.bionicpro.service.SessionService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -35,6 +36,7 @@ import java.util.UUID;
 public class AuthController {
 
     private final SessionService sessionService;
+    private final AuditService auditService;
 
     /**
      * Initiate authentication - redirect to Keycloak login page.
@@ -72,6 +74,8 @@ public class AuthController {
         
         if (error != null) {
             log.error("OAuth2 callback error: {}", error);
+            // Audit logging for failed authentication
+            auditService.logAuthenticationFailure("unknown", error, request);
             response.sendRedirect("/login?error=" + error);
             return;
         }
@@ -136,6 +140,10 @@ public class AuthController {
             if (idToken != null && accessToken != null) {
                 sessionService.createSession(request, response, idToken, accessToken, refreshToken);
                 log.info("Session created for user: {}", idToken.getSubject());
+                
+                // Audit logging for successful authentication
+                String sessionId = sessionService.getSessionIdFromRequest(request);
+                auditService.logAuthenticationSuccess(idToken.getSubject(), sessionId, request);
             }
         }
         
@@ -193,6 +201,16 @@ public class AuthController {
         
         log.info("Processing logout request");
         
+        // Get session info before invalidation for audit logging
+        String sessionId = sessionService.getSessionIdFromRequest(request);
+        String userId = null;
+        if (sessionId != null) {
+            com.bionicpro.model.SessionData sessionData = sessionService.getSession(sessionId);
+            if (sessionData != null) {
+                userId = sessionData.getUserId();
+            }
+        }
+        
         // Invalidate session and revoke tokens in Keycloak
         sessionService.invalidateSessionWithTokenRevocation(request, response);
         
@@ -200,6 +218,11 @@ public class AuthController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null) {
             new SecurityContextLogoutHandler().logout(request, response, auth);
+        }
+        
+        // Audit logging for logout
+        if (userId != null && sessionId != null) {
+            auditService.logLogout(userId, sessionId, request);
         }
         
         Map<String, String> result = new HashMap<>();

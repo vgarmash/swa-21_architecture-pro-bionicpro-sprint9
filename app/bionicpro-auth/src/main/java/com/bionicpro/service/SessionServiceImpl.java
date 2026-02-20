@@ -1,5 +1,6 @@
 package com.bionicpro.service;
 
+import com.bionicpro.audit.AuditService;
 import com.bionicpro.model.SessionData;
 import com.bionicpro.repository.SessionRepository;
 import jakarta.servlet.http.Cookie;
@@ -36,6 +37,7 @@ public class SessionServiceImpl implements SessionService {
 
     private final SessionRepository sessionRepository;
     private final BytesEncryptor bytesEncryptor;
+    private final AuditService auditService;
 
     @Value("${auth.session.timeout-minutes:30}")
     private int sessionTimeoutMinutes;
@@ -116,6 +118,9 @@ public class SessionServiceImpl implements SessionService {
         // Set session cookie
         setSessionCookie(response, sessionId);
         
+        // Audit logging for session created
+        auditService.logSessionCreated(sessionData.getUserId(), sessionId, request);
+        
         log.info("Created session for user: {}", sessionData.getUserId());
     }
 
@@ -141,6 +146,8 @@ public class SessionServiceImpl implements SessionService {
         // Check if session is expired
         if (sessionData.getExpiresAt() != null && Instant.now().isAfter(sessionData.getExpiresAt())) {
             log.info("Session expired for user: {}", sessionData.getUserId());
+            // Audit logging for session expired
+            auditService.logSessionExpired(sessionData.getUserId(), sessionId);
             invalidateSessionById(sessionId);
             return null;
         }
@@ -219,6 +226,9 @@ public class SessionServiceImpl implements SessionService {
                 // Calculate new expiration times
                 Instant now = Instant.now();
                 sessionData.setAccessTokenExpiresAt(now.plusSeconds(expiresIn != null ? expiresIn : 300));
+                
+                // Audit logging for token refresh
+                auditService.logTokenRefresh(sessionData.getUserId(), sessionData.getSessionId(), null);
                 
                 // Update refresh token expiration if provided
                 if (tokenResponse.get("refresh_expires_in") != null) {
@@ -397,7 +407,17 @@ public class SessionServiceImpl implements SessionService {
      */
     @Override
     public void invalidateSessionById(String sessionId) {
+        // Get session data before invalidation for audit logging
+        SessionData sessionData = getSession(sessionId);
+        String userId = sessionData != null ? sessionData.getUserId() : null;
+        
         sessionRepository.deleteById(sessionId);
+        
+        // Audit logging for session invalidated
+        if (userId != null) {
+            auditService.logSessionInvalidated(userId, sessionId);
+        }
+        
         log.debug("Deleted session: {}", sessionId);
     }
 
