@@ -33,6 +33,7 @@ x-airflow-common: &airflow-common
       condition: service_healthy
   networks:
     - airflow-network
+    - app-network
 
 services:
   postgres:
@@ -112,6 +113,7 @@ services:
     restart: always
     networks:
       - airflow-network
+      - app-network
 
   airflow-scheduler:
     <<: *airflow-common
@@ -135,6 +137,7 @@ services:
     restart: always
     networks:
       - airflow-network
+      - app-network
 
   airflow-triggerer:
     <<: *airflow-common
@@ -156,6 +159,7 @@ services:
     restart: always
     networks:
       - airflow-network
+      - app-network
 
 volumes:
   airflow-db:
@@ -165,3 +169,5 @@ networks:
   airflow-network:
     driver: bridge
     name: airflow-network
+  app-network:
+    external: true
