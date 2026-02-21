@@ -1,6 +1,7 @@
 package com.bionicpro.reports.config;
 
 import com.bionicpro.reports.repository.ReportRepository;
+import com.bionicpro.reports.service.MinioReportService;
 import com.bionicpro.reports.service.ReportService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,6 +39,9 @@ class SecurityConfigTest {
     private JwtDecoder jwtDecoder;
 
     @MockBean
+    private MinioReportService minioReportService;
+
+    @MockBean
     private ReportRepository reportRepository;
 
     @Autowired
@@ -59,6 +63,14 @@ class SecurityConfigTest {
         
         // Mock repository to return empty for any query
         when(reportRepository.findLatestByUserId(anyLong())).thenReturn(Optional.empty());
+        
+        // Mock MinIO service when disabled
+        when(minioReportService.reportExists(anyString())).thenReturn(false);
+        when(minioReportService.storeReport(anyString(), any(ReportResponse.class))).thenReturn(null);
+        when(minioReportService.getReport(anyString())).thenReturn(Optional.empty());
+        when(minioReportService.getCdnUrl(anyString())).thenReturn("");
+        when(minioReportService.deleteReport(anyString())).thenReturn(null);
+        when(minioReportService.deleteUserReports(anyLong())).thenReturn(null);
     }
 
     @Test

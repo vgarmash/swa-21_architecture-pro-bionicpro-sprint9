@@ -34,6 +34,21 @@ app:
     # Timeout for external integrations (≤2000ms)
     timeout-ms: 2000
 
+  # MinIO configuration for report caching
+  minio:
+    # MinIO server endpoint (Docker network address)
+    endpoint: ${MINIO_ENDPOINT:http://minio:9000}
+    # MinIO access credentials from environment
+    access-key: ${MINIO_ROOT_USER:minioadmin}
+    secret-key: ${MINIO_ROOT_PASSWORD:minioadmin}
+    # Bucket name for storing reports
+    bucket-name: ${MINIO_BUCKET_NAME:reports}
+    # CDN base URL for generating public URLs
+    # In production, this would be the CDN endpoint
+    cdn-base-url: ${CDN_BASE_URL:http://localhost:9000}
+    # Presigned URL expiry time in hours (default 7 days)
+    presigned-url-expiry-hours: ${MINIO_PRESIGNED_EXPIRY:168}
+
 # ClickHouse configuration
 clickhouse:
   password: ${CLICKHOUSE_PASSWORD}

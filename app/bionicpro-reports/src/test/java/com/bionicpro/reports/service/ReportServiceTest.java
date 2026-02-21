@@ -33,6 +33,9 @@ class ReportServiceTest {
     @Mock
     private ReportRepository reportRepository;
 
+    @Mock
+    private MinioReportService minioReportService;
+
     @InjectMocks
     private ReportService reportService;
 
@@ -41,24 +44,10 @@ class ReportServiceTest {
 
     @BeforeEach
     void setUp() {
-        testReport = UserReport.builder()
-                .userId(TEST_USER_ID)
-                .reportDate(LocalDate.of(2024, 1, 15))
-                .totalSessions(45)
-                .avgSignalAmplitude(0.75f)
-                .maxSignalAmplitude(1.2f)
-                .minSignalAmplitude(0.3f)
-                .avgSignalFrequency(150.5f)
-                .totalUsageHours(12.5f)
-                .prosthesisType("upper_limb")
-                .muscleGroup("biceps")
-                .customerName("Ivan Ivanov")
-                .customerEmail("ivanov@example.com")
-                .customerAge(35)
-                .customerGender("male")
-                .customerCountry("Russia")
-                .createdAt(LocalDateTime.now())
-                .build();
+        MockitoAnnotations.openMocks(this);
+        // ... existing setup ...
+        when(minioReportService.generateLatestReportKey(anyLong()))
+            .thenReturn("reports/1/latest.json");
     }
 
     @Test

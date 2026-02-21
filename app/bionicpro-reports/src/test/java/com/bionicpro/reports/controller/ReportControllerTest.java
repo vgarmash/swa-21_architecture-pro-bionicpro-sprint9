@@ -2,6 +2,7 @@ package com.bionicpro.reports.controller;
 
 import com.bionicpro.reports.dto.ReportResponse;
 import com.bionicpro.reports.exception.UnauthorizedAccessException;
+import com.bionicpro.reports.service.MinioReportService;
 import com.bionicpro.reports.service.ReportService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -44,6 +45,9 @@ class ReportControllerTest {
 
     @MockBean
     private ReportService reportService;
+
+    @MockBean
+    private MinioReportService minioReportService;
 
     @MockBean
     private JwtDecoder jwtDecoder;
@@ -92,6 +96,14 @@ class ReportControllerTest {
                         .country("Russia")
                         .build())
                 .build();
+
+        // Mock MinIO service when disabled
+        when(minioReportService.reportExists(anyString())).thenReturn(false);
+        when(minioReportService.storeReport(anyString(), any(ReportResponse.class))).thenReturn(null);
+        when(minioReportService.getReport(anyString())).thenReturn(Optional.empty());
+        when(minioReportService.getCdnUrl(anyString())).thenReturn("");
+        when(minioReportService.deleteReport(anyString())).thenReturn(null);
+        when(minioReportService.deleteUserReports(anyLong())).thenReturn(null);
     }
 
     @Test

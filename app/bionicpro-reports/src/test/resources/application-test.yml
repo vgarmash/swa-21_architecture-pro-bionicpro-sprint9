@@ -22,3 +22,11 @@ server:
 logging:
   level:
     com.bionicpro.reports: DEBUG
+
+minio:
+  enabled: false
+
+# Test configuration for conditional beans
+test:
+  minio:
+    enabled: false
