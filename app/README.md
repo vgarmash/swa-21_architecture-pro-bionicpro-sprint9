@@ -68,7 +68,7 @@ docker-compose ps
 | Сервис           | URL                         | Логин / Пароль              |
 |------------------|-----------------------------|------------------------------|
 | **BionicPRO Auth (BFF)** | http://localhost:8000       | —                            |
-| Keycloak         | http://localhost:8080       | `admin` / `admin`            |
+| Keycloak         | http://localhost:8088       | `admin` / `admin`            |
 | Realm            | `reports-realm`            | —                            |
 | Frontend         | http://localhost:3000       | —                            |
 | Redis            | localhost:6379              | —                            |
@@ -135,7 +135,7 @@ bionicpro-auth:
     SPRING_PROFILES_ACTIVE: dev
     REDIS_HOST: redis
     REDIS_PORT: 6379
-    KEYCLOAK_SERVER_URL: http://keycloak:8080
+    KEYCLOAK_SERVER_URL: http://keycloak:8088
     KEYCLOAK_REALM: reports-realm
     KEYCLOAK_CLIENT_ID: bionicpro-auth
     KEYCLOAK_REDIRECT_URI: http://localhost:8000/api/auth/callback
@@ -163,7 +163,7 @@ docker-compose ps
 
 ```bash
 # Проверка доступности Keycloak
-curl -s http://localhost:8080/health/ready
+curl -s http://localhost:8088/health/ready
 
 # Проверка realm
 curl -s http://localhost:8080/realms/reports-realm | jq -r '.realm'

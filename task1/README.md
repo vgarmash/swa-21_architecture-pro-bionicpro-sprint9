@@ -24,4 +24,4 @@
 ---
 
 ### 📊 Архитектурная диаграмма
-![BionicPRO_C4_model.drawio.png](../media/BionicPRO_C4_model.drawio.png)
+![BionicPRO_C4_Auth_Architecture.drawio.png](BionicPRO_C4_Auth_Architecture.drawio.png)
