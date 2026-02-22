@@ -11,10 +11,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * REST Controller for cache administration endpoints.
- * Provides endpoints for invalidating cached reports when data is updated.
+ * REST контроллер для эндпоинтов администрирования кэша.
+ * Предоставляет эндпоинты для инвалидации кэшированных отчётов при обновлении данных.
  * 
- * Security: All endpoints require ADMIN role.
+ * Безопасность: Все эндпоинты требуют роль ADMIN.
  */
 @RestController
 @RequestMapping("/api/v1/admin/cache")
@@ -30,11 +30,11 @@ public class CacheAdminController {
 
     /**
      * POST /api/v1/admin/cache/invalidate/user/{userId}
-     * Invalidates all cached reports for a specific user.
-     * Called when the ETL process updates data for a user.
+     * Инвалидирует все кэшированные отчёты для конкретного пользователя.
+     * Вызывается, когда процесс ETL обновляет данные для пользователя.
      * 
-     * @param userId the user ID whose cache should be invalidated
-     * @return success message
+     * @param userId ID пользователя, чей кэш должен быть инвалидирован
+     * @return сообщение об успехе
      */
     @PostMapping("/invalidate/user/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
@@ -63,11 +63,11 @@ public class CacheAdminController {
 
     /**
      * POST /api/v1/admin/cache/invalidate/users
-     * Invalidates cached reports for multiple users.
-     * Called by the ETL process after batch data updates.
+     * Инвалидирует кэшированные отчёты для нескольких пользователей.
+     * Вызывается процессом ETL после пакетного обновления данных.
      * 
-     * @param userIds list of user IDs whose cache should be invalidated
-     * @return summary of invalidation results
+     * @param userIds список ID пользователей, чей кэш должен быть инвалидирован
+     * @return сводка результатов инвалидации
      */
     @PostMapping("/invalidate/users")
     @PreAuthorize("hasRole('ADMIN')")
@@ -100,10 +100,10 @@ public class CacheAdminController {
 
     /**
      * POST /api/v1/admin/cache/invalidate/all
-     * Invalidates all cached reports.
-     * Use with caution - primarily for testing or major data refreshes.
+     * Инвалидирует все кэшированные отчёты.
+     * Использовать с осторожностью - в основном для тестирования или полного обновления данных.
      * 
-     * @return success message
+     * @return сообщение об успехе
      */
     @PostMapping("/invalidate/all")
     @PreAuthorize("hasRole('ADMIN')")
@@ -131,10 +131,10 @@ public class CacheAdminController {
 
     /**
      * GET /api/v1/admin/cache/status/{userId}
-     * Checks if a user has cached reports.
+     * Проверяет, есть ли кэшированные отчёты у пользователя.
      * 
-     * @param userId the user ID to check
-     * @return cache status for the user
+     * @param userId ID пользователя для проверки
+     * @return статус кэша для пользователя
      */
     @GetMapping("/status/{userId}")
     @PreAuthorize("hasRole('ADMIN')")

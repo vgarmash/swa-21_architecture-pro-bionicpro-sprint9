@@ -1,41 +1,41 @@
 package com.bionicpro.audit;
 
 /**
- * Enum representing different types of authentication audit events.
+ * Перечисление, представляющее различные типы событий аудита аутентификации.
  */
 public enum AuditEventType {
     /**
-     * User successfully authenticated.
+     * Пользователь успешно прошёл аутентификацию.
      */
     AUTHENTICATION_SUCCESS,
-    
+
     /**
-     * User failed to authenticate (invalid credentials).
+     * Пользователь не прошёл аутентификацию (неверные учётные данные).
      */
     AUTHENTICATION_FAILURE,
-    
+
     /**
-     * User logged out.
+     * Пользователь вышел из системы.
      */
     LOGOUT,
-    
+
     /**
-     * Access token was refreshed.
+     * Токен доступа был обновлён.
      */
     TOKEN_REFRESH,
-    
+
     /**
-     * New session was created.
+     * Новая сессия была создана.
      */
     SESSION_CREATED,
-    
+
     /**
-     * Session expired.
+     * Сессия истекла.
      */
     SESSION_EXPIRED,
-    
+
     /**
-     * Session was invalidated (logged out, etc.).
+     * Сессия была аннулирована (выход из системы и т.д.).
      */
     SESSION_INVALIDATED
 }

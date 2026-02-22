@@ -34,10 +34,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Unit tests for ReportController.
- * Tests all REST endpoints related to report retrieval.
+ * Модульные тесты для ReportController.
+ * Тестирует все REST эндпоинты, связанные с получением отчетов.
  * 
- * Conforms to task2/impl/03_reports_api_service.md specification.
+ * Соответствует спецификации task2/impl/03_reports_api_service.md.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -60,10 +60,10 @@ class ReportControllerTest {
 
     @BeforeEach
     void setUp() {
-        // Setup mock JWT decoder to return valid JWT for any token
+        // Настройка мок-декодера JWT для возврата валидного JWT для любого токена
         when(jwtDecoder.decode(any())).thenAnswer(invocation -> {
             String token = invocation.getArgument(0);
-            Long userId = 123L; // default
+            Long userId = 123L; // по умолчанию
             
             if (token != null && token.equals("other-token")) {
                 userId = 456L;
@@ -80,7 +80,7 @@ class ReportControllerTest {
                     .build();
         });
 
-        // Setup test report matching new schema
+        // Настройка тестового отчета, соответствующего новой схеме
         testReport = ReportResponse.builder()
                 .userId(123L)
                 .reportDate("2024-01-15")
@@ -101,7 +101,7 @@ class ReportControllerTest {
                         .build())
                 .build();
 
-        // Mock MinIO service when disabled
+        // Мок сервиса MinIO когда отключен
         when(minioReportService.reportExists(anyString())).thenReturn(false);
         doNothing().when(minioReportService).storeReport(anyString(), any(ReportResponse.class));
         when(minioReportService.getReport(anyString())).thenReturn(Optional.empty());
@@ -151,7 +151,7 @@ class ReportControllerTest {
     @Test
     @DisplayName("test_get_report_unauthorized - Returns 401 when no JWT token provided")
     void test_get_report_unauthorized() throws Exception {
-        // Act & Assert - no JWT token provided
+        // Act & Assert - JWT токен не предоставлен
         mockMvc.perform(get("/api/v1/reports"))
                 .andExpect(status().isUnauthorized());
     }
@@ -163,8 +163,8 @@ class ReportControllerTest {
         when(reportService.getLatestReport(123L, 456L))
                 .thenThrow(new UnauthorizedAccessException("You don't have permission to access this report"));
 
-        // Act & Assert - user-456 trying to access user-123's reports
-        // Note: Spring Security returns 403 with no body for insufficient scope
+        // Act & Assert - пользователь-456 пытается получить доступ к отчетам пользователя-123
+        // Примечание: Spring Security возвращает 403 без тела при недостаточной области видимости
         mockMvc.perform(get("/api/v1/reports/123")
                         .with(jwt().jwt(builder -> builder.subject("456").claim("user_id", 456L))
                                 .authorities(new SimpleGrantedAuthority("ROLE_prothetic_user"))))
@@ -243,11 +243,11 @@ class ReportControllerTest {
         // Arrange
         when(reportService.getLatestReport(123L, 123L)).thenReturn(testReport);
 
-        // Act & Assert - using user_id claim instead of subject
+        // Act & Assert - использование claim user_id вместо subject
         mockMvc.perform(get("/api/v1/reports")
                         .with(jwt().jwt(builder -> builder
-                                .subject("some-uuid")  // Different from user_id
-                                .claim("user_id", 123))  // This should be used
+                                .subject("some-uuid")  // Отличается от user_id
+                                .claim("user_id", 123))  // Это должно использоваться
                                 .authorities(new SimpleGrantedAuthority("ROLE_prothetic_user"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(123));

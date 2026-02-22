@@ -11,8 +11,8 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * Security configuration for the Reports API Service.
- * Configures OAuth2 Resource Server with JWT validation via Keycloak.
+ * Конфигурация безопасности для API сервиса отчетов.
+ * Настраивает OAuth2 Resource Server с проверкой JWT через Keycloak.
  */
 @Configuration
 @EnableWebSecurity
@@ -36,8 +36,8 @@ public class SecurityConfig {
     }
 
     /**
-     * Configures JWT authentication converter to extract authorities from token.
-     * Extracts roles from the "realm_access.roles" claim in Keycloak JWT.
+     * Настраивает конвертер аутентификации JWT для извлечения полномочий из токена.
+     * Извлекает роли из claim "realm_access.roles" в JWT от Keycloak.
      */
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {

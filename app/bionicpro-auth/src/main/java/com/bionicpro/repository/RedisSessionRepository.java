@@ -9,8 +9,8 @@ import java.util.Optional;
 import java.time.Duration;
 
 /**
- * Redis implementation of SessionRepository.
- * This repository uses Redis for session storage.
+ * Redis реализация SessionRepository.
+ * Этот репозиторий использует Redis для хранения сессий.
  */
 @Repository("redisSessionRepository")
 public class RedisSessionRepository implements SessionRepository {

@@ -15,9 +15,9 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Service layer for report operations with authorization checks.
- * Ensures users can only access their own reports.
- * Integrates with MinIO for caching to reduce OLAP database load.
+ * Сервисный слой для операций с отчётами с проверками авторизации.
+ * Гарантирует, что пользователи могут получить доступ только к своим собственным отчётам.
+ * Интегрируется с MinIO для кэширования для уменьшения нагрузки на OLAP базу данных.
  */
 @Service
 public class ReportService {
@@ -33,10 +33,10 @@ public class ReportService {
     }
 
     /**
-     * Retrieves all reports for the authenticated user.
+     * Получает все отчёты для аутентифицированного пользователя.
      *
-     * @param currentUserId the ID of the authenticated user from JWT token
-     * @return list of report responses for the user
+     * @param currentUserId идентификатор аутентифицированного пользователя из JWT токена
+     * @return список ответов с отчётами для пользователя
      */
     public List<ReportResponse> getReportsForUser(Long currentUserId) {
         logger.debug("Fetching reports for user: {}", currentUserId);
@@ -49,28 +49,28 @@ public class ReportService {
     }
 
     /**
-     * Retrieves a specific report by user ID and report date.
-     * Validates that the user has access to the requested report.
-     * Implements cache-first strategy with MinIO.
+     * Получает конкретный отчёт по ID пользователя и дате.
+     * Проверяет, что пользователь имеет доступ к запрошенному отчёту.
+     * Реализует стратегию кэширования сначала MinIO.
      *
-     * @param requestedUserId the user ID from the request
-     * @param reportDate the report date
-     * @param currentUserId the ID of the authenticated user from JWT token
-     * @return the report response or null if not found
-     * @throws UnauthorizedAccessException if user tries to access another user's report
+     * @param requestedUserId ID пользователя из запроса
+     * @param reportDate дата отчёта
+     * @param currentUserId идентификатор аутентифицированного пользователя из JWT токена
+     * @return ответ с отчётом или null, если не найден
+     * @throws UnauthorizedAccessException если пользователь пытается получить доступ к отчёту другого пользователя
      */
     public ReportResponse getReportByUserIdAndDate(Long requestedUserId, LocalDate reportDate, Long currentUserId) {
         logger.debug("Fetching report for user {} on date {} (authenticated user: {})",
                 requestedUserId, reportDate, currentUserId);
 
-        // Authorization check: users can only access their own reports
+        // Проверка авторизации: пользователи могут получить доступ только к своим собственным отчётам
         if (!currentUserId.equals(requestedUserId)) {
             logger.warn("User {} attempted to access report for user {}", currentUserId, requestedUserId);
             throw new UnauthorizedAccessException(
                     "You don't have permission to access this report");
         }
 
-        // Try to get from cache first
+        // Сначала пробуем получить из кэша
         String cacheKey = minioReportService.generateReportByDateKey(requestedUserId, reportDate.toString());
         ReportResponse cachedReport = tryGetFromCache(cacheKey);
 
@@ -81,38 +81,38 @@ public class ReportService {
 
         logger.info("Cache MISS for report by date: user={}, date={}", requestedUserId, reportDate);
 
-        // Cache miss - query OLAP database
+        // Промах кэша - запрашиваем OLAP базу данных
         Optional<UserReport> report = reportRepository.findByUserIdAndReportDate(requestedUserId, reportDate);
 
         return report.map(r -> {
             ReportResponse response = mapToResponse(r);
-            // Store in cache for future requests
+            // Сохраняем в кэш для будущих запросов
             storeInCache(cacheKey, response);
             return response;
         }).orElse(null);
     }
 
     /**
-     * Retrieves the latest report for the authenticated user.
-     * Implements cache-first strategy with MinIO.
+     * Получает последний отчёт для аутентифицированного пользователя.
+     * Реализует стратегию кэширования сначала MinIO.
      *
-     * @param requestedUserId the user ID from the request
-     * @param currentUserId the ID of the authenticated user from JWT token
-     * @return the report response or null if not found
-     * @throws UnauthorizedAccessException if user tries to access another user's report
+     * @param requestedUserId ID пользователя из запроса
+     * @param currentUserId идентификатор аутентифицированного пользователя из JWT токена
+     * @return ответ с отчётом или null, если не найден
+     * @throws UnauthorizedAccessException если пользователь пытается получить доступ к отчёту другого пользователя
      */
     public ReportResponse getLatestReport(Long requestedUserId, Long currentUserId) {
         logger.debug("Fetching latest report for user {} (authenticated user: {})",
                 requestedUserId, currentUserId);
 
-        // Authorization check: users can only access their own reports
+        // Проверка авторизации: пользователи могут получить доступ только к своим собственным отчётам
         if (!currentUserId.equals(requestedUserId)) {
             logger.warn("User {} attempted to access report for user {}", currentUserId, requestedUserId);
             throw new UnauthorizedAccessException(
                     "You don't have permission to access this report");
         }
 
-        // Try to get from cache first
+        // Сначала пробуем получить из кэша
         String cacheKey = minioReportService.generateLatestReportKey(requestedUserId);
         ReportResponse cachedReport = tryGetFromCache(cacheKey);
 
@@ -123,31 +123,31 @@ public class ReportService {
 
         logger.info("Cache MISS for latest report: user={}", requestedUserId);
 
-        // Cache miss - query OLAP database
+        // Промах кэша - запрашиваем OLAP базу данных
         Optional<UserReport> report = reportRepository.findLatestByUserId(requestedUserId);
 
         return report.map(r -> {
             ReportResponse response = mapToResponse(r);
-            // Store in cache for future requests
+            // Сохраняем в кэш для будущих запросов
             storeInCache(cacheKey, response);
             return response;
         }).orElse(null);
     }
 
     /**
-     * Retrieves a limited number of recent reports for the authenticated user.
+     * Получает ограниченное количество последних отчётов для аутентифицированного пользователя.
      *
-     * @param requestedUserId the user ID from the request
-     * @param currentUserId the ID of the authenticated user from JWT token
-     * @param limit maximum number of reports to return
-     * @return list of report responses
-     * @throws UnauthorizedAccessException if user tries to access another user's report
+     * @param requestedUserId ID пользователя из запроса
+     * @param currentUserId идентификатор аутентифицированного пользователя из JWT токена
+     * @param limit максимальное количество отчётов для возврата
+     * @return список ответов с отчётами
+     * @throws UnauthorizedAccessException если пользователь пытается получить доступ к отчётам другого пользователя
      */
     public List<ReportResponse> getRecentReports(Long requestedUserId, Long currentUserId, int limit) {
         logger.debug("Fetching {} recent reports for user {} (authenticated user: {})",
                 limit, requestedUserId, currentUserId);
 
-        // Authorization check: users can only access their own reports
+        // Проверка авторизации: пользователи могут получить доступ только к своим собственным отчётам
         if (!currentUserId.equals(requestedUserId)) {
             logger.warn("User {} attempted to access reports for user {}", currentUserId, requestedUserId);
             throw new UnauthorizedAccessException(
@@ -162,10 +162,10 @@ public class ReportService {
     }
 
     /**
-     * Retrieves all reports from the database (admin functionality).
-     * Should be protected by role-based access control.
+     * Получает все отчёты из базы данных (функционал администратора).
+     * Должен быть защищён контролем доступа на основе ролей.
      *
-     * @return list of all report responses
+     * @return список всех ответов с отчётами
      */
     public List<ReportResponse> getAllReports() {
         logger.debug("Fetching all reports");
@@ -178,11 +178,11 @@ public class ReportService {
     }
 
     /**
-     * Attempts to retrieve a report from MinIO cache.
-     * Returns null if cache is unavailable or report not found.
+     * Пытается получить отчёт из кэша MinIO.
+     * Возвращает null, если кэш недоступен или отчёт не найден.
      *
-     * @param cacheKey the cache key for the report
-     * @return the cached report or null if not found
+     * @param cacheKey ключ кэша для отчёта
+     * @return кэшированный отчёт или null, если не найден
      */
     private ReportResponse tryGetFromCache(String cacheKey) {
         try {
@@ -194,11 +194,11 @@ public class ReportService {
     }
 
     /**
-     * Stores a report in MinIO cache.
-     * Failures are logged but don't affect the response.
+     * Сохраняет отчёт в кэш MinIO.
+     * Ошибки логируются, но не влияют на ответ.
      *
-     * @param cacheKey the cache key for the report
-     * @param report the report to cache
+     * @param cacheKey ключ кэша для отчёта
+     * @param report отчёт для кэширования
      */
     private void storeInCache(String cacheKey, ReportResponse report) {
         try {
@@ -206,13 +206,13 @@ public class ReportService {
             logger.debug("Report stored in cache: {}", cacheKey);
         } catch (MinioStorageException e) {
             logger.warn("Failed to store report in cache: {}", e.getMessage());
-            // Don't propagate exception - caching failure shouldn't affect response
+            // Не пробрасываем исключение - ошибка кэширования не должна влиять на ответ
         }
     }
 
     /**
-     * Maps UserReport entity to ReportResponse DTO.
-     * Converts Float values to Double for API consistency.
+     * Преобразует сущность UserReport в DTO ReportResponse.
+     * Конвертирует значения Float в Double для согласованности API.
      */
     private ReportResponse mapToResponse(UserReport report) {
         return ReportResponse.builder()

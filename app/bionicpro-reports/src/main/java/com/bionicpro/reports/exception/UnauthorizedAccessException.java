@@ -1,7 +1,7 @@
 package com.bionicpro.reports.exception;
 
 /**
- * Exception thrown when a user attempts to access a resource they are not authorized to access.
+ * Исключение, выбрасываемое, когда пользователь пытается получить доступ к ресурсу, к которому он не авторизован.
  */
 public class UnauthorizedAccessException extends RuntimeException {
 

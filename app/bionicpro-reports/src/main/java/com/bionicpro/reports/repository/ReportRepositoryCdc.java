@@ -10,10 +10,10 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository for interacting with the ClickHouse user_reports_cdc table.
- * This table contains CDC (Change Data Capture) data from Debezium connectors.
+ * Репозиторий для взаимодействия с таблицей user_reports_cdc в ClickHouse.
+ * Эта таблица содержит данные CDC (Change Data Capture) из коннекторов Debezium.
  * 
- * Table schema (from CDC init.sql):
+ * Схема таблицы (из CDC init.sql):
  * - user_id UInt32
  * - report_date Date
  * - total_sessions UInt32
@@ -37,8 +37,8 @@ public class ReportRepositoryCdc {
     private final JdbcTemplate jdbcTemplate;
 
     /**
-     * RowMapper for mapping ClickHouse result sets to UserReport entities.
-     * Column names match the user_reports_cdc table schema.
+     * RowMapper для маппинга результатов ClickHouse в сущности UserReport.
+     * Имена колонок соответствуют схеме таблицы user_reports_cdc.
      */
     private final RowMapper<UserReport> reportRowMapper = (rs, rowNum) -> UserReport.builder()
             .userId(rs.getLong("user_id"))
@@ -66,7 +66,7 @@ public class ReportRepositoryCdc {
     }
 
     /**
-     * SQL columns for SELECT queries.
+     * SQL колонки для SELECT запросов.
      */
     private static final String SELECT_COLUMNS = 
             "user_id, report_date, total_sessions, avg_signal_amplitude, " +
@@ -76,10 +76,10 @@ public class ReportRepositoryCdc {
             "customer_country, created_at";
 
     /**
-     * Retrieves all reports for a specific user from CDC table.
+     * Возвращает все отчеты для указанного пользователя из таблицы CDC.
      *
-     * @param userId the user ID (Long to match ClickHouse UInt32)
-     * @return list of user reports ordered by report date descending
+     * @param userId ID пользователя (Long для соответствия ClickHouse UInt32)
+     * @return список отчетов пользователя, отсортированный по дате отчета по убыванию
      */
     public List<UserReport> findByUserId(Long userId) {
         String sql = String.format(
@@ -90,11 +90,11 @@ public class ReportRepositoryCdc {
     }
 
     /**
-     * Retrieves a specific report by user ID and report date from CDC table.
+     * Возвращает конкретный отчет по ID пользователя и дате отчета из таблицы CDC.
      *
-     * @param userId the user ID
-     * @param reportDate the report date
-     * @return Optional containing the report if found
+     * @param userId ID пользователя
+     * @param reportDate дата отчета
+     * @return Optional, содержащий отчет, если он найден
      */
     public Optional<UserReport> findByUserIdAndReportDate(Long userId, LocalDate reportDate) {
         String sql = String.format(
@@ -106,11 +106,11 @@ public class ReportRepositoryCdc {
     }
 
     /**
-     * Retrieves the latest N reports for a user from CDC table.
+     * Возвращает последние N отчетов для пользователя из таблицы CDC.
      *
-     * @param userId the user ID
-     * @param limit maximum number of reports to return
-     * @return list of user reports ordered by report date descending
+     * @param userId ID пользователя
+     * @param limit максимальное количество отчетов для возврата
+     * @return список отчетов пользователя, отсортированный по дате отчета по убыванию
      */
     public List<UserReport> findLatestByUserId(Long userId, int limit) {
         String sql = String.format(
@@ -121,10 +121,10 @@ public class ReportRepositoryCdc {
     }
 
     /**
-     * Retrieves the most recent report for a user from CDC table.
+     * Возвращает самый последний отчет для пользователя из таблицы CDC.
      *
-     * @param userId the user ID
-     * @return Optional containing the latest report if found
+     * @param userId ID пользователя
+     * @return Optional, содержащий последний отчет, если он найден
      */
     public Optional<UserReport> findLatestByUserId(Long userId) {
         List<UserReport> results = findLatestByUserId(userId, 1);
@@ -132,9 +132,9 @@ public class ReportRepositoryCdc {
     }
 
     /**
-     * Retrieves all reports from the CDC table.
+     * Возвращает все отчеты из таблицы CDC.
      *
-     * @return list of all user reports ordered by report date descending
+     * @return список всех отчетов пользователей, отсортированный по дате отчета по убыванию
      */
     public List<UserReport> findAll() {
         String sql = String.format(
@@ -145,10 +145,10 @@ public class ReportRepositoryCdc {
     }
 
     /**
-     * Checks if any reports exist for a user in CDC table.
+     * Проверяет, существуют ли отчеты для пользователя в таблице CDC.
      *
-     * @param userId the user ID
-     * @return true if reports exist, false otherwise
+     * @param userId ID пользователя
+     * @return true, если отчеты существуют, false в противном случае
      */
     public boolean existsByUserId(Long userId) {
         String sql = "SELECT COUNT(*) FROM user_reports_cdc WHERE user_id = ?";

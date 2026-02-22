@@ -34,8 +34,8 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Service for authentication management.
- * Handles OAuth2 flows, token exchange, and user authentication.
+ * Сервис для управления аутентификацией.
+ * Обрабатывает OAuth2 потоки, обмен токенами и аутентификацию пользователя.
  */
 @Service
 @RequiredArgsConstructor
@@ -65,16 +65,16 @@ public class AuthServiceImpl implements AuthService {
     
     @Override
     public void initiateAuthentication(HttpServletRequest request, HttpServletResponse response, String redirectUri) {
-        // Get the client registration
+        // Получаем регистрацию клиента
         ClientRegistration clientRegistration = clientRegistrationRepository.findByRegistrationId("keycloak");
         
-        // Generate state parameter for CSRF protection
+        // Генерируем параметр state для защиты от CSRF
         String state = UUID.randomUUID().toString();
         
-        // Store redirect URI in session for later use
+        // Сохраняем redirect URI в сессию для дальнейшего использования
         sessionService.storeAuthRequest(state, redirectUri);
         
-        // Build the authorization URI
+        // Формируем URI авторизации
         String authorizationUri = clientRegistration.getProviderDetails().getAuthorizationUri()
                 .replace("{client_id}", clientRegistration.getClientId())
                 .replace("{redirect_uri}", clientRegistration.getRedirectUri())
@@ -84,7 +84,7 @@ public class AuthServiceImpl implements AuthService {
                 .replace("{code_challenge}", "S256") // PKCE
                 .replace("{code_challenge_method}", "S256");
         
-        // Redirect to Keycloak
+        // Перенаправляем на Keycloak
         try {
             response.sendRedirect(authorizationUri);
         } catch (Exception e) {
@@ -99,7 +99,7 @@ public class AuthServiceImpl implements AuthService {
         Map<String, String> result = new HashMap<>();
         
         try {
-            // Validate state parameter to prevent CSRF attacks
+            // Валидируем параметр state для предотвращения CSRF атак
             String storedRedirectUri = sessionService.getAuthRequest(state);
             if (storedRedirectUri == null) {
                 log.warn("Invalid state parameter in callback");
@@ -107,10 +107,10 @@ public class AuthServiceImpl implements AuthService {
                 return result;
             }
             
-            // Get the client registration
+            // Получаем регистрацию клиента
             ClientRegistration clientRegistration = clientRegistrationRepository.findByRegistrationId("keycloak");
             
-            // Exchange authorization code for tokens using REST template
+            // Обменять код авторизации на токены с помощью REST шаблона
             String tokenUrl = String.format("%s/realms/%s/protocol/openid-connect/token", keycloakUrl, keycloakRealm);
             
             MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
@@ -128,7 +128,7 @@ public class AuthServiceImpl implements AuthService {
             
             if (tokenResponse.getStatusCode() != HttpStatus.OK || tokenResponse.getBody() == null) {
                 log.error("Failed to exchange authorization code for tokens");
-                // Audit logging for failed authentication
+                // Логирование аудита для неуспешной аутентификации
                 auditService.logAuthenticationFailure("unknown", "Token exchange failed", request);
                 result.put("error", "Token exchange failed");
                 return result;
@@ -142,7 +142,7 @@ public class AuthServiceImpl implements AuthService {
             OAuth2AccessToken accessToken = new OAuth2AccessToken(OAuth2AccessToken.TokenType.BEARER, accessTokenValue, Instant.now(), Instant.now().plusSeconds(300));
             OAuth2RefreshToken refreshToken = refreshTokenValue != null ? new OAuth2RefreshToken(refreshTokenValue, Instant.now(), Instant.now().plusSeconds(1800)) : null;
             
-            // Parse ID token
+            // Парсим ID токен
             OidcIdToken idToken = OidcIdToken.withTokenValue(idTokenValue)
                     .subject((String) tokenMap.get("sub"))
                     .claim("preferred_username", tokenMap.get("preferred_username"))
@@ -150,20 +150,20 @@ public class AuthServiceImpl implements AuthService {
             
             if (idToken == null) {
                 log.warn("ID token not found in authorized client");
-                // Audit logging for failed authentication
+                // Логирование аудита для неуспешной аутентификации
                 auditService.logAuthenticationFailure("unknown", "ID token not found", request);
                 result.put("error", "ID token not found");
                 return result;
             }
             
-            // Create session
+            // Создаём сессию
             sessionService.createSession(request, response, idToken, accessToken, refreshToken);
             
-            // Audit logging for successful authentication
+            // Логирование аудита для успешной аутентификации
             String sessionId = sessionService.getSessionIdFromRequest(request);
             auditService.logAuthenticationSuccess(idToken.getSubject(), sessionId, request);
             
-            // Redirect to stored redirect URI
+            // Перенаправляем на сохранённый redirect URI
             result.put("redirect", storedRedirectUri);
             
         } catch (Exception e) {
@@ -215,7 +215,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void logout(HttpServletRequest request, HttpServletResponse response) {
         try {
-            // Get session info before invalidation for audit logging
+            // Получаем информацию о сессии до её аннулирования для логирования аудита
             String sessionId = sessionService.getSessionIdFromRequest(request);
             String userId = null;
             if (sessionId != null) {
@@ -227,7 +227,7 @@ public class AuthServiceImpl implements AuthService {
             
             sessionService.invalidateSessionWithTokenRevocation(request, response);
             
-            // Audit logging for logout
+            // Логирование аудита для выхода
             if (userId != null && sessionId != null) {
                 auditService.logLogout(userId, sessionId, request);
             }
@@ -242,7 +242,7 @@ public class AuthServiceImpl implements AuthService {
             String sessionId = sessionService.getSessionIdFromRequest(request);
             
             if (sessionId != null) {
-                // Rotate session to refresh it
+                // Ротация сессии для её обновления
                 sessionService.rotateSession(request, response);
             }
         } catch (Exception e) {

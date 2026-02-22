@@ -13,6 +13,6 @@ public class TestConfig {
     @Bean
     @Primary
     public MinioReportService minioReportService() {
-        return null; // Return null or a mock to avoid actual MinIO calls
+        return null; // Возвращаем null или мок для избежания реальных вызовов MinIO
     }
 }

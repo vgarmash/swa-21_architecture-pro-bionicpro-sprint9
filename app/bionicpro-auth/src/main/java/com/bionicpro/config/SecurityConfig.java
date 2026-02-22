@@ -30,8 +30,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * Security configuration for bionicpro-auth BFF service.
- * Configures OAuth2 Login, session management, and custom authentication filters.
+ * Конфигурация безопасности для BFF сервиса bionic-pro-auth.
+ * Настраивает OAuth2 Login, управление сессиями и пользовательские фильтры аутентификации.
  */
 @Configuration
 @EnableWebSecurity
@@ -127,8 +127,8 @@ public class SecurityConfig {
     }
 
     /**
-     * Filter for session rotation on each authenticated request.
-     * Rotates session ID for all authenticated requests to enhance security.
+     * Фильтр для ротации сессии при каждом аутентифицированном запросе.
+     * Выполняет ротацию ID сессии для всех аутентифицированных запросов в целях повышения безопасности.
      */
     @Slf4j
     public static class SessionRotationFilter extends OncePerRequestFilter {

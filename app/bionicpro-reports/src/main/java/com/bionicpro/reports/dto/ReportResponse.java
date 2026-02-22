@@ -6,8 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Data Transfer Object for API responses containing user report information.
- * Conforms to task2/impl/03_reports_api_service.md specification.
+ * Data Transfer Object для API ответов, содержащих информацию об отчете пользователя.
+ * Соответствует спецификации task2/impl/03_reports_api_service.md.
  */
 @Data
 @Builder
@@ -16,62 +16,62 @@ import lombok.NoArgsConstructor;
 public class ReportResponse {
 
     /**
-     * User ID who owns this report
+     * ID пользователя, которому принадлежит этот отчет
      */
     private Long userId;
 
     /**
-     * Date of the report in ISO format (yyyy-MM-dd)
+     * Дата отчета в формате ISO (yyyy-MM-dd)
      */
     private String reportDate;
 
     /**
-     * Total number of EMG signal sessions recorded
+     * Общее количество записанных сессий сигнала ЭМГ
      */
     private Integer totalSessions;
 
     /**
-     * Average signal amplitude across all sessions
+     * Средняя амплитуда сигнала по всем сессиям
      */
     private Double avgSignalAmplitude;
 
     /**
-     * Maximum signal amplitude recorded
+     * Максимальная записанная амплитуда сигнала
      */
     private Double maxSignalAmplitude;
 
     /**
-     * Minimum signal amplitude recorded
+     * Минимальная записанная амплитуда сигнала
      */
     private Double minSignalAmplitude;
 
     /**
-     * Average signal frequency in Hz
+     * Средняя частота сигнала в Гц
      */
     private Double avgSignalFrequency;
 
     /**
-     * Total usage time in hours
+     * Общее время использования в часах
      */
     private Double totalUsageHours;
 
     /**
-     * Type of prosthesis (e.g., "upper_limb", "lower_limb")
+     * Тип протеза (например, "upper_limb", "lower_limb")
      */
     private String prosthesisType;
 
     /**
-     * Muscle group being monitored (e.g., "biceps", "quadriceps")
+     * Группа мышц, которая отслеживается (например, "biceps", "quadriceps")
      */
     private String muscleGroup;
 
     /**
-     * Customer information from CRM
+     * Информация о клиенте из CRM
      */
     private CustomerInfo customerInfo;
 
     /**
-     * Nested DTO for customer information
+     * Вложенный DTO для информации о клиенте
      */
     @Data
     @Builder
@@ -79,27 +79,27 @@ public class ReportResponse {
     @AllArgsConstructor
     public static class CustomerInfo {
         /**
-         * Customer's full name
+         * Полное имя клиента
          */
         private String name;
 
         /**
-         * Customer's email address
+         * Email клиента
          */
         private String email;
 
         /**
-         * Customer's age
+         * Возраст клиента
          */
         private Integer age;
 
         /**
-         * Customer's gender
+         * Пол клиента
          */
         private String gender;
 
         /**
-         * Customer's country
+         * Страна клиента
          */
         private String country;
     }

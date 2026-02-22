@@ -25,8 +25,8 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Implementation of MinIO report caching service.
- * Handles storage, retrieval, and management of cached reports in MinIO object storage.
+ * Реализация сервиса кэширования отчетов в MinIO.
+ * Обрабатывает хранение, получение и управление кэшированными отчетами в объектном хранилище MinIO.
  */
 @Service
 public class MinioReportServiceImpl implements MinioReportService {

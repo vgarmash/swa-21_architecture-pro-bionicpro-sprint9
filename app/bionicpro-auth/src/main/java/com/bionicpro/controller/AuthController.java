@@ -27,8 +27,8 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Authentication controller for BFF endpoints.
- * Handles login, callback, status, logout, and refresh operations.
+ * Контроллер аутентификации для BFF эндпоинтов.
+ * Обрабатывает операции входа, обратного вызова, статуса, выхода и обновления.
  */
 @RestController
 @RequestMapping("/api/auth")
@@ -41,7 +41,7 @@ public class AuthController {
     private final SessionDataMapper sessionDataMapper;
 
     /**
-     * Initiate authentication - redirect to Keycloak login page.
+     * Инициирует аутентификацию - перенаправляет на страницу входа Keycloak.
      * GET /api/auth/login
      */
     @GetMapping("/login")
@@ -51,19 +51,19 @@ public class AuthController {
         
         log.info("Initiating login with redirectUri: {}", redirectUri);
         
-        // Generate state parameter for CSRF protection
+        // Генерируем параметр state для защиты от CSRF
         String state = UUID.randomUUID().toString();
         
-        // Store redirect URI in session for use after callback
+        // Сохраняем redirect URI в сессию для использования после callback
         sessionService.storeAuthRequest(state, redirectUri);
         
-        // Spring Security OAuth2 Login will handle the redirect
+        // Spring Security OAuth2 Login обработает перенаправление
         response.sendRedirect("/oauth2/authorization/keycloak?state=" + state + 
                 "&redirect_uri=" + redirectUri);
     }
 
     /**
-     * Handle OAuth2 callback from Keycloak.
+     * Обрабатывает OAuth2 callback от Keycloak.
      * GET /api/auth/callback
      */
     @GetMapping("/callback")
@@ -76,7 +76,7 @@ public class AuthController {
         
         if (error != null) {
             log.error("OAuth2 callback error: {}", error);
-            // Audit logging for failed authentication
+            // Логирование аудита для неуспешной аутентификации
             auditService.logAuthenticationFailure("unknown", error, request);
             response.sendRedirect("/login?error=" + error);
             return;
@@ -84,25 +84,25 @@ public class AuthController {
         
         log.info("Processing OAuth2 callback with state: {}", state);
         
-        // Get redirect URI from stored auth request
+        // Получаем redirect URI из сохранённого запроса аутентификации
         String redirectUri = sessionService.getAuthRequest(state);
         
-        // Store tokens in session
+        // Сохраняем токены в сессию
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication instanceof OAuth2AuthenticationToken) {
             OAuth2AuthenticationToken oauth2Auth = (OAuth2AuthenticationToken) authentication;
             
-            // Get tokens from OAuth2User attributes
+            // Получаем токены из атрибутов OAuth2User
             Map<String, Object> attributes = oauth2Auth.getPrincipal().getAttributes();
             
-            // Extract ID token
+            // Извлекаем ID токен
             OidcIdToken idToken = null;
             Object idTokenObj = attributes.get("id_token");
             if (idTokenObj instanceof OidcIdToken) {
                 idToken = (OidcIdToken) idTokenObj;
             } else if (attributes.containsKey("id_token")) {
-                // If id_token is a string, we need to reconstruct it
-                // For now, create a basic OidcIdToken from available data
+                // Если id_token является строкой, нам нужно его восстановить
+                // На данный момент создаём базовый OidcIdToken из доступных данных
                 String tokenValue = attributes.get("id_token").toString();
                 idToken = new OidcIdToken(
                     tokenValue,
@@ -112,13 +112,13 @@ public class AuthController {
                 );
             }
             
-            // Extract access token from attributes
+            // Извлекаем access токен из атрибутов
             OAuth2AccessToken accessToken = null;
             Object accessTokenObj = attributes.get("access_token");
             if (accessTokenObj instanceof OAuth2AccessToken) {
                 accessToken = (OAuth2AccessToken) accessTokenObj;
             } else if (attributes.containsKey("access_token")) {
-                // Create OAuth2AccessToken from string value
+                // Создаём OAuth2AccessToken из строкового значения
                 String tokenValue = attributes.get("access_token").toString();
                 accessToken = new OAuth2AccessToken(
                     OAuth2AccessToken.TokenType.BEARER,
@@ -128,7 +128,7 @@ public class AuthController {
                 );
             }
             
-            // Extract refresh token from attributes
+            // Извлекаем refresh токен из атрибутов
             OAuth2RefreshToken refreshToken = null;
             Object refreshTokenObj = attributes.get("refresh_token");
             if (refreshTokenObj instanceof OAuth2RefreshToken) {
@@ -138,23 +138,23 @@ public class AuthController {
                 refreshToken = new OAuth2RefreshToken(tokenValue, Instant.now(), Instant.now().plusSeconds(86400));
             }
             
-            // Create session data
+            // Создаём данные сессии
             if (idToken != null && accessToken != null) {
                 sessionService.createSession(request, response, idToken, accessToken, refreshToken);
                 log.info("Session created for user: {}", idToken.getSubject());
                 
-                // Audit logging for successful authentication
+                // Логирование аудита для успешной аутентификации
                 String sessionId = sessionService.getSessionIdFromRequest(request);
                 auditService.logAuthenticationSuccess(idToken.getSubject(), sessionId, request);
             }
         }
         
-        // Redirect to the original requested page or default
+        // Перенаправляем на исходную запрошенную страницу или по умолчанию
         response.sendRedirect(redirectUri != null ? redirectUri : "/");
     }
 
     /**
-     * Get authentication status.
+     * Получить статус аутентификации.
      * GET /api/auth/status
      */
     @GetMapping("/status")
@@ -166,14 +166,14 @@ public class AuthController {
                     .body(sessionDataMapper.toUnauthenticatedResponse());
         }
         
-        // Get session ID from request
+        // Получаем ID сессии из запроса
         String sessionId = sessionService.getSessionIdFromRequest(request);
         if (sessionId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(sessionDataMapper.toUnauthenticatedResponse());
         }
         
-        // Get session data
+        // Получаем данные сессии
         SessionData sessionData = sessionService.getSession(sessionId);
         if (sessionData == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -184,7 +184,7 @@ public class AuthController {
     }
 
     /**
-     * Logout user.
+     * Выход пользователя из системы.
      * POST /api/auth/logout
      */
     @PostMapping("/logout")
@@ -194,7 +194,7 @@ public class AuthController {
         
         log.info("Processing logout request");
         
-        // Get session info before invalidation for audit logging
+        // Получаем информацию о сессии до её аннулирования для логирования аудита
         String sessionId = sessionService.getSessionIdFromRequest(request);
         String userId = null;
         if (sessionId != null) {
@@ -204,16 +204,16 @@ public class AuthController {
             }
         }
         
-        // Invalidate session and revoke tokens in Keycloak
+        // Аннулируем сессию и отзываем токены в Keycloak
         sessionService.invalidateSessionWithTokenRevocation(request, response);
         
-        // Logout from Spring Security
+        // Выход из Spring Security
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null) {
             new SecurityContextLogoutHandler().logout(request, response, auth);
         }
         
-        // Audit logging for logout
+        // Логирование аудита для выхода
         if (userId != null && sessionId != null) {
             auditService.logLogout(userId, sessionId, request);
         }
@@ -225,7 +225,7 @@ public class AuthController {
     }
 
     /**
-     * Refresh session (trigger session rotation).
+     * Обновление сессии (запуск ротации сессии).
      * POST /api/auth/refresh
      */
     @PostMapping("/refresh")
@@ -237,7 +237,7 @@ public class AuthController {
                     .body(Map.of("error", "not_authenticated"));
         }
         
-        // Rotate session
+        // Ротация сессии
         sessionService.rotateSession(request, response);
         
         Map<String, String> result = new HashMap<>();

@@ -24,8 +24,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for ReportRepositoryCdc.
- * Tests the repository layer for CDC table operations.
+ * Модульные тесты для ReportRepositoryCdc.
+ * Тестирует слой репозитория для операций с таблицами CDC.
  */
 @ExtendWith(MockitoExtension.class)
 class ReportRepositoryCdcTest {
@@ -41,7 +41,7 @@ class ReportRepositoryCdcTest {
 
     @BeforeEach
     void setUp() {
-        // Setup test report
+        // Настройка тестового отчета
         testReport = UserReport.builder()
                 .userId(TEST_USER_ID)
                 .reportDate(LocalDate.of(2024, 1, 15))

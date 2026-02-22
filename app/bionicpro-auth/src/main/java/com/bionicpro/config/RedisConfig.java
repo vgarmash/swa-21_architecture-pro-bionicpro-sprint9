@@ -14,8 +14,8 @@ import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.session.web.http.DefaultCookieSerializer;
 
 /**
- * Redis configuration for session storage.
- * Configures Redis connection and session cookie serialization.
+ * Конфигурация Redis для хранения сессий.
+ * Настраивает подключение к Redis и сериализацию cookie сессий.
  */
 @Configuration
 @EnableRedisHttpSession(maxInactiveIntervalInSeconds = 1800)
@@ -79,7 +79,7 @@ public class RedisConfig {
         serializer.setUseSecureCookie(true);
         serializer.setSameSite("Lax");
         serializer.setCookiePath("/");
-        serializer.setCookieMaxAge(1800); // 30 minutes
+        serializer.setCookieMaxAge(1800); // 30 минут
         return serializer;
     }
 }

@@ -31,8 +31,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.bionicpro.reports.dto.ReportResponse;
 
 /**
- * Unit tests for SecurityConfig.
- * Tests JWT token validation and security configuration.
+ * Модульные тесты для SecurityConfig.
+ * Тестирует валидацию JWT токена и конфигурацию безопасности.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -53,7 +53,7 @@ class SecurityConfigTest {
 
     @BeforeEach
     void setUp() {
-        // Setup mock JWT decoder
+        // Настройка мок-декодера JWT
         when(jwtDecoder.decode(any())).thenReturn(
             Jwt.withTokenValue("mock-token")
                 .header("alg", "RS256")
@@ -65,10 +65,10 @@ class SecurityConfigTest {
                 .build()
         );
         
-        // Mock repository to return empty for any query
+        // Мок репозитория для возврата пустого значения для любого запроса
         when(reportRepository.findLatestByUserId(anyLong())).thenReturn(Optional.empty());
         
-        // Mock MinIO service when disabled
+        // Мок сервиса MinIO когда отключен
         when(minioReportService.reportExists(anyString())).thenReturn(false);
         doNothing().when(minioReportService).storeReport(anyString(), any(ReportResponse.class));
         when(minioReportService.getReport(anyString())).thenReturn(Optional.empty());
@@ -80,7 +80,7 @@ class SecurityConfigTest {
     @Test
     @DisplayName("test_valid_jwt_token - Request with valid JWT token succeeds")
     void test_valid_jwt_token() throws Exception {
-        // Act & Assert - Using jwt() builder from spring-security-test
+        // Act & Assert - Использование jwt() builder из spring-security-test
         mockMvc.perform(get("/api/v1/reports")
                         .with(jwt()
                                 .jwt(builder -> builder.subject("123").claim("user_id", 123L))
@@ -91,7 +91,7 @@ class SecurityConfigTest {
     @Test
     @DisplayName("test_missing_jwt_token - Request without JWT token returns 401")
     void test_missing_jwt_token() throws Exception {
-        // Act & Assert - no authorization header
+        // Act & Assert - без заголовка авторизации
         mockMvc.perform(get("/api/v1/reports"))
                 .andExpect(status().isUnauthorized());
     }
@@ -99,7 +99,7 @@ class SecurityConfigTest {
     @Test
     @DisplayName("Request with malformed Authorization header returns 401")
     void test_malformed_authorization_header() throws Exception {
-        // Act & Assert - malformed authorization header
+        // Act & Assert - неверный заголовок авторизации
         mockMvc.perform(get("/api/v1/reports")
                         .header("Authorization", "NotBearer token"))
                 .andExpect(status().isUnauthorized());
@@ -108,7 +108,7 @@ class SecurityConfigTest {
     @Test
     @DisplayName("Request with empty Bearer token returns 401")
     void test_empty_bearer_token() throws Exception {
-        // Act & Assert - empty bearer token
+        // Act & Assert - пустой bearer токен
         mockMvc.perform(get("/api/v1/reports")
                         .header("Authorization", "Bearer "))
                 .andExpect(status().isUnauthorized());

@@ -22,12 +22,12 @@ class TokenDataTest {
         @Test
         @DisplayName("Should create TokenData with all fields")
         void builder_shouldCreateWithAllFields() {
-            // Arrange
+            // Подготовка
             Instant now = Instant.now();
             Instant accessTokenExpiresAt = now.plusSeconds(3600);
             Instant refreshTokenExpiresAt = now.plusSeconds(86400);
 
-            // Act
+            // Действие
             TokenData tokenData = TokenData.builder()
                 .accessToken("access-token-value")
                 .refreshToken("refresh-token-value")
@@ -37,7 +37,7 @@ class TokenDataTest {
                 .scope("openid profile email")
                 .build();
 
-            // Assert
+            // Проверка
             assertEquals("access-token-value", tokenData.getAccessToken());
             assertEquals("refresh-token-value", tokenData.getRefreshToken());
             assertEquals(accessTokenExpiresAt, tokenData.getAccessTokenExpiresAt());
@@ -49,12 +49,12 @@ class TokenDataTest {
         @Test
         @DisplayName("Should create TokenData with null optional fields")
         void builder_shouldCreateWithNullFields() {
-            // Act
+            // Действие
             TokenData tokenData = TokenData.builder()
                 .accessToken("access-token-value")
                 .build();
 
-            // Assert
+            // Проверка
             assertEquals("access-token-value", tokenData.getAccessToken());
             assertNull(tokenData.getRefreshToken());
             assertNull(tokenData.getAccessTokenExpiresAt());
@@ -71,12 +71,12 @@ class TokenDataTest {
         @Test
         @DisplayName("Should set and get all fields correctly")
         void settersAndGetters_shouldWorkCorrectly() {
-            // Arrange
+            // Подготовка
             TokenData tokenData = new TokenData();
             Instant now = Instant.now();
             Instant expiresAt = now.plusSeconds(3600);
 
-            // Act
+            // Действие
             tokenData.setAccessToken("access-token");
             tokenData.setRefreshToken("refresh-token");
             tokenData.setAccessTokenExpiresAt(expiresAt);
@@ -84,7 +84,7 @@ class TokenDataTest {
             tokenData.setTokenType("Bearer");
             tokenData.setScope("openid");
 
-            // Assert
+            // Проверка
             assertEquals("access-token", tokenData.getAccessToken());
             assertEquals("refresh-token", tokenData.getRefreshToken());
             assertEquals(expiresAt, tokenData.getAccessTokenExpiresAt());
@@ -101,13 +101,13 @@ class TokenDataTest {
         @Test
         @DisplayName("TokenData should be serializable")
         void shouldBeSerializable() {
-            // Arrange
+            // Подготовка
             TokenData tokenData = TokenData.builder()
                 .accessToken("access-token")
                 .tokenType("Bearer")
                 .build();
 
-            // Assert - verify it can be serialized (no exception)
+            // Проверка - verify it can be serialized (no exception)
             assertDoesNotThrow(() -> {
                 // Basic serialization check - class should implement Serializable
                 assertTrue(java.io.Serializable.class.isAssignableFrom(TokenData.class));
@@ -122,7 +122,7 @@ class TokenDataTest {
         @Test
         @DisplayName("Should be equal for same values")
         void shouldBeEqualForSameValues() {
-            // Arrange
+            // Подготовка
             Instant now = Instant.now();
 
             TokenData token1 = TokenData.builder()
@@ -139,7 +139,7 @@ class TokenDataTest {
                 .accessTokenExpiresAt(now)
                 .build();
 
-            // Assert
+            // Проверка
             assertEquals(token1, token2);
             assertEquals(token1.hashCode(), token2.hashCode());
         }
@@ -147,7 +147,7 @@ class TokenDataTest {
         @Test
         @DisplayName("Should not be equal for different access tokens")
         void shouldNotBeEqualForDifferentAccessTokens() {
-            // Arrange
+            // Подготовка
             TokenData token1 = TokenData.builder()
                 .accessToken("access-token-1")
                 .build();
@@ -156,14 +156,14 @@ class TokenDataTest {
                 .accessToken("access-token-2")
                 .build();
 
-            // Assert
+            // Проверка
             assertNotEquals(token1, token2);
         }
 
         @Test
         @DisplayName("Should not be equal for null vs non-null tokens")
         void shouldNotBeEqualForNullVsNonNull() {
-            // Arrange
+            // Подготовка
             TokenData token1 = TokenData.builder()
                 .accessToken("access-token")
                 .build();
@@ -172,7 +172,7 @@ class TokenDataTest {
                 .accessToken(null)
                 .build();
 
-            // Assert
+            // Проверка
             assertNotEquals(token1, token2);
         }
     }
@@ -184,7 +184,7 @@ class TokenDataTest {
         @Test
         @DisplayName("ToString should include all fields")
         void toString_shouldIncludeAllFields() {
-            // Arrange
+            // Подготовка
             TokenData tokenData = TokenData.builder()
                 .accessToken("access-token")
                 .refreshToken("refresh-token")
@@ -192,10 +192,10 @@ class TokenDataTest {
                 .scope("openid")
                 .build();
 
-            // Act
+            // Действие
             String result = tokenData.toString();
 
-            // Assert
+            // Проверка
             assertTrue(result.contains("accessToken"));
             assertTrue(result.contains("Bearer"));
         }
@@ -208,26 +208,26 @@ class TokenDataTest {
         @Test
         @DisplayName("Should default to Bearer token type")
         void shouldDefaultToBearerTokenType() {
-            // Act
+            // Действие
             TokenData tokenData = TokenData.builder()
                 .accessToken("token")
                 .tokenType("Bearer")
                 .build();
 
-            // Assert
+            // Проверка
             assertEquals("Bearer", tokenData.getTokenType());
         }
 
         @Test
         @DisplayName("Should support custom token types")
         void shouldSupportCustomTokenTypes() {
-            // Act
+            // Действие
             TokenData tokenData = TokenData.builder()
                 .accessToken("token")
                 .tokenType("MAC")
                 .build();
 
-            // Assert
+            // Проверка
             assertEquals("MAC", tokenData.getTokenType());
         }
     }
@@ -239,29 +239,29 @@ class TokenDataTest {
         @Test
         @DisplayName("Should handle multiple scopes")
         void shouldHandleMultipleScopes() {
-            // Arrange
+            // Подготовка
             String expectedScope = "openid profile email offline_access";
 
-            // Act
+            // Действие
             TokenData tokenData = TokenData.builder()
                 .accessToken("token")
                 .scope(expectedScope)
                 .build();
 
-            // Assert
+            // Проверка
             assertEquals(expectedScope, tokenData.getScope());
         }
 
         @Test
         @DisplayName("Should handle empty scope")
         void shouldHandleEmptyScope() {
-            // Act
+            // Действие
             TokenData tokenData = TokenData.builder()
                 .accessToken("token")
                 .scope("")
                 .build();
 
-            // Assert
+            // Проверка
             assertEquals("", tokenData.getScope());
         }
     }

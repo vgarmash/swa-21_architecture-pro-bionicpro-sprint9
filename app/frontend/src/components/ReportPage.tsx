@@ -40,15 +40,15 @@ const ReportPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
-  // BFF API base URL - pointing to bionicpro-auth service
+  // BFF API base URL - указывает на сервис bionicpro-auth
   const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
-  // Check authentication status using BFF
+  // Проверка статуса аутентификации через BFF
   const checkAuthStatus = useCallback(async () => {
     try {
-      // Use /api/auth/status (BFF endpoint)
+      // Используем /api/auth/status (BFF эндпоинт)
       const response = await fetch(`${apiUrl}/api/auth/status`, {
-        credentials: 'include', // Important: send session cookie
+        credentials: 'include', // Важно: отправлять куки сессии
       });
 
       if (response.ok) {
@@ -68,15 +68,15 @@ const ReportPage: React.FC = () => {
     }
   }, [apiUrl]);
 
-  // Fetch report data using BFF
+  // Получение данных отчета через BFF
   const fetchReport = async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
       setError(null);
 
-      // Use /api/reports (BFF endpoint - needs proxy to bionicpro-reports)
+      // Используем /api/reports (BFF эндпоинт - нужен прокси к bionicpro-reports)
       const response = await fetch(`${apiUrl}/api/reports`, {
-        credentials: 'include', // Important: send session cookie
+        credentials: 'include', // Важно: отправлять куки сессии
       });
 
       if (!response.ok) {
@@ -104,12 +104,12 @@ const ReportPage: React.FC = () => {
     }
   };
 
-  // Handle login - redirect to BFF login
+  // Обработка входа - перенаправление на BFF login
   const handleLogin = () => {
     window.location.href = `${apiUrl}/api/auth/login`;
   };
 
-  // Handle logout
+  // Обработка выхода
   const handleLogout = async () => {
     try {
       await fetch(`${apiUrl}/api/auth/logout`, {
@@ -123,7 +123,7 @@ const ReportPage: React.FC = () => {
     }
   };
 
-  // Check auth status on mount
+  // Проверка статуса аутентификации при монтировании
   useEffect(() => {
     const initAuth = async () => {
       const authenticated = await checkAuthStatus();
@@ -134,12 +134,12 @@ const ReportPage: React.FC = () => {
     initAuth();
   }, [checkAuthStatus]);
 
-  // Show loading while checking auth
+  // Показывать загрузку пока проверяется аутентификация
   if (isAuthenticated === null) {
     return <div className="flex items-center justify-center min-h-screen bg-gray-100">Loading...</div>;
   }
 
-  // Show login button if not authenticated
+  // Показывать кнопку входа если не аутентифицирован
   if (!isAuthenticated) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
@@ -157,12 +157,12 @@ const ReportPage: React.FC = () => {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
       <div className="p-8 bg-white rounded-lg shadow-md w-full max-w-2xl">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Usage Reports</h1>
+          <h1 className="text-2xl font-bold">Отчёты об использовании</h1>
           <button
             onClick={handleLogout}
             className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
           >
-            Logout
+            Выйти
           </button>
         </div>
 
@@ -173,7 +173,7 @@ const ReportPage: React.FC = () => {
             loading ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         >
-          {loading ? 'Generating Report...' : 'Download Report (JSON)'}
+          {loading ? 'Генерация отчёта...' : 'Скачать отчёт (JSON)'}
         </button>
 
         {error && (
@@ -186,54 +186,54 @@ const ReportPage: React.FC = () => {
           <div className="space-y-6">
             {/* Информация о пользователе */}
             <div className="border rounded-lg p-4">
-              <h2 className="text-xl font-semibold mb-3">User Information</h2>
+              <h2 className="text-xl font-semibold mb-3">Информация о пользователе</h2>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <span className="font-medium">Name:</span> {reportData.user.name}
+                  <span className="font-medium">Имя:</span> {reportData.user.name}
                 </div>
                 <div>
                   <span className="font-medium">Email:</span> {reportData.user.email}
                 </div>
                 <div>
-                  <span className="font-medium">Age:</span> {reportData.user.age}
+                  <span className="font-medium">Возраст:</span> {reportData.user.age}
                 </div>
                 <div>
-                  <span className="font-medium">Gender:</span> {reportData.user.gender}
+                  <span className="font-medium">Пол:</span> {reportData.user.gender}
                 </div>
                 <div>
-                  <span className="font-medium">Country:</span> {reportData.user.country}
+                  <span className="font-medium">Страна:</span> {reportData.user.country}
                 </div>
               </div>
             </div>
 
             {/* Информация о протезе */}
             <div className="border rounded-lg p-4">
-              <h2 className="text-xl font-semibold mb-3">Prosthesis Information</h2>
+              <h2 className="text-xl font-semibold mb-3">Информация о протезе</h2>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <span className="font-medium">Type:</span> {reportData.prosthesis.type}
+                  <span className="font-medium">Тип:</span> {reportData.prosthesis.type}
                 </div>
                 <div>
-                  <span className="font-medium">Muscle Group:</span> {reportData.prosthesis.muscleGroup}
+                  <span className="font-medium">Группа мышц:</span> {reportData.prosthesis.muscleGroup}
                 </div>
               </div>
             </div>
 
             {/* Статистика использования */}
             <div className="border rounded-lg p-4">
-              <h2 className="text-xl font-semibold mb-3">Usage Statistics</h2>
+              <h2 className="text-xl font-semibold mb-3">Статистика использования</h2>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <span className="font-medium">Total Sessions:</span> {reportData.statistics.totalSessions}
+                  <span className="font-medium">Всего сессий:</span> {reportData.statistics.totalSessions}
                 </div>
                 <div>
-                  <span className="font-medium">Total Hours:</span> {reportData.statistics.totalHours}
+                  <span className="font-medium">Всего часов:</span> {reportData.statistics.totalHours}
                 </div>
                 <div>
-                  <span className="font-medium">Average Amplitude:</span> {reportData.statistics.averageAmplitude}
+                  <span className="font-medium">Средняя амплитуда:</span> {reportData.statistics.averageAmplitude}
                 </div>
                 <div>
-                  <span className="font-medium">Average Frequency:</span> {reportData.statistics.averageFrequency}
+                  <span className="font-medium">Средняя частота:</span> {reportData.statistics.averageFrequency}
                 </div>
               </div>
             </div>

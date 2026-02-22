@@ -11,96 +11,96 @@ import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import java.time.Instant;
 
 /**
- * Service for session management with Redis storage.
- * Handles session creation, validation, rotation, and token storage.
+ * Сервис для управления сессиями с хранением в Redis.
+ * Обрабатывает создание, валидацию, ротацию сессий и хранение токенов.
  */
 public interface SessionService {
     
     /**
-     * Store auth request parameters before redirect to Keycloak.
+     * Сохраняет параметры запроса аутентификации перед перенаправлением на Keycloak.
      */
     void storeAuthRequest(String state, String redirectUri);
-    
+
     /**
-     * Get and remove stored auth request.
+     * Получает и удаляет сохранённый запрос аутентификации.
      */
     String getAuthRequest(String state);
-    
+
     /**
-     * Create new session with tokens.
+     * Создаёт новую сессию с токенами.
      */
     void createSession(HttpServletRequest request, HttpServletResponse response,
                        OidcIdToken idToken, OAuth2AccessToken accessToken, OAuth2RefreshToken refreshToken);
-    
+
     /**
-     * Get session data by session ID.
+     * Получает данные сессии по ID сессии.
      */
     SessionData getSession(String sessionId);
-    
+
     /**
-     * Validate session and refresh tokens if needed.
+     * Валидирует сессию и обновляет токены при необходимости.
      */
     SessionData validateAndRefreshSession(String sessionId);
-    
+
     /**
-     * Refresh access token using refresh token.
-     * Calls Keycloak token endpoint with grant_type=refresh_token.
+     * Обновляет access токен с помощью refresh токена.
+     * Вызывает endpoint Keycloak token с grant_type=refresh_token.
      */
     SessionData refreshAccessToken(SessionData sessionData);
-    
+
     /**
-     * Rotate session - generate new session ID, invalidate old one.
-     * This method takes sessionId as parameter and returns new SessionData.
-     * Should be called on every authenticated request.
+     * Ротация сессии - генерирует новый ID сессии, аннулирует старый.
+     * Этот метод принимает sessionId в качестве параметра и возвращает новые данные сессии.
+     * Должен вызываться при каждом аутентифицированном запросе.
      */
     SessionData rotateSession(String sessionId);
-    
+
     /**
-     * Rotate session from request - generate new session ID, invalidate old one.
-     * This method extracts sessionId from request and sets new cookie.
+     * Ротация сессии из запроса - генерирует новый ID сессии, аннулирует старый.
+     * Этот метод извлекает sessionId из запроса и устанавливает новую куку.
      */
     void rotateSession(HttpServletRequest request, HttpServletResponse response);
-    
+
     /**
-     * Revoke access and refresh tokens by calling Keycloak logout endpoint.
-     * Should be called on user logout to invalidate tokens in Keycloak.
+     * Отзывает access и refresh токены путём вызова endpoint выхода Keycloak.
+     * Должен вызываться при выходе пользователя для аннулирования токенов в Keycloak.
      */
     boolean revokeTokens(String refreshToken);
-    
+
     /**
-     * Invalidate session and revoke tokens.
-     * Should be called on user logout to properly revoke tokens in Keycloak.
+     * Аннулирует сессию и отзывает токены.
+     * Должен вызываться при выходе пользователя для корректного отзыва токенов в Keycloak.
      */
     void invalidateSessionWithTokenRevocation(HttpServletRequest request, HttpServletResponse response);
-    
+
     /**
-     * Invalidate session from request.
+     * Аннулирует сессию из запроса.
      */
     void invalidateSession(HttpServletRequest request, HttpServletResponse response);
-    
+
     /**
-     * Invalidate session by ID.
+     * Аннулирует сессию по ID.
      */
     void invalidateSessionById(String sessionId);
-    
+
     /**
-     * Get session expiration time.
+     * Получает время истечения сессии.
      */
     Instant getSessionExpiration(HttpServletRequest request);
-    
+
     /**
-     * Get decrypted access token for session.
+     * Получает расшифрованный access токен для сессии.
      */
     String getAccessToken(String sessionId);
-    
+
     /**
-     * Get session ID from request cookie.
+     * Получает ID сессии из куки запроса.
      */
     String getSessionIdFromRequest(HttpServletRequest request);
-    
+
     /**
-     * Set session cookie with security attributes.
-     * Public method to allow filters to set cookies.
+     * Устанавливает куку сессии с атрибутами безопасности.
+     * Публичный метод для разрешения фильтрам устанавливать куки.
      */
     void setSessionCookieFromFilter(HttpServletResponse response, String sessionId);
 }

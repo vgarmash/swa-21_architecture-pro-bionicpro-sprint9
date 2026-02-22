@@ -10,9 +10,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository for interacting with the ClickHouse user_reports table.
+ * Репозиторий для взаимодействия с таблицей user_reports в ClickHouse.
  * 
- * Table schema (from ETL DAG):
+ * Схема таблицы (из ETL DAG):
  * - user_id UInt32
  * - report_date Date
  * - total_sessions UInt32
@@ -36,8 +36,8 @@ public class ReportRepository {
     private final JdbcTemplate jdbcTemplate;
 
     /**
-     * RowMapper for mapping ClickHouse result sets to UserReport entities.
-     * Column names match the user_reports table schema.
+     * RowMapper для маппинга результатов ClickHouse в сущности UserReport.
+     * Имена колонок соответствуют схеме таблицы user_reports.
      */
     private final RowMapper<UserReport> reportRowMapper = (rs, rowNum) -> UserReport.builder()
             .userId(rs.getLong("user_id"))
@@ -65,7 +65,7 @@ public class ReportRepository {
     }
 
     /**
-     * SQL columns for SELECT queries.
+     * SQL колонки для SELECT запросов.
      */
     private static final String SELECT_COLUMNS = 
             "user_id, report_date, total_sessions, avg_signal_amplitude, " +
@@ -75,10 +75,10 @@ public class ReportRepository {
             "customer_country, created_at";
 
     /**
-     * Retrieves all reports for a specific user.
+     * Возвращает все отчеты для указанного пользователя.
      *
-     * @param userId the user ID (Long to match ClickHouse UInt32)
-     * @return list of user reports ordered by report date descending
+     * @param userId ID пользователя (Long для соответствия ClickHouse UInt32)
+     * @return список отчетов пользователя, отсортированный по дате отчета по убыванию
      */
     public List<UserReport> findByUserId(Long userId) {
         String sql = String.format(
@@ -89,11 +89,11 @@ public class ReportRepository {
     }
 
     /**
-     * Retrieves a specific report by user ID and report date.
+     * Возвращает конкретный отчет по ID пользователя и дате отчета.
      *
-     * @param userId the user ID
-     * @param reportDate the report date
-     * @return Optional containing the report if found
+     * @param userId ID пользователя
+     * @param reportDate дата отчета
+     * @return Optional, содержащий отчет, если он найден
      */
     public Optional<UserReport> findByUserIdAndReportDate(Long userId, LocalDate reportDate) {
         String sql = String.format(
@@ -105,11 +105,11 @@ public class ReportRepository {
     }
 
     /**
-     * Retrieves the latest N reports for a user.
+     * Возвращает последние N отчетов для пользователя.
      *
-     * @param userId the user ID
-     * @param limit maximum number of reports to return
-     * @return list of user reports ordered by report date descending
+     * @param userId ID пользователя
+     * @param limit максимальное количество отчетов для возврата
+     * @return список отчетов пользователя, отсортированный по дате отчета по убыванию
      */
     public List<UserReport> findLatestByUserId(Long userId, int limit) {
         String sql = String.format(
@@ -120,10 +120,10 @@ public class ReportRepository {
     }
 
     /**
-     * Retrieves the most recent report for a user.
+     * Возвращает самый последний отчет для пользователя.
      *
-     * @param userId the user ID
-     * @return Optional containing the latest report if found
+     * @param userId ID пользователя
+     * @return Optional, содержащий последний отчет, если он найден
      */
     public Optional<UserReport> findLatestByUserId(Long userId) {
         List<UserReport> results = findLatestByUserId(userId, 1);
@@ -131,9 +131,9 @@ public class ReportRepository {
     }
 
     /**
-     * Retrieves all reports from the database.
+     * Возвращает все отчеты из базы данных.
      *
-     * @return list of all user reports ordered by report date descending
+     * @return список всех отчетов пользователей, отсортированный по дате отчета по убыванию
      */
     public List<UserReport> findAll() {
         String sql = String.format(
@@ -144,10 +144,10 @@ public class ReportRepository {
     }
 
     /**
-     * Checks if any reports exist for a user.
+     * Проверяет, существуют ли отчеты для пользователя.
      *
-     * @param userId the user ID
-     * @return true if reports exist, false otherwise
+     * @param userId ID пользователя
+     * @return true, если отчеты существуют, false в противном случае
      */
     public boolean existsByUserId(Long userId) {
         String sql = "SELECT COUNT(*) FROM user_reports WHERE user_id = ?";

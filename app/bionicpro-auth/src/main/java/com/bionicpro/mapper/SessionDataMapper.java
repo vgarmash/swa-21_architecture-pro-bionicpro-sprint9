@@ -7,8 +7,8 @@ import org.mapstruct.*;
 import java.time.Instant;
 
 /**
- * MapStruct mapper for SessionData transformations.
- * Provides type-safe mapping between SessionData and response DTOs.
+ * MapStruct маппер для преобразований SessionData.
+ * Предоставляет типобезопасное маппинг между SessionData и DTO ответа.
  */
 @Mapper(
     componentModel = MappingConstants.ComponentModel.SPRING,
@@ -18,10 +18,10 @@ import java.time.Instant;
 public interface SessionDataMapper {
 
     /**
-     * Maps SessionData to AuthStatusResponse for authenticated users.
-     * 
-     * @param session the source SessionData
-     * @return AuthStatusResponse with authenticated=true
+     * Маппит SessionData в AuthStatusResponse для аутентифицированных пользователей.
+     *
+     * @param session исходный SessionData
+     * @return AuthStatusResponse с authenticated=true
      */
     @Mapping(target = "authenticated", constant = "true")
     @Mapping(target = "sessionExpiresAt", source = "expiresAt")
@@ -31,9 +31,9 @@ public interface SessionDataMapper {
     AuthStatusResponse toAuthStatusResponse(SessionData session);
 
     /**
-     * Creates an unauthenticated response.
-     * 
-     * @return AuthStatusResponse with authenticated=false
+     * Создаёт неаутентифицированный ответ.
+     *
+     * @return AuthStatusResponse с authenticated=false
      */
     default AuthStatusResponse toUnauthenticatedResponse() {
         return AuthStatusResponse.builder()
@@ -42,12 +42,12 @@ public interface SessionDataMapper {
     }
 
     /**
-     * Copies SessionData with a new session ID and updated lastAccessedAt.
-     * Used for session rotation.
-     * 
-     * @param source the original SessionData
-     * @param newSessionId the new session ID
-     * @return new SessionData with updated fields, or null if source is null
+     * Копирует SessionData с новым ID сессии и обновлённым lastAccessedAt.
+     * Используется для ротации сессии.
+     *
+     * @param source оригинальный SessionData
+     * @param newSessionId новый ID сессии
+     * @return новый SessionData с обновлёнными полями, или null, если source равен null
      */
     default SessionData copyForRotation(SessionData source, String newSessionId) {
         if (source == null) {
@@ -57,8 +57,8 @@ public interface SessionDataMapper {
     }
 
     /**
-     * Internal method for copying SessionData with a new session ID.
-     * Do not use directly - use copyForRotation instead.
+     * Внутренний метод для копирования SessionData с новым ID сессии.
+     * Не использовать напрямую - используйте copyForRotation.
      */
     @Mapping(target = "sessionId", source = "newSessionId")
     @Mapping(target = "lastAccessedAt", expression = "java(java.time.Instant.now())")

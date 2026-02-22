@@ -28,8 +28,8 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Service for session management with Redis storage.
- * Handles session creation, validation, rotation, and token storage.
+ * Сервис для управления сессиями с хранением в Redis.
+ * Обрабатывает создание, валидацию, ротацию сессий и хранение токенов.
  */
 @Service
 @RequiredArgsConstructor
@@ -58,16 +58,16 @@ public class SessionServiceImpl implements SessionService {
 
     private static final String TOKEN_URL_FORMAT = "%s/realms/%s/protocol/openid-connect/token";
 
-    // Redis template for auth request storage
+    // Redis шаблон для хранения запросов аутентификации
     private final RedisTemplate<String, Object> redisTemplate;
 
-    // Redis key prefix for auth requests
+    // Префикс ключа Redis для запросов аутентификации
     private static final String AUTH_REQUEST_PREFIX = "auth:request:";
-    // TTL for auth requests (10 minutes)
+    // TTL для запросов аутентификации (10 минут)
     private static final Duration AUTH_REQUEST_TTL = Duration.ofMinutes(10);
 
     /**
-     * Store auth request parameters before redirect to Keycloak.
+     * Сохраняет параметры запроса аутентификации перед перенаправлением на Keycloak.
      */
     @Override
     public void storeAuthRequest(String state, String redirectUri) {
@@ -78,7 +78,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     /**
-     * Get and remove stored auth request.
+     * Получает и удаляет сохранённый запрос аутентификации.
      */
     @Override
     public String getAuthRequest(String state) {
@@ -90,7 +90,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     /**
-     * Create new session with tokens.
+     * Создаёт новую сессию с токенами.
      */
     @Override
     public void createSession(HttpServletRequest request, HttpServletResponse response,
@@ -98,7 +98,7 @@ public class SessionServiceImpl implements SessionService {
         
         String sessionId = UUID.randomUUID().toString();
         
-        // Create session data
+        // Создаём данные сессии
         SessionData sessionData = SessionData.builder()
                 .sessionId(sessionId)
                 .userId(idToken.getSubject())
@@ -113,21 +113,21 @@ public class SessionServiceImpl implements SessionService {
                 .lastAccessedAt(Instant.now())
                 .build();
         
-        // Store in Redis
+        // Сохраняем в Redis
         String redisKey = getSessionKey(sessionId);
         redisTemplate.opsForValue().set(redisKey, sessionData, Duration.ofMinutes(sessionTimeoutMinutes));
         
-        // Set session cookie
+        // Устанавливаем куку сессии
         setSessionCookie(response, sessionId);
         
-        // Audit logging for session created
+        // Логирование аудита для созданной сессии
         auditService.logSessionCreated(sessionData.getUserId(), sessionId, request);
         
         log.info("Created session for user: {}", sessionData.getUserId());
     }
 
     /**
-     * Get session data by session ID.
+     * Получает данные сессии по ID сессии.
      */
     @Override
     public SessionData getSession(String sessionId) {
@@ -135,7 +135,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     /**
-     * Validate session and refresh tokens if needed.
+     * Валидирует сессию и обновляет токены при необходимости.
      */
     @Override
     public SessionData validateAndRefreshSession(String sessionId) {
@@ -145,39 +145,39 @@ public class SessionServiceImpl implements SessionService {
             return null;
         }
         
-        // Check if session is expired
+        // Проверяем, истекла ли сессия
         if (sessionData.getExpiresAt() != null && Instant.now().isAfter(sessionData.getExpiresAt())) {
             log.info("Session expired for user: {}", sessionData.getUserId());
-            // Audit logging for session expired
+            // Логирование аудита для истёкшей сессии
             auditService.logSessionExpired(sessionData.getUserId(), sessionId);
             invalidateSessionById(sessionId);
             return null;
         }
         
-        // Check if access token needs refresh (expired or about to expire within 30 seconds)
+        // Проверяем, нужно ли обновить access токен (истёк или истекает в течение 30 секунд)
         if (sessionData.getAccessTokenExpiresAt() != null
                 && Instant.now().plusSeconds(30).isAfter(sessionData.getAccessTokenExpiresAt())) {
-            // Token needs refresh - call Keycloak to refresh
+            // Токен нуждается в обновлении - вызываем Keycloak для обновления
             log.debug("Access token needs refresh for user: {}", sessionData.getUserId());
             
             if (sessionData.getRefreshToken() != null) {
                 sessionData = refreshAccessToken(sessionData);
                 
                 if (sessionData == null) {
-                    // Refresh failed - invalidate session
+                    // Обновление не удалось - аннулируем сессию
                     log.warn("Token refresh failed for user: {}", sessionData.getUserId());
                     invalidateSessionById(sessionId);
                     return null;
                 }
             } else {
                 log.warn("No refresh token available for user: {}", sessionData.getUserId());
-                // Invalidate session if no refresh token available
+                // Аннулируем сессию, если нет refresh токена
                 invalidateSessionById(sessionId);
                 return null;
             }
         }
         
-        // Update last accessed time
+        // Обновляем время последнего доступа
         sessionData.setLastAccessedAt(Instant.now());
         updateSession(sessionId, sessionData);
         
@@ -185,54 +185,54 @@ public class SessionServiceImpl implements SessionService {
     }
 
     /**
-     * Refresh access token using refresh token.
-     * Calls Keycloak token endpoint with grant_type=refresh_token.
+     * Обновляет access токен с помощью refresh токена.
+     * Вызывает endpoint Keycloak token с grant_type=refresh_token.
      */
     @Override
     public SessionData refreshAccessToken(SessionData sessionData) {
         try {
             String tokenUrl = String.format(TOKEN_URL_FORMAT, keycloakUrl, keycloakRealm);
             
-            // Get decrypted refresh token
+            // Получаем расшифрованный refresh токен
             String refreshToken = decryptToken(sessionData.getRefreshToken());
             
-            // Prepare request parameters
+            // Подготавливаем параметры запроса
             MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
             params.add("grant_type", "refresh_token");
             params.add("client_id", clientId);
             params.add("refresh_token", refreshToken);
             
-            // Set headers
+            // Устанавливаем заголовки
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             
             HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
             
-            // Make POST request to Keycloak
+            // Выполняем POST запрос к Keycloak
             ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
             
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 Map<String, Object> tokenResponse = response.getBody();
                 
-                // Extract new tokens
+                // Извлекаем новые токены
                 String newAccessToken = (String) tokenResponse.get("access_token");
                 String newRefreshToken = (String) tokenResponse.get("refresh_token");
                 Integer expiresIn = (Integer) tokenResponse.get("expires_in");
                 
-                // Update session data with new tokens
+                // Обновляем данные сессии новыми токенами
                 sessionData.setAccessToken(encryptToken(newAccessToken));
                 if (newRefreshToken != null) {
                     sessionData.setRefreshToken(encryptToken(newRefreshToken));
                 }
                 
-                // Calculate new expiration times
+                // Вычисляем новые времена истечения
                 Instant now = Instant.now();
                 sessionData.setAccessTokenExpiresAt(now.plusSeconds(expiresIn != null ? expiresIn : 300));
                 
-                // Audit logging for token refresh
+                // Логирование аудита для обновления токена
                 auditService.logTokenRefresh(sessionData.getUserId(), sessionData.getSessionId(), null);
                 
-                // Update refresh token expiration if provided
+                // Обновляем время истечения refresh токена, если предоставлено
                 if (tokenResponse.get("refresh_expires_in") != null) {
                     Integer refreshExpiresIn = (Integer) tokenResponse.get("refresh_expires_in");
                     sessionData.setRefreshTokenExpiresAt(now.plusSeconds(refreshExpiresIn));
@@ -253,9 +253,9 @@ public class SessionServiceImpl implements SessionService {
     }
 
     /**
-     * Rotate session - generate new session ID, invalidate old one.
-     * This method takes sessionId as parameter and returns new SessionData.
-     * Should be called on every authenticated request.
+     * Ротация сессии - генерирует новый ID сессии, аннулирует старый.
+     * Этот метод принимает sessionId в качестве параметра и возвращает новые данные сессии.
+     * Должен вызываться при каждом аутентифицированном запросе.
      */
     @Override
     public SessionData rotateSession(String sessionId) {
@@ -271,17 +271,17 @@ public class SessionServiceImpl implements SessionService {
             return null;
         }
         
-        // Generate new session ID
+        // Генерируем новый ID сессии
         String newSessionId = UUID.randomUUID().toString();
         
-        // Copy data to new session using mapper
+        // Копируем данные в новую сессию с помощью маппера
         SessionData newSession = sessionDataMapper.copyForRotation(oldSession, newSessionId);
         
-        // Store new session
+        // Сохраняем новую сессию
         String newRedisKey = getSessionKey(newSessionId);
         redisTemplate.opsForValue().set(newRedisKey, newSession, Duration.ofMinutes(sessionTimeoutMinutes));
         
-        // Invalidate old session
+        // Аннулируем старую сессию
         invalidateSessionById(sessionId);
         
         log.info("Rotated session for user: {} from {} to {}", oldSession.getUserId(), sessionId, newSessionId);
@@ -290,8 +290,8 @@ public class SessionServiceImpl implements SessionService {
     }
 
     /**
-     * Rotate session from request - generate new session ID, invalidate old one.
-     * This method extracts sessionId from request and sets new cookie.
+     * Ротация сессии из запроса - генерирует новый ID сессии, аннулирует старый.
+     * Этот метод извлекает sessionId из запроса и устанавливает новую куку.
      */
     @Override
     public void rotateSession(HttpServletRequest request, HttpServletResponse response) {
@@ -305,37 +305,37 @@ public class SessionServiceImpl implements SessionService {
         SessionData newSession = rotateSession(oldSessionId);
         
         if (newSession != null) {
-            // Set new cookie with new session ID
+            // Устанавливаем новую куку с новым ID сессии
             setSessionCookie(response, newSession.getSessionId());
         }
     }
 
     /**
-     * Revoke access and refresh tokens by calling Keycloak logout endpoint.
-     * Should be called on user logout to invalidate tokens in Keycloak.
+     * Отзывает access и refresh токены путём вызова endpoint выхода Keycloak.
+     * Должен вызываться при выходе пользователя для аннулирования токенов в Keycloak.
      */
     @Override
     public boolean revokeTokens(String refreshToken) {
         if (refreshToken == null) {
             log.debug("No refresh token to revoke");
-            return true; // No token to revoke, consider it success
+            return true; // Нет токена для отзыва, считаем успехом
         }
         
         try {
             String tokenUrl = String.format(TOKEN_URL_FORMAT, keycloakUrl, keycloakRealm);
             
-            // Prepare request parameters for logout endpoint
+            // Подготавливаем параметры запроса для endpoint выхода
             MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
             params.add("client_id", clientId);
             params.add("refresh_token", refreshToken);
             
-            // Set headers
+            // Устанавливаем заголовки
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             
             HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
             
-            // Use POST to Keycloak logout endpoint
+            // Используем POST для endpoint выхода Keycloak
             restTemplate.postForEntity(tokenUrl + "/logout", request, String.class);
             
             log.info("Successfully revoked tokens in Keycloak");
@@ -343,40 +343,40 @@ public class SessionServiceImpl implements SessionService {
             
         } catch (Exception e) {
             log.warn("Failed to revoke tokens in Keycloak: {}", e.getMessage());
-            // Return true anyway - local session is being invalidated anyway
+            // Всё равно возвращаем true - локальная сессия всё равно аннулируется
             return true;
         }
     }
     
     /**
-     * Invalidate session and revoke tokens.
-     * Should be called on user logout to properly revoke tokens in Keycloak.
+     * Аннулирует сессию и отзывает токены.
+     * Должен вызываться при выходе пользователя для корректного отзыва токенов в Keycloak.
      */
     @Override
     public void invalidateSessionWithTokenRevocation(HttpServletRequest request, HttpServletResponse response) {
         String sessionId = getSessionIdFromRequest(request);
         
         if (sessionId != null) {
-            // Get session data to revoke tokens
+            // Получаем данные сессии для отзыва токенов
             SessionData sessionData = getSession(sessionId);
             if (sessionData != null && sessionData.getRefreshToken() != null) {
-                // Revoke tokens in Keycloak
+                // Отзываем токены в Keycloak
                 String refreshToken = decryptToken(sessionData.getRefreshToken());
                 revokeTokens(refreshToken);
             }
             
-            // Invalidate session
+            // Аннулируем сессию
             invalidateSessionById(sessionId);
         }
         
-        // Clear cookie
+        // Очищаем куку
         clearSessionCookie(response);
         
         log.info("Session invalidated with token revocation");
     }
     
     /**
-     * Invalidate session from request.
+     * Аннулирует сессию из запроса.
      */
     @Override
     public void invalidateSession(HttpServletRequest request, HttpServletResponse response) {
@@ -386,24 +386,24 @@ public class SessionServiceImpl implements SessionService {
             invalidateSessionById(sessionId);
         }
         
-        // Clear cookie
+        // Очищаем куку
         clearSessionCookie(response);
         
         log.info("Session invalidated");
     }
 
     /**
-     * Invalidate session by ID.
+     * Аннулирует сессию по ID.
      */
     @Override
     public void invalidateSessionById(String sessionId) {
-        // Get session data before invalidation for audit logging
+        // Получаем данные сессии до аннулирования для логирования аудита
         SessionData sessionData = getSession(sessionId);
         String userId = sessionData != null ? sessionData.getUserId() : null;
         
         sessionRepository.deleteById(sessionId);
         
-        // Audit logging for session invalidated
+        // Логирование аудита для аннулированной сессии
         if (userId != null) {
             auditService.logSessionInvalidated(userId, sessionId);
         }
@@ -412,7 +412,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     /**
-     * Get session expiration time.
+     * Получает время истечения сессии.
      */
     @Override
     public Instant getSessionExpiration(HttpServletRequest request) {
@@ -429,7 +429,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     /**
-     * Get decrypted access token for session.
+     * Получает расшифрованный access токен для сессии.
      */
     @Override
     public String getAccessToken(String sessionId) {
@@ -443,7 +443,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     /**
-     * Get session ID from request cookie.
+     * Получает ID сессии из куки запроса.
      */
     @Override
     public String getSessionIdFromRequest(HttpServletRequest request) {
@@ -461,8 +461,8 @@ public class SessionServiceImpl implements SessionService {
     }
 
     /**
-     * Set session cookie with security attributes.
-     * Public method to allow filters to set cookies.
+     * Устанавливает куку сессии с атрибутами безопасности.
+     * Публичный метод для разрешения фильтрам устанавливать куки.
      */
     @Override
     public void setSessionCookieFromFilter(HttpServletResponse response, String sessionId) {
@@ -470,14 +470,14 @@ public class SessionServiceImpl implements SessionService {
     }
 
     /**
-     * Update session in repository.
+     * Обновляет сессию в репозитории.
      */
     private void updateSession(String sessionId, SessionData sessionData) {
         sessionRepository.save(sessionId, sessionData);
     }
 
     /**
-     * Set session cookie with security attributes.
+     * Устанавливает куку сессии с атрибутами безопасности.
      */
     private void setSessionCookie(HttpServletResponse response, String sessionId) {
         Cookie cookie = new Cookie(cookieName, sessionId);
@@ -492,7 +492,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     /**
-     * Clear session cookie.
+     * Очищает куку сессии.
      */
     private void clearSessionCookie(HttpServletResponse response) {
         Cookie cookie = new Cookie(cookieName, "");
@@ -506,14 +506,14 @@ public class SessionServiceImpl implements SessionService {
     }
 
     /**
-     * Get Redis key for session.
+     * Получает Redis ключ для сессии.
      */
     private String getSessionKey(String sessionId) {
         return "bionicpro:session:" + sessionId;
     }
 
     /**
-     * Encrypt token value.
+     * Шифрует значение токена.
      */
     private String encryptToken(String token) {
         byte[] encrypted = bytesEncryptor.encrypt(token.getBytes());
@@ -521,7 +521,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     /**
-     * Decrypt token value.
+     * Расшифровывает значение токена.
      */
     private String decryptToken(String encryptedToken) {
         byte[] decoded = Base64.getDecoder().decode(encryptedToken);

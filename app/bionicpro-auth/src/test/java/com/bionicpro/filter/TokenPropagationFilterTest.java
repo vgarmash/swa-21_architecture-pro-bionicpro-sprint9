@@ -62,17 +62,17 @@ class TokenPropagationFilterTest {
         @Test
         @DisplayName("Should skip filter for auth endpoints")
         void doFilterInternal_shouldSkipAuthEndpoints() throws Exception {
-            // Arrange
+            // Подготовка
             MockHttpServletRequest request = new MockHttpServletRequest();
             request.setRequestURI("/api/auth/login");
             
             MockHttpServletResponse response = new MockHttpServletResponse();
             FilterChain filterChain = mock(FilterChain.class);
             
-            // Act
+            // Действие
             filter.doFilterInternal(request, response, filterChain);
             
-            // Assert
+            // Проверка
             verify(filterChain).doFilter(request, response);
             verify(sessionService, never()).validateAndRefreshSession(anyString());
         }
@@ -80,7 +80,7 @@ class TokenPropagationFilterTest {
         @Test
         @DisplayName("Should return 401 when no session cookie")
         void doFilterInternal_shouldReturn401WhenNoCookie() throws Exception {
-            // Arrange
+            // Подготовка
             MockHttpServletRequest request = new MockHttpServletRequest();
             request.setRequestURI("/api/users");
             request.setCookies();
@@ -88,10 +88,10 @@ class TokenPropagationFilterTest {
             MockHttpServletResponse response = new MockHttpServletResponse();
             FilterChain filterChain = mock(FilterChain.class);
             
-            // Act
+            // Действие
             filter.doFilterInternal(request, response, filterChain);
             
-            // Assert
+            // Проверка
             assertEquals(401, response.getStatus());
             assertTrue(response.getContentAsString().contains("not_authenticated"));
             verify(filterChain, never()).doFilter(request, response);
@@ -100,7 +100,7 @@ class TokenPropagationFilterTest {
         @Test
         @DisplayName("Should return 401 when session is invalid")
         void doFilterInternal_shouldReturn401WhenSessionInvalid() throws Exception {
-            // Arrange
+            // Подготовка
             Cookie sessionCookie = new Cookie("BIONICPRO_SESSION", "invalid-session");
             
             MockHttpServletRequest request = new MockHttpServletRequest();
@@ -112,10 +112,10 @@ class TokenPropagationFilterTest {
             
             when(sessionService.validateAndRefreshSession("invalid-session")).thenReturn(null);
             
-            // Act
+            // Действие
             filter.doFilterInternal(request, response, filterChain);
             
-            // Assert
+            // Проверка
             assertEquals(401, response.getStatus());
             assertTrue(response.getContentAsString().contains("Session expired or invalid"));
             verify(filterChain, never()).doFilter(request, response);
@@ -124,7 +124,7 @@ class TokenPropagationFilterTest {
         @Test
         @DisplayName("Should return 401 when access token is missing")
         void doFilterInternal_shouldReturn401WhenAccessTokenMissing() throws Exception {
-            // Arrange
+            // Подготовка
             Cookie sessionCookie = new Cookie("BIONICPRO_SESSION", "valid-session");
             
             SessionData sessionData = SessionData.builder()
@@ -143,10 +143,10 @@ class TokenPropagationFilterTest {
             when(sessionService.validateAndRefreshSession("valid-session")).thenReturn(sessionData);
             when(sessionService.getAccessToken("valid-session")).thenReturn(null);
             
-            // Act
+            // Действие
             filter.doFilterInternal(request, response, filterChain);
             
-            // Assert
+            // Проверка
             assertEquals(401, response.getStatus());
             assertTrue(response.getContentAsString().contains("No access token"));
             verify(filterChain, never()).doFilter(request, response);
@@ -155,7 +155,7 @@ class TokenPropagationFilterTest {
         @Test
         @DisplayName("Should continue filter chain when session is valid")
         void doFilterInternal_shouldContinueChainWhenSessionValid() throws Exception {
-            // Arrange
+            // Подготовка
             Cookie sessionCookie = new Cookie("BIONICPRO_SESSION", "valid-session");
             
             SessionData sessionData = SessionData.builder()
@@ -174,10 +174,10 @@ class TokenPropagationFilterTest {
             when(sessionService.validateAndRefreshSession("valid-session")).thenReturn(sessionData);
             when(sessionService.getAccessToken("valid-session")).thenReturn("access-token-123");
             
-            // Act
+            // Действие
             filter.doFilterInternal(request, response, filterChain);
             
-            // Assert
+            // Проверка
             assertEquals("access-token-123", request.getAttribute("accessToken"));
             assertEquals("user123", request.getAttribute("userId"));
             verify(filterChain).doFilter(request, response);
@@ -191,7 +191,7 @@ class TokenPropagationFilterTest {
         @Test
         @DisplayName("Should handle empty cookies array")
         void doFilterInternal_shouldHandleEmptyCookies() throws Exception {
-            // Arrange
+            // Подготовка
             MockHttpServletRequest request = new MockHttpServletRequest();
             request.setRequestURI("/api/users");
             request.setCookies(new Cookie[]{});
@@ -199,17 +199,17 @@ class TokenPropagationFilterTest {
             MockHttpServletResponse response = new MockHttpServletResponse();
             FilterChain filterChain = mock(FilterChain.class);
             
-            // Act
+            // Действие
             filter.doFilterInternal(request, response, filterChain);
             
-            // Assert
+            // Проверка
             assertEquals(401, response.getStatus());
         }
 
         @Test
         @DisplayName("Should handle different cookie name")
         void doFilterInternal_shouldHandleDifferentCookieName() throws Exception {
-            // Arrange
+            // Подготовка
             Cookie otherCookie = new Cookie("OTHER_COOKIE", "some-value");
             
             MockHttpServletRequest request = new MockHttpServletRequest();
@@ -219,17 +219,17 @@ class TokenPropagationFilterTest {
             MockHttpServletResponse response = new MockHttpServletResponse();
             FilterChain filterChain = mock(FilterChain.class);
             
-            // Act
+            // Действие
             filter.doFilterInternal(request, response, filterChain);
             
-            // Assert
+            // Проверка
             assertEquals(401, response.getStatus());
         }
 
         @Test
         @DisplayName("Should handle null cookies from request")
         void doFilterInternal_shouldHandleNullCookies() throws Exception {
-            // Arrange
+            // Подготовка
             MockHttpServletRequest request = new MockHttpServletRequest() {
                 @Override
                 public Cookie[] getCookies() {
@@ -241,10 +241,10 @@ class TokenPropagationFilterTest {
             MockHttpServletResponse response = new MockHttpServletResponse();
             FilterChain filterChain = mock(FilterChain.class);
             
-            // Act
+            // Действие
             filter.doFilterInternal(request, response, filterChain);
             
-            // Assert
+            // Проверка
             assertEquals(401, response.getStatus());
         }
     }

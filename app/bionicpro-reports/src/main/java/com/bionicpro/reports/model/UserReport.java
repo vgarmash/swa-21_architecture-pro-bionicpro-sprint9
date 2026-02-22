@@ -9,10 +9,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * Entity representing a user report stored in ClickHouse.
- * Maps to the user_reports table in the OLAP database.
+ * Сущность, представляющая отчет пользователя, хранящийся в ClickHouse.
+ * Соответствует таблице user_reports в OLAP базе данных.
  *
- * Schema matches the table created by ETL DAG:
+ * Схема соответствует таблице, созданной ETL DAG:
  * - user_id UInt32
  * - report_date Date
  * - total_sessions UInt32
@@ -37,82 +37,82 @@ import java.time.LocalDateTime;
 public class UserReport {
 
     /**
-     * User ID (corresponds to Keycloak user ID)
+     * ID пользователя (соответствует ID пользователя Keycloak)
      */
     private Long userId;
 
     /**
-     * Date of the report
+     * Дата отчета
      */
     private LocalDate reportDate;
 
     /**
-     * Total number of EMG signal sessions recorded
+     * Общее количество записанных сессий сигнала ЭМГ
      */
     private Integer totalSessions;
 
     /**
-     * Average signal amplitude across all sessions
+     * Средняя амплитуда сигнала по всем сессиям
      */
     private Float avgSignalAmplitude;
 
     /**
-     * Maximum signal amplitude recorded
+     * Максимальная записанная амплитуда сигнала
      */
     private Float maxSignalAmplitude;
 
     /**
-     * Minimum signal amplitude recorded
+     * Минимальная записанная амплитуда сигнала
      */
     private Float minSignalAmplitude;
 
     /**
-     * Average signal frequency in Hz
+     * Средняя частота сигнала в Гц
      */
     private Float avgSignalFrequency;
 
     /**
-     * Total usage time in hours
+     * Общее время использования в часах
      */
     private Float totalUsageHours;
 
     /**
-     * Type of prosthesis (e.g., "upper_limb", "lower_limb")
+     * Тип протеза (например, "upper_limb", "lower_limb")
      */
     private String prosthesisType;
 
     /**
-     * Muscle group being monitored (e.g., "biceps", "quadriceps")
+     * Группа мышц, которая отслеживается (например, "biceps", "quadriceps")
      */
     private String muscleGroup;
 
     /**
-     * Customer's full name from CRM
+     * Полное имя клиента из CRM
      */
     private String customerName;
 
     /**
-     * Customer's email from CRM
+     * Email клиента из CRM
      */
     private String customerEmail;
 
     /**
-     * Customer's age from CRM
+     * Возраст клиента из CRM
      */
     private Integer customerAge;
 
     /**
-     * Customer's gender from CRM
+     * Пол клиента из CRM
      */
     private String customerGender;
 
     /**
-     * Customer's country from CRM
+     * Страна клиента из CRM
      */
     private String customerCountry;
 
     /**
-     * Timestamp when the report was created in ClickHouse
+     * Временная метка создания отчета в ClickHouse
      */
     private LocalDateTime createdAt;
 }

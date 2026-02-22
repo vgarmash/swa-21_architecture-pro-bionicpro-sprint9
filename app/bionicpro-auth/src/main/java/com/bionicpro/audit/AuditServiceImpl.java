@@ -10,50 +10,50 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 
 /**
- * Implementation of the AuditService interface.
- * Provides methods to record various authentication-related operations
- * for security auditing and compliance purposes.
+ * Реализация интерфейса AuditService.
+ * Предоставляет методы для записи различных операций, связанных с аутентификацией,
+ * для целей аудита безопасности и соответствия требованиям.
  * <p>
- * Uses SLF4J with logger name "AUDIT" for all audit logging.
- * Extracts correlation ID from MDC for request tracing.
+ * Использует SLF4J с именем логгера "AUDIT" для всего аудит-логирования.
+ * Извлекает идентификатор корреляции из MDC для трассировки запросов.
  */
 @Service
 public class AuditServiceImpl implements AuditService {
 
     /**
-     * Logger name for audit events.
+     * Имя логгера для событий аудита.
      */
     private static final String AUDIT_LOGGER_NAME = "AUDIT";
 
     /**
-     * MDC key for correlation ID.
+     * Ключ MDC для идентификатора корреляции.
      */
     private static final String CORRELATION_ID_MDC_KEY = "correlationId";
 
     /**
-     * MDC key for client IP.
+     * Ключ MDC для IP-адреса клиента.
      */
     private static final String CLIENT_IP_MDC_KEY = "clientIp";
 
     /**
-     * MDC key for user ID.
+     * Ключ MDC для идентификатора пользователя.
      */
     private static final String USER_ID_MDC_KEY = "userId";
 
     /**
-     * The audit logger instance.
+     * Экземпляр логгера аудита.
      */
     private final Logger auditLogger;
 
     /**
-     * Client IP resolver for extracting client IP from requests.
+     * Резолвер IP-адреса клиента для извлечения IP-клиента из запросов.
      */
     private final ClientIpResolver clientIpResolver;
 
     /**
-     * Constructs a new AuditServiceImpl with the given client IP resolver.
+     * Создаёт новый AuditServiceImpl с указанным резолвером IP-адреса клиента.
      *
-     * @param clientIpResolver the client IP resolver
+     * @param clientIpResolver резолвер IP-адреса клиента
      */
     public AuditServiceImpl(ClientIpResolver clientIpResolver) {
         this.auditLogger = LoggerFactory.getLogger(AUDIT_LOGGER_NAME);
@@ -69,14 +69,14 @@ public class AuditServiceImpl implements AuditService {
             return;
         }
 
-        // Set MDC context for the log event
+        // Устанавливаем контекст MDC для события логирования
         setMdcContext(event);
 
         try {
-            // Log the audit event as JSON
+            // Логируем событие аудита как JSON
             auditLogger.info(event.toString());
         } finally {
-            // Clear MDC context after logging
+            // Очищаем контекст MDC после логирования
             clearMdcContext();
         }
     }
@@ -98,9 +98,9 @@ public class AuditServiceImpl implements AuditService {
      */
     @Override
     public void logAuthenticationFailure(String username, String error, HttpServletRequest request) {
-        // Sanitize the username for security (never log actual usernames on failure)
+        // Очищаем имя пользователя для безопасности (никогда не логируем реальные имена пользователей при ошибке)
         String sanitizedUsername = sanitizeUsername(username);
-        
+
         AuditEvent event = buildAuditEvent(AuditEventType.AUTHENTICATION_FAILURE, sanitizedUsername, null, request)
                 .outcome("FAILURE")
                 .errorType("INVALID_CREDENTIALS")
@@ -183,17 +183,17 @@ public class AuditServiceImpl implements AuditService {
     }
 
     /**
-     * Builds a base AuditEvent with common fields from the request.
+     * Создаёт базовый AuditEvent с общими полями из запроса.
      *
-     * @param eventType  the type of audit event
-     * @param userId    the user ID
-     * @param sessionId the session ID (may be null)
-     * @param request   the HTTP request
-     * @return the audit event builder
+     * @param eventType  тип события аудита
+     * @param userId    идентификатор пользователя
+     * @param sessionId идентификатор сессии (может быть null)
+     * @param request   HTTP-запрос
+     * @return строитель события аудита
      */
-    private AuditEvent.AuditEventBuilder buildAuditEvent(AuditEventType eventType, 
-                                                          String userId, 
-                                                          String sessionId, 
+    private AuditEvent.AuditEventBuilder buildAuditEvent(AuditEventType eventType,
+                                                          String userId,
+                                                          String sessionId,
                                                           HttpServletRequest request) {
         String clientIp = clientIpResolver.getClientIp(request);
         String userAgent = ClientIpResolver.sanitizeUserAgent(
@@ -210,27 +210,27 @@ public class AuditServiceImpl implements AuditService {
     }
 
     /**
-     * Gets the correlation ID from MDC, or null if not set.
+     * Получает идентификатор корреляции из MDC, или null, если не установлен.
      *
-     * @return the correlation ID from MDC
+     * @return идентификатор корреляции из MDC
      */
     private String getCorrelationId() {
         return MDC.get(CORRELATION_ID_MDC_KEY);
     }
 
     /**
-     * Gets the client IP from MDC, or null if not set.
+     * Получает IP-адрес клиента из MDC, или null, если не установлен.
      *
-     * @return the client IP from MDC
+     * @return IP-адрес клиента из MDC
      */
     private String getMdcClientIp() {
         return MDC.get(CLIENT_IP_MDC_KEY);
     }
 
     /**
-     * Sets the MDC context from the audit event for logging.
+     * Устанавливает контекст MDC из события аудита для логирования.
      *
-     * @param event the audit event
+     * @param event событие аудита
      */
     private void setMdcContext(AuditEvent event) {
         if (event.getCorrelationId() != null) {
@@ -245,7 +245,7 @@ public class AuditServiceImpl implements AuditService {
     }
 
     /**
-     * Clears the MDC context after logging.
+     * Очищает контекст MDC после логирования.
      */
     private void clearMdcContext() {
         MDC.remove(CORRELATION_ID_MDC_KEY);
@@ -254,33 +254,33 @@ public class AuditServiceImpl implements AuditService {
     }
 
     /**
-     * Sanitizes the username for secure logging.
-     * On authentication failure, we never log the actual username to avoid
-     * giving attackers information about valid usernames.
+     * Очищает имя пользователя для безопасного логирования.
+     * При ошибке аутентификации мы никогда не логируем реальное имя пользователя, чтобы избежать
+     * предоставления атакующим информации о действительных именах пользователей.
      *
-     * @param username the raw username
-     * @return sanitized username
+     * @param username сырое имя пользователя
+     * @return очищенное имя пользователя
      */
     private String sanitizeUsername(String username) {
         if (username == null || username.isBlank()) {
             return "unknown";
         }
-        // For failed auth attempts, don't reveal whether the username exists
-        // by not logging it at all - just mark it as attempted
+        // При неудачных попытках аутентификации не раскрываем, существует ли имя пользователя,
+        // вообще не логируя его - просто помечаем как попытку
         return "[REDACTED]";
     }
 
     /**
-     * Sanitizes the user ID for secure logging.
+     * Очищает идентификатор пользователя для безопасного логирования.
      *
-     * @param userId the raw user ID
-     * @return sanitized user ID
+     * @param userId сырой идентификатор пользователя
+     * @return очищенный идентификатор пользователя
      */
     private String sanitizeUserId(String userId) {
         if (userId == null || userId.isBlank()) {
             return "unknown";
         }
-        // Truncate if too long
+        // Обрезаем, если слишком длинный
         if (userId.length() > 100) {
             return userId.substring(0, 100) + "...[truncated]";
         }
@@ -288,21 +288,21 @@ public class AuditServiceImpl implements AuditService {
     }
 
     /**
-     * Sanitizes the session ID for secure logging.
-     * Masks part of the session ID to prevent session hijacking.
+     * Очищает идентификатор сессии для безопасного логирования.
+     * Маскирует часть идентификатора сессии для предотвращения перехвата сессии.
      *
-     * @param sessionId the raw session ID
-     * @return sanitized session ID
+     * @param sessionId сырой идентификатор сессии
+     * @return очищенный идентификатор сессии
      */
     private String sanitizeSessionId(String sessionId) {
         if (sessionId == null || sessionId.isBlank()) {
             return null;
         }
-        // Mask the session ID, showing only first 8 and last 8 characters
+        // Маскируем идентификатор сессии, показывая только первые 8 и последние 8 символов
         if (sessionId.length() > 20) {
             return sessionId.substring(0, 8) + "..." + sessionId.substring(sessionId.length() - 8);
         }
-        // For short session IDs, mask completely
+        // Для коротких идентификаторов сессий маскируем полностью
         return "[SESSION_ID]";
     }
 }

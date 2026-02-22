@@ -4,35 +4,35 @@ import com.bionicpro.model.SessionData;
 import java.util.Optional;
 
 /**
- * Session repository interface for storing and retrieving session data.
- * This interface provides methods for session management operations.
+ * Интерфейс репозитория сессий для хранения и получения данных сессии.
+ * Этот интерфейс предоставляет методы для операций управления сессиями.
  */
 public interface SessionRepository {
-    
+
     /**
-     * Save session data.
-     * @param sessionId the session ID
-     * @param sessionData the session data to save
+     * Сохраняет данные сессии.
+     * @param sessionId ID сессии
+     * @param sessionData данные сессии для сохранения
      */
     void save(String sessionId, SessionData sessionData);
-    
+
     /**
-     * Find session data by session ID.
-     * @param sessionId the session ID
-     * @return Optional containing session data if found, empty otherwise
+     * Находит данные сессии по ID сессии.
+     * @param sessionId ID сессии
+     * @return Optional, содержащий данные сессии, если найдены, иначе пустой
      */
     Optional<SessionData> findById(String sessionId);
-    
+
     /**
-     * Delete session data by session ID.
-     * @param sessionId the session ID
+     * Удаляет данные сессии по ID сессии.
+     * @param sessionId ID сессии
      */
     void deleteById(String sessionId);
-    
+
     /**
-     * Check if session exists by session ID.
-     * @param sessionId the session ID
-     * @return true if session exists, false otherwise
+     * Проверяет, существует ли сессия по ID сессии.
+     * @param sessionId ID сессии
+     * @return true, если сессия существует, иначе false
      */
     boolean existsById(String sessionId);
 }

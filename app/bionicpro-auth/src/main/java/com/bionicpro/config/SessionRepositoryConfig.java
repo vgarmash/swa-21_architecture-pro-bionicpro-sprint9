@@ -5,8 +5,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Configuration class for session repositories.
- * Sets up the primary repository (Redis) for distributed session storage.
+ * Конфигурационный класс для репозиториев сессий.
+ * Настраивает основной репозиторий (Redis) для распределённого хранения сессий.
  */
 @Configuration
 public class SessionRepositoryConfig {

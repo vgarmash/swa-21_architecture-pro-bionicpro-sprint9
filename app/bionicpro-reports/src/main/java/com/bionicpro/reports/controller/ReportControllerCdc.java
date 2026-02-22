@@ -14,13 +14,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * REST Controller for CDC Reports API endpoints.
- * Provides endpoints for retrieving user reports from ClickHouse CDC table.
+ * REST контроллер для API эндпоинтов отчётов CDC.
+ * Предоставляет эндпоинты для получения пользовательских отчётов из таблицы CDC в ClickHouse.
  * 
- * Endpoints:
- * - GET /api/v1/reports/cdc - latest report for current user from CDC
- * - GET /api/v1/reports/cdc/{requestedUserId} - report for specific user from CDC
- * - GET /api/v1/reports/cdc/{requestedUserId}/history - history for specific user from CDC
+ * Эндпоинты:
+ * - GET /api/v1/reports/cdc - последний отчёт для текущего пользователя из CDC
+ * - GET /api/v1/reports/cdc/{requestedUserId} - отчёт для конкретного пользователя из CDC
+ * - GET /api/v1/reports/cdc/{requestedUserId}/history - история для конкретного пользователя из CDC
  */
 @RestController
 @RequestMapping("/api/v1/reports/cdc")
@@ -36,10 +36,10 @@ public class ReportControllerCdc {
 
     /**
      * GET /api/v1/reports/cdc
-     * Retrieves the latest report for the authenticated user from CDC table.
+     * Получает последний отчёт для аутентифицированного пользователя из таблицы CDC.
      * 
-     * @param jwt the JWT token containing user information
-     * @return the latest report or a message if no data available
+     * @param jwt JWT токен, содержащий информацию о пользователе
+     * @return последний отчёт или сообщение, если данные недоступны
      */
     @GetMapping
     public ResponseEntity<?> getReport(@AuthenticationPrincipal Jwt jwt) {
@@ -67,12 +67,12 @@ public class ReportControllerCdc {
 
     /**
      * GET /api/v1/reports/cdc/{requestedUserId}
-     * Retrieves the latest report for a specific user from CDC table.
-     * Only accessible if the authenticated user is requesting their own reports.
+     * Получает последний отчёт для конкретного пользователя из таблицы CDC.
+     * Доступно только если аутентифицированный пользователь запрашивает свои собственные отчёты.
      * 
-     * @param requestedUserId the user ID to get reports for
-     * @param jwt the JWT token containing user information
-     * @return the latest report for the specified user
+     * @param requestedUserId ID пользователя, для которого нужно получить отчёты
+     * @param jwt JWT токен, содержащий информацию о пользователе
+     * @return последний отчёт для указанного пользователя
      */
     @GetMapping("/{requestedUserId}")
     public ResponseEntity<?> getReportByUserId(
@@ -103,13 +103,13 @@ public class ReportControllerCdc {
 
     /**
      * GET /api/v1/reports/cdc/{requestedUserId}/history
-     * Retrieves recent reports for a specific user from CDC table.
-     * Only accessible if the authenticated user is requesting their own reports.
+     * Получает последние отчёты для конкретного пользователя из таблицы CDC.
+     * Доступно только если аутентифицированный пользователь запрашивает свои собственные отчёты.
      * 
-     * @param requestedUserId the user ID to get reports for
-     * @param limit maximum number of reports to return (default 10)
-     * @param jwt the JWT token containing user information
-     * @return list of recent reports for the specified user
+     * @param requestedUserId ID пользователя, для которого нужно получить отчёты
+     * @param limit максимальное количество отчётов для возврата (по умолчанию 10)
+     * @param jwt JWT токен, содержащий информацию о пользователе
+     * @return список последних отчётов для указанного пользователя
      */
     @GetMapping("/{requestedUserId}/history")
     public ResponseEntity<?> getReportHistory(
@@ -135,18 +135,18 @@ public class ReportControllerCdc {
     }
 
     /**
-     * Extracts the user ID from the JWT token.
-     * Tries multiple claims in order: user_id, sub.
+     * Извлекает ID пользователя из JWT токена.
+     * Пробует несколько claims по порядку: user_id, sub.
      * 
-     * @param jwt the JWT token
-     * @return the user ID as Long
+     * @param jwt JWT токен
+     * @return ID пользователя как Long
      */
     private Long extractUserId(Jwt jwt) {
-        // Try user_id claim first (custom claim)
+        // Сначала пробуем claim user_id (пользовательский claim)
         Object userIdClaim = jwt.getClaim("user_id");
         
         if (userIdClaim == null) {
-            // Fall back to subject claim
+            // Используем резервный вариант - subject claim
             userIdClaim = jwt.getClaim("sub");
         }
         

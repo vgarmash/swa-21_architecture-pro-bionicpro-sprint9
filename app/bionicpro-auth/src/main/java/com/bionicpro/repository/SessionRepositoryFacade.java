@@ -8,9 +8,9 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 
 /**
- * Session repository implementation that uses Redis as the primary storage.
- * This implementation does not fall back to in-memory storage and is designed for
- * distributed environments where all instances must share the same session data.
+ * Реализация репозитория сессий, использующая Redis как основное хранилище.
+ * Эта реализация не использует запасное хранилище в памяти и предназначена для
+ * распределённых сред, где все экземпляры должны использовать одни и те же данные сессии.
  */
 @Component
 public class SessionRepositoryFacade implements SessionRepository {

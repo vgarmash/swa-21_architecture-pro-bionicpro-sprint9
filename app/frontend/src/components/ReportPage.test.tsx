@@ -3,18 +3,18 @@ import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import '@testing-library/jest-dom';
 import ReportPage from './ReportPage';
 
-// Mock the useKeycloak hook
+// Мок хука useKeycloak
 jest.mock('@react-keycloak/web', () => ({
   useKeycloak: jest.fn(),
 }));
 
 import { useKeycloak } from '@react-keycloak/web';
 
-// Mock fetch globally
+// Мок fetch глобально
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
-// Mock environment variable
+// Мок переменной окружения
 const originalEnv = process.env;
 beforeAll(() => {
   process.env = { ...originalEnv, REACT_APP_API_URL: 'http://localhost:8081/api/v1' };
@@ -30,7 +30,7 @@ beforeEach(() => {
   (useKeycloak as jest.Mock).mockClear();
 });
 
-// Test data
+// Тестовые данные
 const mockReportData = {
   user: {
     name: 'John Doe',
@@ -51,7 +51,7 @@ const mockReportData = {
   },
 };
 
-// Helper to setup keycloak mock
+// Вспомогательная функция для настройки мока keycloak
 const setupKeycloakMock = (authenticated: boolean, token: string | null = null) => {
   (useKeycloak as jest.Mock).mockReturnValue({
     keycloak: {
@@ -86,12 +86,12 @@ describe('ReportPage Component Tests', () => {
 
       render(<ReportPage />);
 
-      // Should show login button when not authenticated
+      // Должна отображаться кнопка входа, когда пользователь не аутентифицирован
       await waitFor(() => {
         expect(screen.getByText('Login')).toBeInTheDocument();
       });
 
-      // Download Report button should not be present when not authenticated
+      // Кнопка Download Report не должна отображаться, когда пользователь не аутентифицирован
       expect(screen.queryByText(/Download Report/)).not.toBeInTheDocument();
     });
 
@@ -122,15 +122,15 @@ describe('ReportPage Component Tests', () => {
 
       render(<ReportPage />);
 
-      // Wait for the button to be available
+      // Ожидание доступности кнопки
       await waitFor(() => {
         expect(screen.getByText(/Download Report/)).toBeInTheDocument();
       });
 
-      // Click the button
+      // Нажатие на кнопку
       fireEvent.click(screen.getByText(/Download Report/));
 
-      // Verify fetch was called
+      // Проверка вызова fetch
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
           'http://localhost:8081/api/v1/reports',
@@ -155,7 +155,7 @@ describe('ReportPage Component Tests', () => {
 
       render(<ReportPage />);
 
-      // Wait for data to load and check user info
+      // Ожидание загрузки данных и проверка информации о пользователе
       await waitFor(() => {
         expect(screen.getByText('John Doe')).toBeInTheDocument();
         expect(screen.getByText('john@example.com')).toBeInTheDocument();
@@ -164,13 +164,13 @@ describe('ReportPage Component Tests', () => {
         expect(screen.getByText('USA')).toBeInTheDocument();
       });
 
-      // Check prosthesis info
+      // Проверка информации о протезе
       await waitFor(() => {
         expect(screen.getByText('upper_limb')).toBeInTheDocument();
         expect(screen.getByText('biceps')).toBeInTheDocument();
       });
 
-      // Check statistics
+      // Проверка статистики
       await waitFor(() => {
         expect(screen.getByText('45')).toBeInTheDocument(); // totalSessions
         expect(screen.getByText('12.5')).toBeInTheDocument(); // totalHours
@@ -244,7 +244,7 @@ describe('ReportPage Component Tests', () => {
     test('test_loading_indicator - индикатор загрузки', async () => {
       setupKeycloakMock(true, 'mock-token');
 
-      // Create a promise that we can control
+      // Создаём promise, которым мы можем управлять
       let resolveFetch: (value: Response) => void;
       const fetchPromise = new Promise<Response>((resolve) => {
         resolveFetch = resolve;
@@ -254,15 +254,15 @@ describe('ReportPage Component Tests', () => {
 
       render(<ReportPage />);
 
-      // Click the button to trigger loading
+      // Нажатие на кнопку для запуска загрузки
       fireEvent.click(screen.getByText(/Download Report/));
 
-      // Check loading indicator is shown
+      // Проверка отображения индикатора загрузки
       await waitFor(() => {
         expect(screen.getByText(/Generating Report/)).toBeInTheDocument();
       });
 
-      // Resolve the fetch
+      // Выполняем fetch
       await act(async () => {
         resolveFetch!({
           ok: true,
@@ -271,7 +271,7 @@ describe('ReportPage Component Tests', () => {
         await fetchPromise;
       });
 
-      // Loading indicator should be gone
+      // Индикатор загрузки должен исчезнуть
       await waitFor(() => {
         expect(screen.queryByText(/Generating Report/)).not.toBeInTheDocument();
       });
@@ -282,13 +282,13 @@ describe('ReportPage Component Tests', () => {
     test('test_download_report - скачивание отчёта', async () => {
       setupKeycloakMock(true, 'mock-token');
 
-      // Mock document.createElement and related methods
+      // Мок document.createElement и связанных методов
       const mockCreateElement = jest.spyOn(document, 'createElement');
       const mockAppendChild = jest.fn();
       const mockRemoveChild = jest.fn();
       const mockClick = jest.fn();
 
-      // Create mock link element
+      // Создание мок-элемента ссылки
       const mockLink = {
         href: '',
         download: '',
@@ -298,15 +298,15 @@ describe('ReportPage Component Tests', () => {
 
       mockCreateElement.mockReturnValue(mockLink as any);
 
-      // Mock URL.createObjectURL
+      // Мок URL.createObjectURL
       const originalCreateObjectURL = URL.createObjectURL;
       URL.createObjectURL = jest.fn(() => 'blob:http://localhost/mock-url');
 
-      // Mock URL.revokeObjectURL
+      // Мок URL.revokeObjectURL
       const originalRevokeObjectURL = URL.revokeObjectURL;
       URL.revokeObjectURL = jest.fn();
 
-      // Mock document.body methods
+      // Мок методов document.body
       const originalBodyAppendChild = document.body.appendChild;
       const originalBodyRemoveChild = document.body.removeChild;
       document.body.appendChild = mockAppendChild;
@@ -317,7 +317,7 @@ describe('ReportPage Component Tests', () => {
         json: async () => mockReportData,
       });
 
-      // Use fake timers for this test
+      // Используем fake timers для этого теста
       jest.useFakeTimers();
 
       render(<ReportPage />);
@@ -326,24 +326,24 @@ describe('ReportPage Component Tests', () => {
         expect(screen.getByText(/Download Report/)).toBeInTheDocument();
       });
 
-      // Click the download button
+      // Нажатие на кнопку скачивания
       fireEvent.click(screen.getByText(/Download Report/));
 
-      // Wait for fetch and download to complete
+      // Ожидание завершения fetch и скачивания
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalled();
       });
 
-      // Advance timers to trigger download
+      // Перемотка таймеров для запуска скачивания
       jest.advanceTimersByTime(100);
 
-      // Verify download was initiated
+      // Проверка инициации скачивания
       await waitFor(() => {
         expect(mockCreateElement).toHaveBeenCalledWith('a');
         expect(mockClick).toHaveBeenCalled();
       });
 
-      // Restore mocks
+      // Восстановление моков
       URL.createObjectURL = originalCreateObjectURL;
       URL.revokeObjectURL = originalRevokeObjectURL;
       document.body.appendChild = originalBodyAppendChild;
@@ -355,7 +355,7 @@ describe('ReportPage Component Tests', () => {
     test('test_download_button_disabled_without_data - кнопка неактивна без данных', async () => {
       setupKeycloakMock(true, 'mock-token');
 
-      // Return 404 (no data)
+      // Возврат 404 (нет данных)
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 404,
@@ -364,15 +364,15 @@ describe('ReportPage Component Tests', () => {
 
       render(<ReportPage />);
 
-      // Wait for error to appear
+      // Ожидание появления ошибки
       await waitFor(() => {
         expect(screen.getByText(/Report not found/)).toBeInTheDocument();
       });
 
-      // Button should still be visible - it triggers new data fetch
+      // Кнопка должна быть видимой - она запускает новый запрос данных
       const button = screen.getByText(/Download Report/);
       expect(button).toBeInTheDocument();
-      // The button should be clickable to fetch new data
+      // Кнопка должна быть активной для получения новых данных
       expect(button).not.toBeDisabled();
     });
   });

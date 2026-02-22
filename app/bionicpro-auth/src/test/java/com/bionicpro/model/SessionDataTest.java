@@ -23,13 +23,13 @@ class SessionDataTest {
         @Test
         @DisplayName("Should create SessionData with all fields")
         void builder_shouldCreateWithAllFields() {
-            // Arrange
+            // Подготовка
             Instant now = Instant.now();
             Instant expiresAt = now.plusSeconds(1800);
             Instant accessTokenExpiresAt = now.plusSeconds(3600);
             Instant refreshTokenExpiresAt = now.plusSeconds(86400);
 
-            // Act
+            // Действие
             SessionData sessionData = SessionData.builder()
                 .sessionId("session-123")
                 .userId("user456")
@@ -44,7 +44,7 @@ class SessionDataTest {
                 .lastAccessedAt(now)
                 .build();
 
-            // Assert
+            // Проверка
             assertEquals("session-123", sessionData.getSessionId());
             assertEquals("user456", sessionData.getUserId());
             assertEquals("testuser", sessionData.getUsername());
@@ -61,13 +61,13 @@ class SessionDataTest {
         @Test
         @DisplayName("Should create SessionData with null optional fields")
         void builder_shouldCreateWithNullFields() {
-            // Act
+            // Действие
             SessionData sessionData = SessionData.builder()
                 .sessionId("session-123")
                 .userId("user456")
                 .build();
 
-            // Assert
+            // Проверка
             assertEquals("session-123", sessionData.getSessionId());
             assertEquals("user456", sessionData.getUserId());
             assertNull(sessionData.getUsername());
@@ -84,12 +84,12 @@ class SessionDataTest {
         @Test
         @DisplayName("Should set and get all fields correctly")
         void settersAndGetters_shouldWorkCorrectly() {
-            // Arrange
+            // Подготовка
             SessionData sessionData = new SessionData();
             Instant now = Instant.now();
             Instant expiresAt = now.plusSeconds(1800);
 
-            // Act
+            // Действие
             sessionData.setSessionId("session-123");
             sessionData.setUserId("user456");
             sessionData.setUsername("testuser");
@@ -102,7 +102,7 @@ class SessionDataTest {
             sessionData.setExpiresAt(expiresAt);
             sessionData.setLastAccessedAt(now);
 
-            // Assert
+            // Проверка
             assertEquals("session-123", sessionData.getSessionId());
             assertEquals("user456", sessionData.getUserId());
             assertEquals("testuser", sessionData.getUsername());
@@ -124,14 +124,14 @@ class SessionDataTest {
         @Test
         @DisplayName("SessionData should be serializable")
         void shouldBeSerializable() {
-            // Arrange
+            // Подготовка
             SessionData sessionData = SessionData.builder()
                 .sessionId("session-123")
                 .userId("user456")
                 .username("testuser")
                 .build();
 
-            // Assert - verify it can be serialized (no exception)
+            // Проверка - verify it can be serialized (no exception)
             assertDoesNotThrow(() -> {
                 // Basic serialization check - class should implement Serializable
                 assertTrue(java.io.Serializable.class.isAssignableFrom(SessionData.class));
@@ -146,7 +146,7 @@ class SessionDataTest {
         @Test
         @DisplayName("Should be equal for same values")
         void shouldBeEqualForSameValues() {
-            // Arrange
+            // Подготовка
             SessionData session1 = SessionData.builder()
                 .sessionId("session-123")
                 .userId("user456")
@@ -159,7 +159,7 @@ class SessionDataTest {
                 .username("testuser")
                 .build();
 
-            // Assert
+            // Проверка
             assertEquals(session1, session2);
             assertEquals(session1.hashCode(), session2.hashCode());
         }
@@ -167,7 +167,7 @@ class SessionDataTest {
         @Test
         @DisplayName("Should not be equal for different session IDs")
         void shouldNotBeEqualForDifferentSessionIds() {
-            // Arrange
+            // Подготовка
             SessionData session1 = SessionData.builder()
                 .sessionId("session-123")
                 .userId("user456")
@@ -178,7 +178,7 @@ class SessionDataTest {
                 .userId("user456")
                 .build();
 
-            // Assert
+            // Проверка
             assertNotEquals(session1, session2);
         }
     }
@@ -190,17 +190,17 @@ class SessionDataTest {
         @Test
         @DisplayName("ToString should include all fields")
         void toString_shouldIncludeAllFields() {
-            // Arrange
+            // Подготовка
             SessionData sessionData = SessionData.builder()
                 .sessionId("session-123")
                 .userId("user456")
                 .username("testuser")
                 .build();
 
-            // Act
+            // Действие
             String result = sessionData.toString();
 
-            // Assert
+            // Проверка
             assertTrue(result.contains("sessionId"));
             assertTrue(result.contains("session-123"));
             assertTrue(result.contains("userId"));

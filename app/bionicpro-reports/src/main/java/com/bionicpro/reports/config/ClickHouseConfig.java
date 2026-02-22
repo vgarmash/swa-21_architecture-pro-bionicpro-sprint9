@@ -9,7 +9,7 @@ import javax.sql.DataSource;
 import com.zaxxer.hikari.HikariDataSource;
 
 /**
- * Configuration for ClickHouse database connection.
+ * Конфигурация подключения к базе данных ClickHouse.
  */
 @Configuration
 public class ClickHouseConfig {
@@ -33,7 +33,7 @@ public class ClickHouseConfig {
     private long connectionTimeout;
 
     /**
-     * Creates a HikariCP DataSource for ClickHouse connection pooling.
+     * Создает HikariCP DataSource для пула подключений ClickHouse.
      */
     @Bean
     public DataSource clickHouseDataSource() {
@@ -50,7 +50,7 @@ public class ClickHouseConfig {
     }
 
     /**
-     * Creates a JdbcTemplate for ClickHouse operations.
+     * Создает JdbcTemplate для операций с ClickHouse.
      */
     @Bean
     public JdbcTemplate clickHouseJdbcTemplate(DataSource clickHouseDataSource) {

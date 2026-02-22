@@ -8,8 +8,8 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * In-memory implementation of SessionRepository.
- * This repository serves as a fallback when Redis is unavailable.
+ * In-memory реализация SessionRepository.
+ * Этот репозиторий служит как запасной вариант, когда Redis недоступен.
  */
 @Repository
 public class InMemorySessionRepository implements SessionRepository {

@@ -1,8 +1,8 @@
 package com.bionicpro.reports.exception;
 
 /**
- * Exception thrown when MinIO storage operations fail.
- * Wraps underlying MinIO SDK exceptions with application-specific context.
+ * Исключение, выбрасываемое при сбое операций хранилища MinIO.
+ * Оборачивает базовые исключения SDK MinIO контекстом приложения.
  */
 public class MinioStorageException extends RuntimeException {
 

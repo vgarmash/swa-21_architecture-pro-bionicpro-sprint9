@@ -11,8 +11,8 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
- * Audit event data class representing an authentication audit log entry.
- * Uses builder pattern for construction.
+ * Класс данных события аудита, представляющий запись журнала аудита аутентификации.
+ * Использует паттерн Builder для построения.
  */
 @Data
 @Builder
@@ -23,63 +23,63 @@ public class AuditEvent {
     private static final long serialVersionUID = 1L;
 
     /**
-     * Timestamp of the audit event.
+     * Временная метка события аудита.
      */
     private Instant timestamp;
 
     /**
-     * Correlation ID for request tracing.
+     * Идентификатор корреляции для трассировки запросов.
      */
     private String correlationId;
 
     /**
-     * Type of audit event.
+     * Тип события аудита.
      */
     private AuditEventType eventType;
 
     /**
-     * Principal (user ID) associated with the event.
+     * Principal (идентификатор пользователя), связанный с событием.
      */
     private String principal;
 
     /**
-     * Client IP address.
+     * IP-адрес клиента.
      */
     private String clientIp;
 
     /**
-     * User agent string from the client.
+     * Строка user agent от клиента.
      */
     private String userAgent;
 
     /**
-     * Session ID associated with the event.
+     * Идентификатор сессии, связанный с событием.
      */
     private String sessionId;
 
     /**
-     * Outcome of the event (SUCCESS or FAILURE).
+     * Результат события (SUCCESS или FAILURE).
      */
     private String outcome;
 
     /**
-     * Type of error (optional).
+     * Тип ошибки (опционально).
      */
     private String errorType;
 
     /**
-     * Error message (sanitized, optional).
+     * Сообщение об ошибке (очищенное, опционально).
      */
     private String errorMessage;
 
     /**
-     * Additional details for the audit event.
+     * Дополнительные детали для события аудита.
      */
     @Builder.Default
     private Map<String, Object> details = new HashMap<>();
 
     /**
-     * Pattern to detect sensitive data that should be sanitized.
+     * Паттерн для обнаружения конфиденциальных данных, которые должны быть очищены.
      */
     private static final Pattern SENSITIVE_DATA_PATTERN = Pattern.compile(
             "(?i)(password|token|secret|key|authorization|bearer|api[_-]?key|credential)",
@@ -87,20 +87,20 @@ public class AuditEvent {
     );
 
     /**
-     * Sanitizes the error message by removing potentially sensitive data.
+     * Очищает сообщение об ошибке, удаляя потенциально конфиденциальные данные.
      *
-     * @param message the raw error message
-     * @return sanitized message safe for logging
+     * @param message сырое сообщение об ошибке
+     * @return очищенное сообщение, безопасное для логирования
      */
     public static String sanitizeErrorMessage(String message) {
         if (message == null || message.isBlank()) {
             return null;
         }
 
-        // Replace potential sensitive values with placeholder
+        // Заменяем потенциально конфиденциальные значения на заполнитель
         String sanitized = message.replaceAll("(?i)([\\w-]+=[^\\s&]+)", "$1=[REDACTED]");
         
-        // Remove common sensitive header patterns
+        // Удаляем общие паттерны конфиденциальных заголовков
         sanitized = sanitized.replaceAll("(?i)(Bearer\\s+)[\\w.-]+", "$1[REDACTED]");
         sanitized = sanitized.replaceAll("(?i)(Basic\\s+)[\\w.-]+", "$1[REDACTED]");
         
@@ -108,19 +108,19 @@ public class AuditEvent {
     }
 
     /**
-     * Creates a new AuditEvent builder with default timestamp set to current instant.
+     * Создаёт новый строитель AuditEvent с временной меткой по умолчанию, установленной на текущий момент.
      *
-     * @return a new builder instance
+     * @return новый экземпляр строителя
      */
     public static AuditEventBuilder builder() {
         return new AuditEventBuilder().timestamp(Instant.now());
     }
 
     /**
-     * Converts the audit event to a JSON-like string representation.
-     * This is suitable for logging purposes.
+     * Преобразует событие аудита в строковое представление в формате JSON.
+     * Это подходит для целей логирования.
      *
-     * @return JSON-like string representation
+     * @return строковое представление в формате JSON
      */
     @Override
     public String toString() {
@@ -162,16 +162,16 @@ public class AuditEvent {
     }
 
     /**
-     * Sanitizes a value for safe logging.
+     * Очищает значение для безопасного логирования.
      *
-     * @param value the value to sanitize
-     * @return sanitized value or empty string if null
+     * @param value значение для очистки
+     * @return очищенное значение или пустая строка, если null
      */
     private static String sanitizeValue(String value) {
         if (value == null) {
             return "";
         }
-        // Truncate if too long and remove newlines
+        // Обрезаем, если слишком длинное, и удаляем переносы строк
         if (value.length() > 500) {
             return value.substring(0, 500).replaceAll("[\\r\\n]", " ") + "...[truncated]";
         }

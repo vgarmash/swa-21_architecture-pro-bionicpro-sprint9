@@ -1,4 +1,4 @@
-# Include CDC compose for Change Data Capture
+# Подключение CDC compose для захвата изменённых данных
 include:
   - path: cdc/docker-compose.yaml
     external: true
@@ -212,7 +212,7 @@ services:
         condition: service_healthy
     networks:
       - app-network
-  # Nginx CDN service for static file caching
+  # Сервис Nginx CDN для кэширования статических файлов
   nginx-cdn:
     image: nginx:alpine
     ports:

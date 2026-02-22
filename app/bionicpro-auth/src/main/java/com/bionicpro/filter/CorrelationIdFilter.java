@@ -20,49 +20,49 @@ import java.io.IOException;
 import java.util.UUID;
 
 /**
- * Filter that generates and manages correlation IDs for request tracing.
+ * Фильтр, который генерирует и управляет идентификаторами корреляции для трассировки запросов.
  * <p>
- * This filter:
+ * Этот фильтр:
  * <ul>
- *   <li>Generates a UUID correlation ID if not present in request header</li>
- *   <li>Extracts X-Correlation-ID header if present</li>
- *   <li>Sets correlation ID in MDC for the request lifecycle</li>
- *   <li>Adds X-Correlation-ID header to response</li>
+ *   <li>Генерирует UUID идентификатор корреляции, если он отсутствует в заголовке запроса</li>
+ *   <li>Извлекает заголовок X-Correlation-ID, если он присутствует</li>
+ *   <li>Устанавливает идентификатор корреляции в MDC на протяжении жизненного цикла запроса</li>
+ *   <li>Добавляет заголовок X-Correlation-ID в ответ</li>
  * </ul>
  * <p>
- * Supports both servlet (Spring MVC) and reactive (Spring WebFlux) contexts.
+ * Поддерживает как сервлетный (Spring MVC), так и реактивный (Spring WebFlux) контексты.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class CorrelationIdFilter extends OncePerRequestFilter {
 
     /**
-     * Header name for correlation ID.
+     * Имя заголовка для идентификатора корреляции.
      */
     private static final String CORRELATION_ID_HEADER = "X-Correlation-ID";
 
     /**
-     * MDC key for correlation ID.
+     * Ключ MDC для идентификатора корреляции.
      */
     private static final String CORRELATION_ID_MDC_KEY = "correlationId";
 
     /**
-     * MDC key for client IP.
+     * Ключ MDC для IP-адреса клиента.
      */
     private static final String CLIENT_IP_MDC_KEY = "clientIp";
 
     /**
-     * Logger for correlation ID filter.
+     * Логгер для фильтра идентификатора корреляции.
      */
     private static final Logger logger = LoggerFactory.getLogger(CorrelationIdFilter.class);
 
     /**
-     * Processes each request to ensure a correlation ID is present.
+     * Обрабатывает каждый запрос, чтобы гарантировать наличие идентификатора корреляции.
      * 
-     * @param request  the HTTP request
-     * @param response the HTTP response
-     * @param filterChain the filter chain
-     * @throws ServletException if an error occurs during filtering
+     * @param request  HTTP-запрос
+     * @param response HTTP-ответ
+     * @param filterChain цепочка фильтров
+     * @throws ServletException если происходит ошибка во время фильтрации
      */
     @Override
     protected void doFilterInternal(HttpServletRequest request, 
@@ -71,13 +71,13 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
         
         String correlationId = getOrGenerateCorrelationId(request);
         
-        // Set correlation ID in response header
+        // Устанавливаем идентификатор корреляции в заголовок ответа
         response.setHeader(CORRELATION_ID_HEADER, correlationId);
         
-        // Set correlation ID in MDC for logging
+        // Устанавливаем идентификатор корреляции в MDC для логирования
         MDC.put(CORRELATION_ID_MDC_KEY, correlationId);
         
-        // Set client IP in MDC if available
+        // Устанавливаем IP-адрес клиента в MDC, если доступен
         String clientIp = resolveClientIp(request);
         if (clientIp != null) {
             MDC.put(CLIENT_IP_MDC_KEY, clientIp);
@@ -88,17 +88,17 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
                     correlationId, request.getRequestURI());
             filterChain.doFilter(request, response);
         } finally {
-            // Clean up MDC after request is complete
+            // Очищаем MDC после завершения запроса
             MDC.remove(CORRELATION_ID_MDC_KEY);
             MDC.remove(CLIENT_IP_MDC_KEY);
         }
     }
 
     /**
-     * Gets the correlation ID from the request header or generates a new one.
+     * Получает идентификатор корреляции из заголовка запроса или генерирует новый.
      *
-     * @param request the HTTP request
-     * @return the correlation ID
+     * @param request HTTP-запрос
+     * @return идентификатор корреляции
      */
     private String getOrGenerateCorrelationId(HttpServletRequest request) {
         String correlationId = request.getHeader(CORRELATION_ID_HEADER);
@@ -114,38 +114,38 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Resolves the client IP address from the request.
-     * Checks X-Forwarded-For header first, then X-Real-IP, then remote address.
+     * Разрешает IP-адрес клиента из запроса.
+     * Сначала проверяет заголовок X-Forwarded-For, затем X-Real-IP, затем удалённый адрес.
      *
-     * @param request the HTTP request
-     * @return the client IP address
+     * @param request HTTP-запрос
+     * @return IP-адрес клиента
      */
     private String resolveClientIp(HttpServletRequest request) {
-        // Check X-Forwarded-For header first
+        // Сначала проверяем заголовок X-Forwarded-For
         String xForwardedFor = request.getHeader("X-Forwarded-For");
         if (xForwardedFor != null && !xForwardedFor.isBlank()) {
-            // Take the first IP in the chain (original client)
+            // Берём первый IP в цепочке (оригинальный клиент)
             String[] ips = xForwardedFor.split(",");
             if (ips.length > 0) {
                 return ips[0].trim();
             }
         }
 
-        // Check X-Real-IP header
+        // Проверяем заголовок X-Real-IP
         String xRealIp = request.getHeader("X-Real-IP");
         if (xRealIp != null && !xRealIp.isBlank()) {
             return xRealIp.trim();
         }
 
-        // Fall back to remote address
+        // Используем удалённый адрес как запасной вариант
         return request.getRemoteAddr();
     }
 
     /**
-     * Returns the filter order. This filter should run first to ensure
-     * correlation ID is available for all subsequent filters.
+     * Возвращает порядок выполнения фильтра. Этот фильтр должен запускаться первым,
+     * чтобы гарантировать доступность идентификатора корреляции для всех последующих фильтров.
      *
-     * @return the filter order
+     * @return порядок фильтра
      */
     public int getOrder() {
         return Ordered.HIGHEST_PRECEDENCE;

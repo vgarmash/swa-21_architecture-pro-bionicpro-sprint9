@@ -13,8 +13,8 @@ import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.oidc.IdTokenClaimNames;
 
 /**
- * OAuth2 Client configuration for Keycloak integration.
- * Configures Authorization Code Flow with PKCE.
+ * Конфигурация OAuth2 Client для интеграции с Keycloak.
+ * Настраивает Authorization Code Flow с PKCE.
  */
 @Configuration
 public class OAuth2ClientConfig {
@@ -63,7 +63,7 @@ public class OAuth2ClientConfig {
 
     @Bean
     public BytesEncryptor bytesEncryptor() {
-        // Use persistent key from environment variable
+        // Используем постоянный ключ из переменной окружения
         return new AesBytesEncryptor(aesKey, salt);
     }
 }

@@ -84,17 +84,17 @@ class SessionServiceTest {
         @Test
         @DisplayName("Should store auth request with state")
         void storeAuthRequest_shouldStoreAuthRequest() {
-            // Arrange
+            // Подготовка
             String state = "test-state";
             String redirectUri = "/dashboard";
 
             when(redisTemplate.opsForValue()).thenReturn(valueOperations);
             when(valueOperations.getAndDelete("auth:request:" + state)).thenReturn(redirectUri);
 
-            // Act
+            // Действие
             sessionService.storeAuthRequest(state, redirectUri);
 
-            // Assert - verify through getAuthRequest
+            // Проверка - verify through getAuthRequest
             String retrievedUri = sessionService.getAuthRequest(state);
             assertEquals(redirectUri, retrievedUri);
         }
@@ -102,16 +102,16 @@ class SessionServiceTest {
         @Test
         @DisplayName("Should return null for non-existent state")
         void getAuthRequest_shouldReturnNullForNonExistentState() {
-            // Arrange
+            // Подготовка
             String state = "non-existent-state";
 
             when(redisTemplate.opsForValue()).thenReturn(valueOperations);
             when(valueOperations.getAndDelete("auth:request:" + state)).thenReturn(null);
 
-            // Act
+            // Действие
             String result = sessionService.getAuthRequest(state);
 
-            // Assert
+            // Проверка
             assertNull(result);
         }
     }
@@ -123,7 +123,7 @@ class SessionServiceTest {
         @Test
         @DisplayName("Should create session with tokens")
         void createSession_shouldCreateSessionWithTokens() throws Exception {
-            // Arrange
+            // Подготовка
             setFieldValue(sessionService, "sessionTimeoutMinutes", 30);
             setFieldValue(sessionService, "cookieName", "BIONICPRO_SESSION");
 
@@ -150,10 +150,10 @@ class SessionServiceTest {
                 Instant.now().plusSeconds(86400)
             );
 
-            // Act
+            // Действие
             sessionService.createSession(request, response, idToken, accessToken, refreshToken);
 
-            // Assert
+            // Проверка
             verify(valueOperations).set(anyString(), any(SessionData.class), any(Duration.class));
             
             // Verify cookie is set
@@ -169,7 +169,7 @@ class SessionServiceTest {
         @Test
         @DisplayName("Should create session without refresh token")
         void createSession_shouldCreateSessionWithoutRefreshToken() throws Exception {
-            // Arrange
+            // Подготовка
             setFieldValue(sessionService, "sessionTimeoutMinutes", 30);
             setFieldValue(sessionService, "cookieName", "BIONICPRO_SESSION");
 
@@ -190,10 +190,10 @@ class SessionServiceTest {
                 Instant.now().plusSeconds(3600)
             );
 
-            // Act
+            // Действие
             sessionService.createSession(request, response, idToken, accessToken, null);
 
-            // Assert
+            // Проверка
             verify(valueOperations).set(anyString(), any(SessionData.class), any(Duration.class));
         }
     }
@@ -205,7 +205,7 @@ class SessionServiceTest {
         @Test
         @DisplayName("Should return session data when exists")
         void getSession_shouldReturnSessionData() {
-            // Arrange
+            // Подготовка
             SessionData expectedSession = SessionData.builder()
                 .sessionId("session-123")
                 .userId("user123")
@@ -214,10 +214,10 @@ class SessionServiceTest {
 
             when(sessionRepository.findById("session-123")).thenReturn(Optional.of(expectedSession));
 
-            // Act
+            // Действие
             SessionData result = sessionService.getSession("session-123");
 
-            // Assert
+            // Проверка
             assertNotNull(result);
             assertEquals("session-123", result.getSessionId());
             assertEquals("user123", result.getUserId());
@@ -226,13 +226,13 @@ class SessionServiceTest {
         @Test
         @DisplayName("Should return null when session not found")
         void getSession_shouldReturnNullWhenNotFound() {
-            // Arrange
+            // Подготовка
             when(sessionRepository.findById(anyString())).thenReturn(Optional.empty());
 
-            // Act
+            // Действие
             SessionData result = sessionService.getSession("non-existent");
 
-            // Assert
+            // Проверка
             assertNull(result);
         }
     }
@@ -244,7 +244,7 @@ class SessionServiceTest {
         @Test
         @DisplayName("Should return session when valid")
         void validateAndRefreshSession_shouldReturnValidSession() throws Exception {
-            // Arrange
+            // Подготовка
             setFieldValue(sessionService, "sessionTimeoutMinutes", 30);
 
             SessionData sessionData = SessionData.builder()
@@ -257,10 +257,10 @@ class SessionServiceTest {
 
             when(sessionRepository.findById("session-123")).thenReturn(Optional.of(sessionData));
 
-            // Act
+            // Действие
             SessionData result = sessionService.validateAndRefreshSession("session-123");
 
-            // Assert
+            // Проверка
             assertNotNull(result);
             assertEquals("user123", result.getUserId());
         }
@@ -268,7 +268,7 @@ class SessionServiceTest {
         @Test
         @DisplayName("Should return null when session expired")
         void validateAndRefreshSession_shouldReturnNullWhenExpired() throws Exception {
-            // Arrange
+            // Подготовка
             setFieldValue(sessionService, "sessionTimeoutMinutes", 30);
 
             SessionData sessionData = SessionData.builder()
@@ -279,10 +279,10 @@ class SessionServiceTest {
 
             when(sessionRepository.findById("session-123")).thenReturn(Optional.of(sessionData));
 
-            // Act
+            // Действие
             SessionData result = sessionService.validateAndRefreshSession("session-123");
 
-            // Assert
+            // Проверка
             assertNull(result);
             verify(sessionRepository).deleteById("session-123");
         }
@@ -290,13 +290,13 @@ class SessionServiceTest {
         @Test
         @DisplayName("Should return null when session not found")
         void validateAndRefreshSession_shouldReturnNullWhenNotFound() {
-            // Arrange
+            // Подготовка
             when(sessionRepository.findById(anyString())).thenReturn(Optional.empty());
 
-            // Act
+            // Действие
             SessionData result = sessionService.validateAndRefreshSession("non-existent");
 
-            // Assert
+            // Проверка
             assertNull(result);
         }
     }
@@ -308,7 +308,7 @@ class SessionServiceTest {
         @Test
         @DisplayName("Should rotate session successfully")
         void rotateSession_shouldRotateSession() throws Exception {
-            // Arrange
+            // Подготовка
             setFieldValue(sessionService, "sessionTimeoutMinutes", 30);
             setFieldValue(sessionService, "cookieName", "BIONICPRO_SESSION");
 
@@ -325,10 +325,10 @@ class SessionServiceTest {
             when(sessionRepository.findById("old-session-id")).thenReturn(Optional.of(oldSession));
             when(redisTemplate.opsForValue()).thenReturn(valueOperations);
 
-            // Act
+            // Действие
             sessionService.rotateSession(request, response);
 
-            // Assert
+            // Проверка
             verify(valueOperations).set(anyString(), any(SessionData.class), any(Duration.class));
             verify(sessionRepository).deleteById("old-session-id");
             
@@ -344,16 +344,16 @@ class SessionServiceTest {
         @Test
         @DisplayName("Should do nothing when no session cookie")
         void rotateSession_shouldDoNothingWhenNoCookie() throws Exception {
-            // Arrange
+            // Подготовка
             setFieldValue(sessionService, "sessionTimeoutMinutes", 30);
             setFieldValue(sessionService, "cookieName", "BIONICPRO_SESSION");
 
             when(request.getCookies()).thenReturn(null);
 
-            // Act
+            // Действие
             sessionService.rotateSession(request, response);
 
-            // Assert
+            // Проверка
             verify(redisTemplate, never()).delete(anyString());
             verify(response, never()).addCookie(any());
         }
@@ -366,7 +366,7 @@ class SessionServiceTest {
         @Test
         @DisplayName("Should invalidate session and clear cookie")
         void invalidateSession_shouldInvalidateSessionAndClearCookie() throws Exception {
-            // Arrange
+            // Подготовка
             setFieldValue(sessionService, "sessionTimeoutMinutes", 30);
             setFieldValue(sessionService, "cookieName", "BIONICPRO_SESSION");
 
@@ -374,10 +374,10 @@ class SessionServiceTest {
             
             when(request.getCookies()).thenReturn(new Cookie[]{sessionCookie});
 
-            // Act
+            // Действие
             sessionService.invalidateSession(request, response);
 
-            // Assert
+            // Проверка
             verify(sessionRepository).deleteById("session-123");
             
             // Verify cookie is cleared
@@ -397,7 +397,7 @@ class SessionServiceTest {
         @Test
         @DisplayName("Should return expiration time when session exists")
         void getSessionExpiration_shouldReturnExpirationTime() throws Exception {
-            // Arrange
+            // Подготовка
             setFieldValue(sessionService, "sessionTimeoutMinutes", 30);
             setFieldValue(sessionService, "cookieName", "BIONICPRO_SESSION");
 
@@ -412,10 +412,10 @@ class SessionServiceTest {
             when(request.getCookies()).thenReturn(new Cookie[]{sessionCookie});
             when(sessionRepository.findById("session-123")).thenReturn(Optional.of(sessionData));
 
-            // Act
+            // Действие
             Instant result = sessionService.getSessionExpiration(request);
 
-            // Assert
+            // Проверка
             assertNotNull(result);
             assertEquals(expiresAt, result);
         }
@@ -423,13 +423,13 @@ class SessionServiceTest {
         @Test
         @DisplayName("Should return null when no session cookie")
         void getSessionExpiration_shouldReturnNullWhenNoCookie() {
-            // Arrange
+            // Подготовка
             when(request.getCookies()).thenReturn(null);
 
-            // Act
+            // Действие
             Instant result = sessionService.getSessionExpiration(request);
 
-            // Assert
+            // Проверка
             assertNull(result);
         }
     }
@@ -441,7 +441,7 @@ class SessionServiceTest {
         @Test
         @DisplayName("Should return decrypted access token")
         void getAccessToken_shouldReturnDecryptedToken() throws Exception {
-            // Arrange
+            // Подготовка
             // encryptedToken must be a valid Base64 string (Base64 of "someTokenData")
             String encryptedToken = "c29tZVRva2VuRGF0YQ==";
             String decryptedToken = "decryptedToken456";
@@ -454,10 +454,10 @@ class SessionServiceTest {
             when(sessionRepository.findById("session-123")).thenReturn(Optional.of(sessionData));
             when(bytesEncryptor.decrypt(any(byte[].class))).thenReturn(decryptedToken.getBytes());
 
-            // Act
+            // Действие
             String result = sessionService.getAccessToken("session-123");
 
-            // Assert
+            // Проверка
             assertNotNull(result);
             assertEquals(decryptedToken, result);
         }
@@ -465,7 +465,7 @@ class SessionServiceTest {
         @Test
         @DisplayName("Should return null when no access token")
         void getAccessToken_shouldReturnNullWhenNoToken() throws Exception {
-            // Arrange
+            // Подготовка
             SessionData sessionData = SessionData.builder()
                 .sessionId("session-123")
                 .accessToken(null)
@@ -473,10 +473,10 @@ class SessionServiceTest {
 
             when(sessionRepository.findById("session-123")).thenReturn(Optional.of(sessionData));
 
-            // Act
+            // Действие
             String result = sessionService.getAccessToken("session-123");
 
-            // Assert
+            // Проверка
             assertNull(result);
         }
     }

@@ -11,7 +11,7 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Session data model stored in Redis.
+ * Модель данных сессии, хранимой в Redis.
  */
 @Data
 @Builder

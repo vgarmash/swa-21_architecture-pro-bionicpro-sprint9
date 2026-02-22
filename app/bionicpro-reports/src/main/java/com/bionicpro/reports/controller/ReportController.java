@@ -14,10 +14,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * REST Controller for Reports API endpoints.
- * Provides endpoints for retrieving user reports from ClickHouse.
+ * REST контроллер для API эндпоинтов отчётов.
+ * Предоставляет эндпоинты для получения пользовательских отчётов из ClickHouse.
  * 
- * Conforms to task2/impl/03_reports_api_service.md specification.
+ * Соответствует спецификации task2/impl/03_reports_api_service.md.
  */
 @RestController
 @RequestMapping("/api/v1/reports")
@@ -33,10 +33,10 @@ public class ReportController {
 
     /**
      * GET /api/v1/reports
-     * Retrieves the latest report for the authenticated user.
+     * Получает последний отчёт для аутентифицированного пользователя.
      * 
-     * @param jwt the JWT token containing user information
-     * @return the latest report or a message if no data available
+     * @param jwt JWT токен, содержащий информацию о пользователе
+     * @return последний отчёт или сообщение, если данные недоступны
      */
     @GetMapping
     public ResponseEntity<?> getReport(@AuthenticationPrincipal Jwt jwt) {
@@ -64,12 +64,12 @@ public class ReportController {
 
     /**
      * GET /api/v1/reports/{requestedUserId}
-     * Retrieves the latest report for a specific user.
-     * Only accessible if the authenticated user is requesting their own reports.
+     * Получает последний отчёт для конкретного пользователя.
+     * Доступно только если аутентифицированный пользователь запрашивает свои собственные отчёты.
      * 
-     * @param requestedUserId the user ID to get reports for
-     * @param jwt the JWT token containing user information
-     * @return the latest report for the specified user
+     * @param requestedUserId ID пользователя, для которого нужно получить отчёты
+     * @param jwt JWT токен, содержащий информацию о пользователе
+     * @return последний отчёт для указанного пользователя
      */
     @GetMapping("/{requestedUserId}")
     public ResponseEntity<?> getReportByUserId(
@@ -100,13 +100,13 @@ public class ReportController {
 
     /**
      * GET /api/v1/reports/{requestedUserId}/history
-     * Retrieves recent reports for a specific user.
-     * Only accessible if the authenticated user is requesting their own reports.
+     * Получает последние отчёты для конкретного пользователя.
+     * Доступно только если аутентифицированный пользователь запрашивает свои собственные отчёты.
      * 
-     * @param requestedUserId the user ID to get reports for
-     * @param limit maximum number of reports to return (default 10)
-     * @param jwt the JWT token containing user information
-     * @return list of recent reports for the specified user
+     * @param requestedUserId ID пользователя, для которого нужно получить отчёты
+     * @param limit максимальное количество отчётов для возврата (по умолчанию 10)
+     * @param jwt JWT токен, содержащий информацию о пользователе
+     * @return список последних отчётов для указанного пользователя
      */
     @GetMapping("/{requestedUserId}/history")
     public ResponseEntity<?> getReportHistory(
@@ -132,18 +132,18 @@ public class ReportController {
     }
 
     /**
-     * Extracts the user ID from the JWT token.
-     * Tries multiple claims in order: user_id, sub.
+     * Извлекает ID пользователя из JWT токена.
+     * Пробует несколько claims по порядку: user_id, sub.
      * 
-     * @param jwt the JWT token
-     * @return the user ID as Long
+     * @param jwt JWT токен
+     * @return ID пользователя как Long
      */
     private Long extractUserId(Jwt jwt) {
-        // Try user_id claim first (custom claim)
+        // Сначала пробуем claim user_id (пользовательский claim)
         Object userIdClaim = jwt.getClaim("user_id");
         
         if (userIdClaim == null) {
-            // Fall back to subject claim
+            // Используем резервный вариант - subject claim
             userIdClaim = jwt.getClaim("sub");
         }
         

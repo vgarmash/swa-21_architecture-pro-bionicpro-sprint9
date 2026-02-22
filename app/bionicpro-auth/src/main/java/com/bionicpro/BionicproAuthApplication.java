@@ -5,8 +5,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisHttpSession;
 
 /**
- * Main application class for bionicpro-auth BFF service.
- * Provides secure authentication and session management using OAuth2/OIDC with Keycloak.
+ * Главный класс приложения для BFF сервиса bionicpro-auth.
+ * Предоставляет безопасную аутентификацию и управление сессиями с использованием OAuth2/OIDC и Keycloak.
  */
 @SpringBootApplication
 @EnableRedisHttpSession

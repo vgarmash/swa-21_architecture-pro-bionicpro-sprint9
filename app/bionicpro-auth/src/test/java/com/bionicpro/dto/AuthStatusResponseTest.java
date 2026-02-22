@@ -22,7 +22,7 @@ class AuthStatusResponseTest {
         @Test
         @DisplayName("Should create AuthStatusResponse with all fields")
         void builder_shouldCreateWithAllFields() {
-            // Act
+            // Действие
             AuthStatusResponse response = AuthStatusResponse.builder()
                 .authenticated(true)
                 .userId("user123")
@@ -31,7 +31,7 @@ class AuthStatusResponseTest {
                 .sessionExpiresAt("2024-01-01T12:00:00Z")
                 .build();
 
-            // Assert
+            // Проверка
             assertTrue(response.isAuthenticated());
             assertEquals("user123", response.getUserId());
             assertEquals("testuser", response.getUsername());
@@ -42,12 +42,12 @@ class AuthStatusResponseTest {
         @Test
         @DisplayName("Should create AuthStatusResponse for unauthenticated user")
         void builder_shouldCreateForUnauthenticated() {
-            // Act
+            // Действие
             AuthStatusResponse response = AuthStatusResponse.builder()
                 .authenticated(false)
                 .build();
 
-            // Assert
+            // Проверка
             assertFalse(response.isAuthenticated());
             assertNull(response.getUserId());
             assertNull(response.getUsername());
@@ -63,17 +63,17 @@ class AuthStatusResponseTest {
         @Test
         @DisplayName("Should set and get all fields correctly")
         void settersAndGetters_shouldWorkCorrectly() {
-            // Arrange
+            // Подготовка
             AuthStatusResponse response = new AuthStatusResponse();
 
-            // Act
+            // Действие
             response.setAuthenticated(true);
             response.setUserId("user123");
             response.setUsername("testuser");
             response.setRoles(List.of("ROLE_USER"));
             response.setSessionExpiresAt("2024-01-01T12:00:00Z");
 
-            // Assert
+            // Проверка
             assertTrue(response.isAuthenticated());
             assertEquals("user123", response.getUserId());
             assertEquals("testuser", response.getUsername());
@@ -89,12 +89,12 @@ class AuthStatusResponseTest {
         @Test
         @DisplayName("Should not include null fields in JSON")
         void shouldNotIncludeNullFieldsInJson() {
-            // Arrange
+            // Подготовка
             AuthStatusResponse response = AuthStatusResponse.builder()
                 .authenticated(false)
                 .build();
 
-            // Assert
+            // Проверка
             assertFalse(response.isAuthenticated());
             // Verify @JsonInclude(JsonInclude.Include.NON_NULL) annotation is present
             assertNotNull(AuthStatusResponse.class.getDeclaredAnnotation(
@@ -104,13 +104,13 @@ class AuthStatusResponseTest {
         @Test
         @DisplayName("Should include authenticated field when true")
         void shouldIncludeAuthenticatedWhenTrue() {
-            // Act
+            // Действие
             AuthStatusResponse response = AuthStatusResponse.builder()
                 .authenticated(true)
                 .userId("user123")
                 .build();
 
-            // Assert
+            // Проверка
             assertTrue(response.isAuthenticated());
             assertNotNull(response.getUserId());
         }
@@ -123,7 +123,7 @@ class AuthStatusResponseTest {
         @Test
         @DisplayName("Should be equal for same values")
         void shouldBeEqualForSameValues() {
-            // Arrange
+            // Подготовка
             AuthStatusResponse response1 = AuthStatusResponse.builder()
                 .authenticated(true)
                 .userId("user123")
@@ -136,7 +136,7 @@ class AuthStatusResponseTest {
                 .username("testuser")
                 .build();
 
-            // Assert
+            // Проверка
             assertEquals(response1, response2);
             assertEquals(response1.hashCode(), response2.hashCode());
         }
@@ -144,7 +144,7 @@ class AuthStatusResponseTest {
         @Test
         @DisplayName("Should not be equal for different user IDs")
         void shouldNotBeEqualForDifferentUserIds() {
-            // Arrange
+            // Подготовка
             AuthStatusResponse response1 = AuthStatusResponse.builder()
                 .authenticated(true)
                 .userId("user123")
@@ -155,14 +155,14 @@ class AuthStatusResponseTest {
                 .userId("user456")
                 .build();
 
-            // Assert
+            // Проверка
             assertNotEquals(response1, response2);
         }
 
         @Test
         @DisplayName("Should not be equal for different authentication status")
         void shouldNotBeEqualForDifferentAuthStatus() {
-            // Arrange
+            // Подготовка
             AuthStatusResponse response1 = AuthStatusResponse.builder()
                 .authenticated(true)
                 .build();
@@ -171,7 +171,7 @@ class AuthStatusResponseTest {
                 .authenticated(false)
                 .build();
 
-            // Assert
+            // Проверка
             assertNotEquals(response1, response2);
         }
     }
@@ -183,17 +183,17 @@ class AuthStatusResponseTest {
         @Test
         @DisplayName("ToString should include all fields")
         void toString_shouldIncludeAllFields() {
-            // Arrange
+            // Подготовка
             AuthStatusResponse response = AuthStatusResponse.builder()
                 .authenticated(true)
                 .userId("user123")
                 .username("testuser")
                 .build();
 
-            // Act
+            // Действие
             String result = response.toString();
 
-            // Assert
+            // Проверка
             assertTrue(result.contains("authenticated"));
             assertTrue(result.contains("userId"));
         }

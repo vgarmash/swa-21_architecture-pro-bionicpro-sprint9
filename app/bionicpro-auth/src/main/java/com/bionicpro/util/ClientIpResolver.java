@@ -8,25 +8,25 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 /**
- * Utility class for extracting client IP address from HTTP requests.
- * Handles various proxy headers and validates IPs to avoid private addresses when possible.
+ * Утилитный класс для извлечения IP-адреса клиента из HTTP-запросов.
+ * Обрабатывает различные заголовки прокси и проверяет IP-адреса, чтобы избежать приватных адресов по возможности.
  */
 public final class ClientIpResolver {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientIpResolver.class);
 
     /**
-     * Header name for forwarded IP addresses (may contain multiple IPs).
+     * Имя заголовка для перенаправленных IP-адресов (может содержать несколько IP).
      */
     private static final String X_FORWARDED_FOR = "X-Forwarded-For";
 
     /**
-     * Header name for the real client IP (set by proxies like nginx).
+     * Имя заголовка для реального IP-адреса клиента (устанавливается прокси типа nginx).
      */
     private static final String X_REAL_IP = "X-Real-IP";
 
     /**
-     * Private IP ranges that should be validated.
+     * Диапазоны приватных IP-адресов, которые должны быть проверены.
      */
     private static final String[] PRIVATE_IP_PATTERNS = {
             "^127\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$",  // 127.0.0.0/8
@@ -40,22 +40,22 @@ public final class ClientIpResolver {
     };
 
     /**
-     * Private constructor to prevent instantiation.
+     * Приватный конструктор для предотвращения создания экземпляров.
      */
     private ClientIpResolver() {
         throw new UnsupportedOperationException("Utility class cannot be instantiated");
     }
 
     /**
-     * Extracts the client IP address from the HTTP request.
+     * Извлекает IP-адрес клиента из HTTP-запроса.
      * <p>
-     * Resolution order:
-     * 1. X-Forwarded-For header (first IP is the original client)
-     * 2. X-Real-IP header
+     * Порядок разрешения:
+     * 1. Заголовок X-Forwarded-For (первый IP - оригинальный клиент)
+     * 2. Заголовок X-Real-IP
      * 3. request.getRemoteAddr()
      *
-     * @param request the HTTP servlet request
-     * @return the client IP address, or null if it cannot be determined
+     * @param request HTTP-сервлет запроса
+     * @return IP-адрес клиента, или null, если его невозможно определить
      */
     public static String getClientIp(HttpServletRequest request) {
         if (request == null) {
@@ -64,11 +64,11 @@ public final class ClientIpResolver {
 
         String clientIp = null;
 
-        // Try X-Forwarded-For header first (most common in production)
+        // Сначала пробуем заголовок X-Forwarded-For (наиболее распространённый в продакшене)
         String xForwardedFor = request.getHeader(X_FORWARDED_FOR);
         if (xForwardedFor != null && !xForwardedFor.isBlank()) {
-            // X-Forwarded-For may contain multiple IPs: "client, proxy1, proxy2"
-            // The first one is the original client IP
+            // X-Forwarded-For может содержать несколько IP: "client, proxy1, proxy2"
+            // Первый из них - оригинальный IP клиента
             String[] ips = xForwardedFor.split(",");
             if (ips.length > 0) {
                 String firstIp = ips[0].trim();
@@ -78,7 +78,7 @@ public final class ClientIpResolver {
             }
         }
 
-        // Try X-Real-IP header if no valid IP from X-Forwarded-For
+        // Пробуем заголовок X-Real-IP, если нет валидного IP из X-Forwarded-For
         if (clientIp == null) {
             String xRealIp = request.getHeader(X_REAL_IP);
             if (xRealIp != null && !xRealIp.isBlank()) {
@@ -89,7 +89,7 @@ public final class ClientIpResolver {
             }
         }
 
-        // Fall back to remote address
+        // Используем удалённый адрес как запасной вариант
         if (clientIp == null) {
             clientIp = request.getRemoteAddr();
         }
@@ -99,27 +99,27 @@ public final class ClientIpResolver {
     }
 
     /**
-     * Validates if the given IP address is valid.
-     * Checks for null/empty and attempts to validate it's a proper IP format.
+     * Проверяет, является ли данный IP-адрес валидным.
+     * Проверяет на null/пустоту и пытается проверить, что это правильный формат IP.
      *
-     * @param ip the IP address to validate
-     * @return true if the IP appears valid, false otherwise
+     * @param ip IP-адрес для проверки
+     * @return true, если IP является валидным, иначе false
      */
     public static boolean isValidIp(String ip) {
         if (ip == null || ip.isBlank()) {
             return false;
         }
 
-        // Basic format validation - check for valid characters
+        // Базовая проверка формата - проверка на допустимые символы
         if (!ip.matches("^[a-zA-Z0-9.:\\[\\]]+$")) {
             return false;
         }
 
         try {
-            // Try to parse as InetAddress to validate format
+            // Пытаемся распарсить как InetAddress для проверки формата
             InetAddress address = InetAddress.getByName(ip);
             
-            // Check if it's a valid unicast address (not null, not any local)
+            // Проверяем, является ли это валидным юникаст-адресом (не null, не any local)
             return !address.isAnyLocalAddress() && !address.isMulticastAddress();
         } catch (UnknownHostException e) {
             logger.debug("Invalid IP address format: {}", ip);
@@ -128,24 +128,24 @@ public final class ClientIpResolver {
     }
 
     /**
-     * Checks if the given IP address is a private/local IP address.
+     * Проверяет, является ли данный IP-адрес приватным/локальным IP-адресом.
      *
-     * @param ip the IP address to check
-     * @return true if the IP is private/local, false otherwise
+     * @param ip IP-адрес для проверки
+     * @return true, если IP является приватным/локальным, иначе false
      */
     public static boolean isPrivateIp(String ip) {
         if (ip == null || ip.isBlank()) {
             return false;
         }
 
-        // Check against private IP patterns
+        // Проверяем по шаблонам приватных IP
         for (String pattern : PRIVATE_IP_PATTERNS) {
             if (ip.matches(pattern)) {
                 return true;
             }
         }
 
-        // Also use InetAddress for additional validation
+        // Также используем InetAddress для дополнительной проверки
         try {
             InetAddress address = InetAddress.getByName(ip);
             return address.isSiteLocalAddress() || address.isLoopbackAddress() || address.isLinkLocalAddress();
@@ -155,10 +155,10 @@ public final class ClientIpResolver {
     }
 
     /**
-     * Extracts the user agent string from the HTTP request.
+     * Извлекает строку user agent из HTTP-запроса.
      *
-     * @param request the HTTP servlet request
-     * @return the user agent string, or null if not available
+     * @param request HTTP-сервлет запроса
+     * @return строка user agent, или null, если недоступна
      */
     public static String getUserAgent(HttpServletRequest request) {
         if (request == null) {
@@ -168,18 +168,18 @@ public final class ClientIpResolver {
     }
 
     /**
-     * Gets a sanitized version of the user agent for logging.
-     * Removes potentially sensitive information.
+     * Получает очищенную версию user agent для логирования.
+     * Удаляет потенциально конфиденциальную информацию.
      *
-     * @param userAgent the raw user agent string
-     * @return sanitized user agent or "Unknown" if null
+     * @param userAgent сырая строка user agent
+     * @return очищенный user agent или "Unknown", если null
      */
     public static String sanitizeUserAgent(String userAgent) {
         if (userAgent == null || userAgent.isBlank()) {
             return "Unknown";
         }
         
-        // Truncate if too long
+        // Обрезаем, если слишком длинный
         if (userAgent.length() > 500) {
             return userAgent.substring(0, 500) + "...[truncated]";
         }

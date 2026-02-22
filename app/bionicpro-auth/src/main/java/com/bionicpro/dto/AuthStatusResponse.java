@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * DTO for authentication status response.
+ * DTO для ответа о статусе аутентификации.
  */
 @Data
 @Builder

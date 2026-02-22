@@ -1,19 +1,19 @@
--- ClickHouse CDC Consumer Tables Schema
--- This script creates KafkaEngine tables to consume CDC events from Debezium
--- and MaterializedViews to transform and store data in the user_reports format
+-- Схема таблиц потребителей CDC в ClickHouse
+-- Этот скрипт создает таблицы KafkaEngine для потребления событий CDC из Debezium
+-- и MaterializedViews для преобразования и хранения данных в формате user_reports
 
 -- =============================================================================
--- Kafka Engine Tables for CDC Events Consumption
+-- Таблицы Kafka Engine для потребления событий CDC
 -- =============================================================================
 
--- Kafka table to consume customers CDC events from topic crm.public.customers
+-- Таблица Kafka для потребления событий CDC клиентов из топика crm.public.customers
 CREATE TABLE customers_cdc_kafka
 (
     _topic String,
     _partition Int32,
     _offset Int64,
     _timestamp_ms Int64,
-    -- Customer fields from Debezium CDC
+    -- Поля клиента из Debezium CDC
     id Int32,
     user_id UInt32,
     name String,
@@ -33,14 +33,14 @@ SETTINGS
     kafka_max_block_size = 65536,
     kafka_commit_every_batch = 1;
 
--- Kafka table to consume emg_sensor_data CDC events from topic sensors.public.emg_sensor_data
+-- Таблица Kafka для потребления событий CDC данных emg_sensor_data из топика sensors.public.emg_sensor_data
 CREATE TABLE sensors_cdc_kafka
 (
     _topic String,
     _partition Int32,
     _offset Int64,
     _timestamp_ms Int64,
-    -- EMG sensor data fields from Debezium CDC
+    -- Поля данных ЭМГ сенсора из Debezium CDC
     id Int32,
     user_id UInt32,
     session_id String,
@@ -60,10 +60,10 @@ SETTINGS
     kafka_commit_every_batch = 1;
 
 -- =============================================================================
--- Target Tables for Aggregated CDC Data (user_reports format)
+-- Целевые таблицы для агрегированных данных CDC (формат user_reports)
 -- =============================================================================
 
--- Table to store aggregated customer data with sensor statistics
+-- Таблица для хранения агрегированных данных клиентов со статистикой сенсоров
 CREATE TABLE user_reports_cdc
 (
     user_id UInt32,
@@ -88,10 +88,10 @@ ORDER BY (user_id, report_date)
 SETTINGS index_granularity = 8192;
 
 -- =============================================================================
--- MaterializedView to Process and Join CDC Data
+-- MaterializedView для обработки и объединения данных CDC
 -- =============================================================================
 
--- MaterializedView that consumes customers CDC events and joins with aggregated sensor data
+-- MaterializedView, который потребляет события CDC клиентов и объединяет их с агрегированными данными сенсоров
 CREATE MATERIALIZED VIEW user_reports_cdc_mv
 ENGINE = SummingMergeTree()
 ORDER BY (user_id, report_date)
@@ -136,10 +136,10 @@ GROUP BY
     c.country;
 
 -- =============================================================================
--- Alternative: Buffer tables for raw CDC data before aggregation
+-- Альтернатива: Буферные таблицы для сырых данных CDC перед агрегацией
 -- =============================================================================
 
--- Buffer table for customers raw data
+-- Буферная таблица для сырых данных клиентов
 CREATE TABLE customers_cdc_buffer
 (
     id Int32,
@@ -157,7 +157,7 @@ ENGINE = MergeTree()
 ORDER BY (user_id, id)
 SETTINGS index_granularity = 8192;
 
--- Buffer table for sensor raw data
+-- Буферная таблица для сырых данных сенсоров
 CREATE TABLE sensors_cdc_buffer
 (
     id Int32,
@@ -174,7 +174,7 @@ ENGINE = MergeTree()
 ORDER BY (user_id, id)
 SETTINGS index_granularity = 8192;
 
--- MaterializedView to populate customers buffer
+-- MaterializedView для заполнения буфера клиентов
 CREATE MATERIALIZED VIEW customers_cdc_buffer_mv
 ENGINE = MergeTree()
 ORDER BY (user_id, id)
@@ -192,7 +192,7 @@ SELECT
     now() AS _timestamp
 FROM customers_cdc_kafka;
 
--- MaterializedView to populate sensors buffer
+-- MaterializedView для заполнения буфера сенсоров
 CREATE MATERIALIZED VIEW sensors_cdc_buffer_mv
 ENGINE = MergeTree()
 ORDER BY (user_id, id)
@@ -210,10 +210,10 @@ SELECT
 FROM sensors_cdc_kafka;
 
 -- =============================================================================
--- Notes:
+-- Примечания:
 -- =============================================================================
--- 1. Topics must exist in Kafka before creating KafkaEngine tables
--- 2. The JSONEachRow format is used for Debezium CDC events with unwrapped values
--- 3. Adjust kafka_max_block_size based on your throughput requirements
--- 4. user_reports_cdc uses ReplacingMergeTree to handle upserts based on created_at
--- 5. Use ALTER TABLE MATERIALIZED VIEW ... REFRESH to manually refresh MV if needed
+-- 1. Топики должны существовать в Kafka перед созданием таблиц KafkaEngine
+-- 2. Формат JSONEachRow используется для событий CDC Debezium с развернутыми значениями
+-- 3. Настройте kafka_max_block_size в соответствии с вашими требованиями к пропускной способности
+-- 4. user_reports_cdc использует ReplacingMergeTree для обработки upsert на основе created_at
+-- 5. Используйте ALTER TABLE MATERIALIZED VIEW ... REFRESH для ручного обновления MV при необходимости

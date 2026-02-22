@@ -30,8 +30,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Unit tests for ReportControllerCdc.
- * Tests all REST endpoints related to CDC report retrieval.
+ * Модульные тесты для ReportControllerCdc.
+ * Тестирует все REST эндпоинты, связанные с получением отчетов CDC.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -51,10 +51,10 @@ class ReportControllerCdcTest {
 
     @BeforeEach
     void setUp() {
-        // Setup mock JWT decoder to return valid JWT for any token
+        // Настройка мок-декодера JWT для возврата валидного JWT для любого токена
         when(jwtDecoder.decode(any())).thenAnswer(invocation -> {
             String token = invocation.getArgument(0);
-            Long userId = 123L; // default
+            Long userId = 123L; // по умолчанию
             
             if (token != null && token.equals("other-token")) {
                 userId = 456L;
@@ -71,7 +71,7 @@ class ReportControllerCdcTest {
                     .build();
         });
 
-        // Setup test report matching new schema
+        // Настройка тестового отчета, соответствующего новой схеме
         testReport = ReportResponse.builder()
                 .userId(123L)
                 .reportDate("2024-01-15")
@@ -134,7 +134,7 @@ class ReportControllerCdcTest {
     @Test
     @DisplayName("GET /api/v1/reports/cdc - Returns 401 when no JWT token provided")
     void test_get_cdc_report_unauthorized() throws Exception {
-        // Act & Assert - no JWT token provided
+        // Act & Assert - JWT токен не предоставлен
         mockMvc.perform(get("/api/v1/reports/cdc"))
                 .andExpect(status().isUnauthorized());
     }
@@ -161,7 +161,7 @@ class ReportControllerCdcTest {
         when(reportServiceCdc.getLatestReport(123L, 456L))
                 .thenThrow(new UnauthorizedAccessException("You don't have permission to access this report"));
 
-        // Act & Assert - user-456 trying to access user-123's CDC reports
+        // Act & Assert - пользователь-456 пытается получить доступ к CDC отчетам пользователя-123
         mockMvc.perform(get("/api/v1/reports/cdc/123")
                         .with(jwt().jwt(builder -> builder.subject("456").claim("user_id", 456L))
                                 .authorities(new SimpleGrantedAuthority("ROLE_prothetic_user"))))
@@ -225,11 +225,11 @@ class ReportControllerCdcTest {
         // Arrange
         when(reportServiceCdc.getLatestReport(123L, 123L)).thenReturn(testReport);
 
-        // Act & Assert - using user_id claim instead of subject
+        // Act & Assert - использование claim user_id вместо subject
         mockMvc.perform(get("/api/v1/reports/cdc")
                         .with(jwt().jwt(builder -> builder
-                                .subject("some-uuid")  // Different from user_id
-                                .claim("user_id", 123))  // This should be used
+                                .subject("some-uuid")  // Отличается от user_id
+                                .claim("user_id", 123))  // Это должно использоваться
                                 .authorities(new SimpleGrantedAuthority("ROLE_prothetic_user"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(123));

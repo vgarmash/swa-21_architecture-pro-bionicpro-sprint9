@@ -4,8 +4,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * Main entry point for the BionicPRO Reports API Service.
- * This service provides REST API endpoints for retrieving user reports from ClickHouse.
+ * Главная точка входа для API сервиса отчетов BionicPRO.
+ * Этот сервис предоставляет REST API эндпоинты для получения отчетов пользователей из ClickHouse.
  */
 @SpringBootApplication
 public class BionicproReportsApplication {

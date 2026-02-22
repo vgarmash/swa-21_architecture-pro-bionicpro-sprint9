@@ -25,8 +25,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for ReportService.
- * Tests the service layer logic for report operations.
+ * Модульные тесты для ReportService.
+ * Тестирует логику сервисного слоя для операций с отчетами.
  */
 @ExtendWith(MockitoExtension.class)
 class ReportServiceTest {
@@ -45,11 +45,11 @@ class ReportServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Setup mock for minio report key generation (lenient for tests that don't use it)
+        // Настройка мока для генерации ключа отчета minio (lenient для тестов, которые его не используют)
         lenient().when(minioReportService.generateLatestReportKey(anyLong()))
             .thenReturn("reports/1/latest.json");
 
-        // Initialize testReport with complete data matching test expectations
+        // Инициализация testReport полными данными, соответствующими ожиданиям тестов
         testReport = UserReport.builder()
             .userId(TEST_USER_ID)
             .reportDate(LocalDate.of(2024, 1, 15))

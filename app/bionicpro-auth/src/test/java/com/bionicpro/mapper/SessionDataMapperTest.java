@@ -35,7 +35,7 @@ class SessionDataMapperTest {
         @Test
         @DisplayName("Should map all fields correctly for valid SessionData")
         void shouldMapAllFieldsCorrectly() {
-            // Given
+            // Дано
             Instant expiresAt = Instant.now().plus(30, ChronoUnit.MINUTES);
             SessionData session = SessionData.builder()
                     .sessionId(UUID.randomUUID().toString())
@@ -45,10 +45,10 @@ class SessionDataMapperTest {
                     .expiresAt(expiresAt)
                     .build();
 
-            // When
+            // Когда
             AuthStatusResponse response = mapper.toAuthStatusResponse(session);
 
-            // Then
+            // Тогда
             assertThat(response).isNotNull();
             assertThat(response.isAuthenticated()).isTrue();
             assertThat(response.getUserId()).isEqualTo("user-123");
@@ -61,7 +61,7 @@ class SessionDataMapperTest {
         @Test
         @DisplayName("Should handle null roles list")
         void shouldHandleNullRoles() {
-            // Given
+            // Дано
             SessionData session = SessionData.builder()
                     .userId("user-123")
                     .username("testuser")
@@ -69,10 +69,10 @@ class SessionDataMapperTest {
                     .expiresAt(Instant.now())
                     .build();
 
-            // When
+            // Когда
             AuthStatusResponse response = mapper.toAuthStatusResponse(session);
 
-            // Then
+            // Тогда
             assertThat(response).isNotNull();
             assertThat(response.getRoles()).isNull();
         }
@@ -80,7 +80,7 @@ class SessionDataMapperTest {
         @Test
         @DisplayName("Should handle null expiresAt")
         void shouldHandleNullExpiresAt() {
-            // Given
+            // Дано
             SessionData session = SessionData.builder()
                     .userId("user-123")
                     .username("testuser")
@@ -88,10 +88,10 @@ class SessionDataMapperTest {
                     .expiresAt(null)
                     .build();
 
-            // When
+            // Когда
             AuthStatusResponse response = mapper.toAuthStatusResponse(session);
 
-            // Then
+            // Тогда
             assertThat(response).isNotNull();
             assertThat(response.getSessionExpiresAt()).isNull();
         }
@@ -99,17 +99,17 @@ class SessionDataMapperTest {
         @Test
         @DisplayName("Should return null when source is null")
         void shouldReturnNullForNullSource() {
-            // When
+            // Когда
             AuthStatusResponse response = mapper.toAuthStatusResponse(null);
 
-            // Then
+            // Тогда
             assertThat(response).isNull();
         }
 
         @Test
         @DisplayName("Should handle empty roles list")
         void shouldHandleEmptyRoles() {
-            // Given
+            // Дано
             SessionData session = SessionData.builder()
                     .userId("user-123")
                     .username("testuser")
@@ -117,10 +117,10 @@ class SessionDataMapperTest {
                     .expiresAt(Instant.now())
                     .build();
 
-            // When
+            // Когда
             AuthStatusResponse response = mapper.toAuthStatusResponse(session);
 
-            // Then
+            // Тогда
             assertThat(response).isNotNull();
             assertThat(response.getRoles()).isEmpty();
         }
@@ -133,10 +133,10 @@ class SessionDataMapperTest {
         @Test
         @DisplayName("Should return response with authenticated=false")
         void shouldReturnUnauthenticatedResponse() {
-            // When
+            // Когда
             AuthStatusResponse response = mapper.toUnauthenticatedResponse();
 
-            // Then
+            // Тогда
             assertThat(response).isNotNull();
             assertThat(response.isAuthenticated()).isFalse();
             assertThat(response.getUserId()).isNull();
@@ -153,7 +153,7 @@ class SessionDataMapperTest {
         @Test
         @DisplayName("Should copy all fields with new session ID")
         void shouldCopyWithNewSessionId() {
-            // Given
+            // Дано
             String originalSessionId = UUID.randomUUID().toString();
             String newSessionId = UUID.randomUUID().toString();
             Instant createdAt = Instant.now().minus(5, ChronoUnit.MINUTES);
@@ -173,10 +173,10 @@ class SessionDataMapperTest {
                     .lastAccessedAt(Instant.now().minus(1, ChronoUnit.MINUTES))
                     .build();
 
-            // When
+            // Когда
             SessionData copy = mapper.copyForRotation(original, newSessionId);
 
-            // Then
+            // Тогда
             assertThat(copy).isNotNull();
             assertThat(copy.getSessionId()).isEqualTo(newSessionId);
             assertThat(copy.getUserId()).isEqualTo("user-456");
@@ -195,26 +195,26 @@ class SessionDataMapperTest {
         @Test
         @DisplayName("Should handle null source")
         void shouldHandleNullSource() {
-            // When
+            // Когда
             SessionData copy = mapper.copyForRotation(null, "new-id");
 
-            // Then
+            // Тогда
             assertThat(copy).isNull();
         }
 
         @Test
         @DisplayName("Should handle null newSessionId")
         void shouldHandleNullNewSessionId() {
-            // Given
+            // Дано
             SessionData original = SessionData.builder()
                     .sessionId("original-id")
                     .userId("user-789")
                     .build();
 
-            // When
+            // Когда
             SessionData copy = mapper.copyForRotation(original, null);
 
-            // Then
+            // Тогда
             assertThat(copy).isNotNull();
             assertThat(copy.getSessionId()).isNull();
             assertThat(copy.getUserId()).isEqualTo("user-789");

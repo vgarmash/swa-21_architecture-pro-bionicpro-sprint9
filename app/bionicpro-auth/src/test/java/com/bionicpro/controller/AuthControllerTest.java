@@ -36,8 +36,8 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for AuthController.
- * Tests authentication endpoints: login, callback, status, logout, refresh.
+ * Модульные тесты для AuthController.
+ * Тестирует эндпоинты аутентификации: login, callback, status, logout, refresh.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AuthController Tests")
@@ -76,13 +76,13 @@ class AuthControllerTest {
         @Test
         @DisplayName("Should redirect to Keycloak login page with state parameter")
         void login_shouldRedirectToKeycloakWithState() throws Exception {
-            // Arrange
+            // Подготовка
             String redirectUri = "/dashboard";
             
-            // Act
+            // Действие
             authController.login(redirectUri, servletResponse);
             
-            // Assert
+            // Проверка
             assertEquals(302, servletResponse.getStatus());
             String location = servletResponse.getHeader("Location");
             assertNotNull(location);
@@ -95,13 +95,13 @@ class AuthControllerTest {
         @Test
         @DisplayName("Should use default redirect URI when not provided")
         void login_shouldUseDefaultRedirectUri() throws Exception {
-            // Arrange
+            // Подготовка
             String defaultRedirectUri = "/";
             
-            // Act
+            // Действие
             authController.login(defaultRedirectUri, servletResponse);
             
-            // Assert
+            // Проверка
             assertEquals(302, servletResponse.getStatus());
             verify(sessionService).storeAuthRequest(anyString(), eq(defaultRedirectUri));
         }
@@ -114,14 +114,14 @@ class AuthControllerTest {
         @Test
         @DisplayName("Should redirect to error page when error parameter is present")
         void callback_shouldRedirectToErrorWhenErrorPresent() throws Exception {
-            // Arrange
+            // Подготовка
             String error = "access_denied";
             String state = "test-state";
             
-            // Act
+            // Действие
             authController.callback("code", state, error, request, servletResponse);
             
-            // Assert
+            // Проверка
             assertEquals(302, servletResponse.getStatus());
             assertTrue(servletResponse.getHeader("Location").contains("error=access_denied"));
         }
@@ -129,7 +129,7 @@ class AuthControllerTest {
         @Test
         @DisplayName("Should create session when authentication is successful")
         void callback_shouldCreateSessionOnSuccessfulAuth() throws Exception {
-            // Arrange
+            // Подготовка
             String code = "auth-code";
             String state = "test-state";
             String redirectUri = "/dashboard";
@@ -172,10 +172,10 @@ class AuthControllerTest {
             SecurityContextHolder.setContext(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authToken);
             
-            // Act
+            // Действие
             authController.callback(code, state, null, request, servletResponse);
             
-            // Assert
+            // Проверка
             assertEquals(302, servletResponse.getStatus());
             verify(sessionService).createSession(eq(request), eq(servletResponse), any(OidcIdToken.class), any(OAuth2AccessToken.class), eq(null));
         }
@@ -188,15 +188,15 @@ class AuthControllerTest {
         @Test
         @DisplayName("Should return 401 when user is not authenticated")
         void status_shouldReturnUnauthorizedWhenNotAuthenticated() {
-            // Arrange
+            // Подготовка
             SecurityContextHolder.clearContext();
             when(sessionDataMapper.toUnauthenticatedResponse())
                 .thenReturn(AuthStatusResponse.builder().authenticated(false).build());
 
-            // Act
+            // Действие
             ResponseEntity<AuthStatusResponse> result = authController.getStatus(request);
             
-            // Assert
+            // Проверка
             assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
             assertFalse(result.getBody().isAuthenticated());
         }
@@ -204,7 +204,7 @@ class AuthControllerTest {
         @Test
         @DisplayName("Should return 401 when session ID is null")
         void status_shouldReturnUnauthorizedWhenSessionIdIsNull() {
-            // Arrange
+            // Подготовка
             Authentication authentication = mock(Authentication.class);
             when(authentication.isAuthenticated()).thenReturn(true);
 
@@ -216,10 +216,10 @@ class AuthControllerTest {
             when(sessionDataMapper.toUnauthenticatedResponse())
                 .thenReturn(AuthStatusResponse.builder().authenticated(false).build());
 
-            // Act
+            // Действие
             ResponseEntity<AuthStatusResponse> result = authController.getStatus(request);
 
-            // Assert
+            // Проверка
             assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
             assertFalse(result.getBody().isAuthenticated());
         }
@@ -227,7 +227,7 @@ class AuthControllerTest {
         @Test
         @DisplayName("Should return 401 when session data is null")
         void status_shouldReturnUnauthorizedWhenSessionDataIsNull() {
-            // Arrange
+            // Подготовка
             String sessionId = "test-session-id";
 
             Authentication authentication = mock(Authentication.class);
@@ -242,10 +242,10 @@ class AuthControllerTest {
             when(sessionDataMapper.toUnauthenticatedResponse())
                 .thenReturn(AuthStatusResponse.builder().authenticated(false).build());
 
-            // Act
+            // Действие
             ResponseEntity<AuthStatusResponse> result = authController.getStatus(request);
 
-            // Assert
+            // Проверка
             assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
             assertFalse(result.getBody().isAuthenticated());
         }
@@ -253,7 +253,7 @@ class AuthControllerTest {
         @Test
         @DisplayName("Should return user info when authenticated")
         void status_shouldReturnUserInfoWhenAuthenticated() {
-            // Arrange
+            // Подготовка
             String sessionId = "test-session-id";
             String userId = "user123";
             List<String> roles = List.of("ROLE_USER", "ROLE_ADMIN");
@@ -286,10 +286,10 @@ class AuthControllerTest {
                 .build();
             when(sessionDataMapper.toAuthStatusResponse(sessionData)).thenReturn(expectedResponse);
 
-            // Act
+            // Действие
             ResponseEntity<AuthStatusResponse> result = authController.getStatus(request);
 
-            // Assert
+            // Проверка
             assertEquals(HttpStatus.OK, result.getStatusCode());
             assertNotNull(result.getBody());
             assertTrue(result.getBody().isAuthenticated());
@@ -301,7 +301,7 @@ class AuthControllerTest {
         @Test
         @DisplayName("Should handle null session expiration")
         void status_shouldHandleNullSessionExpiration() {
-            // Arrange
+            // Подготовка
             String sessionId = "test-session-id";
             String userId = "user123";
 
@@ -332,10 +332,10 @@ class AuthControllerTest {
                 .build();
             when(sessionDataMapper.toAuthStatusResponse(sessionData)).thenReturn(expectedResponse);
             
-            // Act
+            // Действие
             ResponseEntity<AuthStatusResponse> result = authController.getStatus(request);
             
-            // Assert
+            // Проверка
             assertEquals(HttpStatus.OK, result.getStatusCode());
             assertNotNull(result.getBody());
             assertTrue(result.getBody().isAuthenticated());
@@ -350,17 +350,17 @@ class AuthControllerTest {
         @Test
         @DisplayName("Should invalidate session and return success message")
         void logout_shouldInvalidateSessionAndReturnSuccess() {
-            // Arrange
+            // Подготовка
             Authentication authentication = mock(Authentication.class);
             
             SecurityContext securityContext = mock(SecurityContext.class);
             SecurityContextHolder.setContext(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authentication);
             
-            // Act
+            // Действие
             ResponseEntity<Map<String, String>> result = authController.logout(request, servletResponse);
             
-            // Assert
+            // Проверка
             assertEquals(HttpStatus.OK, result.getStatusCode());
             assertEquals("Logged out successfully", result.getBody().get("message"));
             verify(sessionService).invalidateSessionWithTokenRevocation(request, servletResponse);
@@ -374,13 +374,13 @@ class AuthControllerTest {
         @Test
         @DisplayName("Should return 401 when user is not authenticated")
         void refresh_shouldReturnUnauthorizedWhenNotAuthenticated() {
-            // Arrange
+            // Подготовка
             SecurityContextHolder.clearContext();
             
-            // Act
+            // Действие
             ResponseEntity<Map<String, String>> result = authController.refresh(request, servletResponse);
             
-            // Assert
+            // Проверка
             assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
             assertEquals("not_authenticated", result.getBody().get("error"));
         }
@@ -388,7 +388,7 @@ class AuthControllerTest {
         @Test
         @DisplayName("Should rotate session when authenticated")
         void refresh_shouldRotateSessionWhenAuthenticated() {
-            // Arrange
+            // Подготовка
             Authentication authentication = mock(Authentication.class);
             when(authentication.isAuthenticated()).thenReturn(true);
             
@@ -396,10 +396,10 @@ class AuthControllerTest {
             SecurityContextHolder.setContext(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authentication);
             
-            // Act
+            // Действие
             ResponseEntity<Map<String, String>> result = authController.refresh(request, servletResponse);
             
-            // Assert
+            // Проверка
             assertEquals(HttpStatus.OK, result.getStatusCode());
             assertEquals("Session refreshed", result.getBody().get("message"));
             verify(sessionService).rotateSession(request, servletResponse);

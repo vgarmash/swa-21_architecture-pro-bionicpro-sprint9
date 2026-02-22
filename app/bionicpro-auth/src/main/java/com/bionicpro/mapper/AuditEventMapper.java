@@ -7,9 +7,9 @@ import org.mapstruct.*;
 import java.time.Instant;
 
 /**
- * MapStruct mapper for AuditEvent creation.
- * Note: This mapper provides base mapping - sanitization logic
- * should remain in AuditServiceImpl for security reasons.
+ * MapStruct маппер для создания AuditEvent.
+ * Примечание: Этот маппер предоставляет базовое маппинг - логика санитации
+ * должна оставаться в AuditServiceImpl по соображениям безопасности.
  */
 @Mapper(
     componentModel = MappingConstants.ComponentModel.SPRING,
@@ -20,17 +20,17 @@ import java.time.Instant;
 public interface AuditEventMapper {
 
     /**
-     * Creates base AuditEvent with timestamp.
-     * Used as starting point - sanitization applied in service layer.
+     * Создаёт базовый AuditEvent с временной меткой.
+     * Используется как отправная точка - санитация применяется в слое сервиса.
      *
-     * @param eventType the audit event type
-     * @param principal the user ID
-     * @param sessionId the session ID
-     * @param correlationId the correlation ID from MDC
-     * @param clientIp the client IP address
-     * @param userAgent the user agent string
-     * @param outcome the outcome (SUCCESS, FAILURE, EXPIRED)
-     * @return AuditEvent with populated fields
+     * @param eventType тип события аудита
+     * @param principal ID пользователя
+     * @param sessionId ID сессии
+     * @param correlationId корреляционный ID из MDC
+     * @param clientIp IP адрес клиента
+     * @param userAgent строка user agent
+     * @param outcome результат (SUCCESS, FAILURE, EXPIRED)
+     * @return AuditEvent с заполненными полями
      */
     @Mapping(target = "timestamp", expression = "java(Instant.now())")
     @Mapping(target = "details", expression = "java(new java.util.HashMap<>())")

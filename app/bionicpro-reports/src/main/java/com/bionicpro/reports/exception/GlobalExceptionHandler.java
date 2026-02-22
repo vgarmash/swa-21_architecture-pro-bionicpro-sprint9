@@ -13,8 +13,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Global exception handler for the Reports API.
- * Handles common exceptions and returns appropriate error responses.
+ * Глобальный обработчик исключений для API отчетов.
+ * Обрабатывает общие исключения и возвращает соответствующие ответы об ошибках.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -22,7 +22,7 @@ public class GlobalExceptionHandler {
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
-     * Handles UnauthorizedAccessException - thrown when user tries to access unauthorized resources.
+     * Обрабатывает UnauthorizedAccessException - выбрасывается, когда пользователь пытается получить доступ к неавторизованным ресурсам.
      */
     @ExceptionHandler(UnauthorizedAccessException.class)
     public ResponseEntity<Map<String, Object>> handleUnauthorizedAccessException(
@@ -38,7 +38,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handles ReportNotFoundException - thrown when requested report is not found.
+     * Обрабатывает ReportNotFoundException - выбрасывается, когда запрошенный отчет не найден.
      */
     @ExceptionHandler(ReportNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleReportNotFoundException(
@@ -54,7 +54,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handles AccessDeniedException - thrown by Spring Security for access denied scenarios.
+     * Обрабатывает AccessDeniedException - выбрасывается Spring Security в сценариях отказа в доступе.
      */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleAccessDeniedException(
@@ -70,7 +70,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handles IllegalArgumentException for invalid arguments.
+     * Обрабатывает IllegalArgumentException для недопустимых аргументов.
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(
@@ -86,7 +86,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handles all other uncaught exceptions.
+     * Обрабатывает все остальные непойманные исключения.
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
@@ -101,7 +101,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Builds a standardized error response.
+     * Формирует стандартизированный ответ об ошибке.
      */
     private ResponseEntity<Map<String, Object>> buildErrorResponse(
             HttpStatus status, 

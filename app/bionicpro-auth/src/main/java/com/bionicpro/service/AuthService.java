@@ -7,63 +7,63 @@ import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import java.util.Map;
 
 /**
- * Service for authentication management.
- * Handles OAuth2 flows, token exchange, and user authentication.
+ * Сервис для управления аутентификацией.
+ * Обрабатывает OAuth2 потоки, обмен токенами и аутентификацию пользователя.
  */
 public interface AuthService {
     
     /**
-     * Initiate authentication flow by redirecting to Keycloak.
-     * @param request HTTP request
-     * @param response HTTP response
-     * @param redirectUri Optional redirect URI
+     * Инициирует поток аутентификации путём перенаправления на Keycloak.
+     * @param request HTTP запрос
+     * @param response HTTP ответ
+     * @param redirectUri Опциональный URI для перенаправления
      */
     void initiateAuthentication(HttpServletRequest request, HttpServletResponse response, String redirectUri);
-    
+
     /**
-     * Handle OAuth2 callback from Keycloak.
-     * @param request HTTP request
-     * @param response HTTP response
-     * @param code Authorization code from Keycloak
-     * @param state State parameter for validation
-     * @param sessionState Session state from Keycloak
-     * @return Map containing redirect URL or error information
+     * Обрабатывает OAuth2 callback от Keycloak.
+     * @param request HTTP запрос
+     * @param response HTTP ответ
+     * @param code Код авторизации от Keycloak
+     * @param state Параметр state для валидации
+     * @param sessionState Состояние сессии от Keycloak
+     * @return Map, содержащая URL перенаправления или информацию об ошибке
      */
-    Map<String, String> handleCallback(HttpServletRequest request, HttpServletResponse response, 
+    Map<String, String> handleCallback(HttpServletRequest request, HttpServletResponse response,
                                        String code, String state, String sessionState);
-    
+
     /**
-     * Check authentication status.
-     * @param request HTTP request
-     * @return Authentication status information
+     * Проверяет статус аутентификации.
+     * @param request HTTP запрос
+     * @return Информация о статусе аутентификации
      */
     Map<String, Object> getAuthStatus(HttpServletRequest request);
-    
+
     /**
-     * Logout user and invalidate session.
-     * @param request HTTP request
-     * @param response HTTP response
+     * Выход пользователя и аннулирование сессии.
+     * @param request HTTP запрос
+     * @param response HTTP ответ
      */
     void logout(HttpServletRequest request, HttpServletResponse response);
-    
+
     /**
-     * Refresh session.
-     * @param request HTTP request
-     * @param response HTTP response
+     * Обновление сессии.
+     * @param request HTTP запрос
+     * @param response HTTP ответ
      */
     void refreshSession(HttpServletRequest request, HttpServletResponse response);
-    
+
     /**
-     * Validate and refresh session if needed.
-     * @param request HTTP request
-     * @return Session data if valid, null otherwise
+     * Проверяет и обновляет сессию при необходимости.
+     * @param request HTTP запрос
+     * @return Данные сессии если валидны, иначе null
      */
     Object validateAndRefreshSession(HttpServletRequest request);
-    
+
     /**
-     * Get user details from ID token.
-     * @param idToken ID token
-     * @return User details map
+     * Получает данные пользователя из ID токена.
+     * @param idToken ID токен
+     * @return Map с данными пользователя
      */
     Map<String, Object> getUserDetails(OidcIdToken idToken);
 }

@@ -15,8 +15,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * Filter for propagating access token to backend API requests.
- * Extracts session from cookie, validates it, and adds access token to outgoing requests.
+ * Фильтр для распространения токена доступа к запросам backend API.
+ * Извлекает сессию из cookie, проверяет её и добавляет токен доступа к исходящим запросам.
  */
 @Component
 @Order(2)
@@ -27,57 +27,57 @@ public class TokenPropagationFilter extends OncePerRequestFilter {
     private final SessionService sessionService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, 
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        
-        // Skip for auth endpoints
+
+        // Пропускаем для эндпоинтов аутентификации
         String uri = request.getRequestURI();
         if (uri.startsWith("/api/auth")) {
             filterChain.doFilter(request, response);
             return;
         }
-        
-        // Get session ID from cookie
+
+        // Получаем идентификатор сессии из cookie
         String sessionId = getSessionIdFromRequest(request);
-        
+
         if (sessionId == null) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"not_authenticated\",\"message\":\"No session found\"}");
             return;
         }
-        
-        // Validate and refresh session
+
+        // Проверяем и обновляем сессию
         var sessionData = sessionService.validateAndRefreshSession(sessionId);
-        
+
         if (sessionData == null) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"not_authenticated\",\"message\":\"Session expired or invalid\"}");
             return;
         }
-        
-        // Get access token
+
+        // Получаем токен доступа
         String accessToken = sessionService.getAccessToken(sessionId);
-        
+
         if (accessToken == null) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"not_authenticated\",\"message\":\"No access token\"}");
             return;
         }
-        
-        // Add access token to request attribute for downstream use
+
+        // Добавляем токен доступа в атрибут запроса для использования далее
         request.setAttribute("accessToken", accessToken);
         request.setAttribute("userId", sessionData.getUserId());
-        
+
         log.debug("Token propagated for user: {}", sessionData.getUserId());
-        
+
         filterChain.doFilter(request, response);
     }
 
     /**
-     * Extract session ID from request cookies.
+     * Извлекает идентификатор сессии из cookies запроса.
      */
     private String getSessionIdFromRequest(HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();

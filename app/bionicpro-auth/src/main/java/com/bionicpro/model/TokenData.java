@@ -9,7 +9,7 @@ import java.io.Serializable;
 import java.time.Instant;
 
 /**
- * Token data model for OAuth2 tokens.
+ * Модель данных токена для OAuth2 токенов.
  */
 @Data
 @Builder

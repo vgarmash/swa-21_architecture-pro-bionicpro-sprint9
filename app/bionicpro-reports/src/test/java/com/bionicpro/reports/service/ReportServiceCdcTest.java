@@ -24,8 +24,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for ReportServiceCdc.
- * Tests the service layer logic for CDC report operations.
+ * Модульные тесты для ReportServiceCdc.
+ * Тестирует логику сервисного слоя для операций с отчетами CDC.
  */
 @ExtendWith(MockitoExtension.class)
 class ReportServiceCdcTest {
@@ -41,7 +41,7 @@ class ReportServiceCdcTest {
 
     @BeforeEach
     void setUp() {
-        // Setup test report
+        // Настройка тестового отчета
         testReport = UserReport.builder()
                 .userId(TEST_USER_ID)
                 .reportDate(LocalDate.of(2024, 1, 15))
@@ -107,11 +107,11 @@ class ReportServiceCdcTest {
         assertThat(result).hasSize(1);
         ReportResponse response = result.get(0);
 
-        // Verify all fields are mapped correctly
+        // Проверка правильности маппинга всех полей
         assertThat(response.getUserId()).isEqualTo(TEST_USER_ID);
         assertThat(response.getReportDate()).isEqualTo("2024-01-15");
         assertThat(response.getTotalSessions()).isEqualTo(45);
-        // Use tolerance for Float->Double conversion precision
+        // Использовать допуск для точности конвертации Float->Double
         assertThat(response.getAvgSignalAmplitude()).isCloseTo(0.75, org.assertj.core.data.Offset.offset(0.001));
         assertThat(response.getMaxSignalAmplitude()).isCloseTo(1.2, org.assertj.core.data.Offset.offset(0.001));
         assertThat(response.getMinSignalAmplitude()).isCloseTo(0.3, org.assertj.core.data.Offset.offset(0.001));
@@ -120,7 +120,7 @@ class ReportServiceCdcTest {
         assertThat(response.getProsthesisType()).isEqualTo("upper_limb");
         assertThat(response.getMuscleGroup()).isEqualTo("biceps");
 
-        // Verify customer info
+        // Проверка информации о клиенте
         assertThat(response.getCustomerInfo()).isNotNull();
         assertThat(response.getCustomerInfo().getName()).isEqualTo("Ivan Ivanov");
         assertThat(response.getCustomerInfo().getEmail()).isEqualTo("ivanov@example.com");

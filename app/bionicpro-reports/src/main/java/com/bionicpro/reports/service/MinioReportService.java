@@ -4,91 +4,91 @@ import com.bionicpro.reports.dto.ReportResponse;
 import java.util.Optional;
 
 /**
- * Service interface for MinIO report caching operations.
- * Provides methods for storing, retrieving, and managing cached reports in MinIO object storage.
+ * Интерфейс сервиса для операций кэширования отчетов в MinIO.
+ * Предоставляет методы для хранения, получения и управления кэшированными отчетами в объектном хранилище MinIO.
  */
 public interface MinioReportService {
 
     /**
-     * Checks if a report exists in MinIO storage.
+     * Проверяет, существует ли отчет в хранилище MinIO.
      *
-     * @param objectKey the object key path in MinIO
-     * @return true if the report exists, false otherwise
+     * @param objectKey ключ объекта в MinIO
+     * @return true, если отчет существует, false в противном случае
      */
     boolean reportExists(String objectKey);
 
     /**
-     * Stores a report in MinIO as JSON.
+     * Сохраняет отчет в MinIO в формате JSON.
      *
-     * @param objectKey the object key path in MinIO
-     * @param report the report data to store
-     * @throws MinioStorageException if storage operation fails
+     * @param objectKey ключ объекта в MinIO
+     * @param report данные отчета для сохранения
+     * @throws MinioStorageException если операция сохранения не удалась
      */
     void storeReport(String objectKey, ReportResponse report);
 
     /**
-     * Retrieves a report from MinIO storage.
+     * Получает отчет из хранилища MinIO.
      *
-     * @param objectKey the object key path in MinIO
-     * @return Optional containing the report if found, empty otherwise
-     * @throws MinioStorageException if retrieval operation fails
+     * @param objectKey ключ объекта в MinIO
+     * @return Optional, содержащий отчет, если он найден, пустой в противном случае
+     * @throws MinioStorageException если операция получения не удалась
      */
     Optional<ReportResponse> getReport(String objectKey);
 
     /**
-     * Generates a CDN URL for accessing the report.
-     * Returns a presigned URL that can be used to access the object directly.
+     * Генерирует CDN URL для доступа к отчету.
+     * Возвращает предварительно подписанный URL, который можно использовать для прямого доступа к объекту.
      *
-     * @param objectKey the object key path in MinIO
-     * @return the CDN URL for the report
+     * @param objectKey ключ объекта в MinIO
+     * @return CDN URL для отчета
      */
     String getCdnUrl(String objectKey);
 
     /**
-     * Deletes a specific report from MinIO.
+     * Удаляет конкретный отчет из MinIO.
      *
-     * @param objectKey the object key path in MinIO
-     * @throws MinioStorageException if deletion operation fails
+     * @param objectKey ключ объекта в MinIO
+     * @throws MinioStorageException если операция удаления не удалась
      */
     void deleteReport(String objectKey);
 
     /**
-     * Deletes all cached reports for a specific user.
+     * Удаляет все кэшированные отчеты для указанного пользователя.
      *
-     * @param userId the user ID whose reports should be deleted
-     * @throws MinioStorageException if deletion operation fails
+     * @param userId ID пользователя, отчеты которого нужно удалить
+     * @throws MinioStorageException если операция удаления не удалась
      */
     void deleteUserReports(Long userId);
 
     /**
-     * Generates the object key for a user's latest report.
+     * Генерирует ключ объекта для последнего отчета пользователя.
      *
-     * @param userId the user ID
-     * @return the object key path
+     * @param userId ID пользователя
+     * @return путь ключа объекта
      */
     String generateLatestReportKey(Long userId);
 
     /**
-     * Generates the object key for a report by date.
+     * Генерирует ключ объекта для отчета по дате.
      *
-     * @param userId the user ID
-     * @param reportDate the report date in ISO format (yyyy-MM-dd)
-     * @return the object key path
+     * @param userId ID пользователя
+     * @param reportDate дата отчета в формате ISO (yyyy-MM-dd)
+     * @return путь ключа объекта
      */
     String generateReportByDateKey(Long userId, String reportDate);
 
     /**
-     * Generates the object key for a historical report.
+     * Генерирует ключ объекта для исторического отчета.
      *
-     * @param userId the user ID
-     * @param reportDate the report date in ISO format (yyyy-MM-dd)
-     * @return the object key path
+     * @param userId ID пользователя
+     * @param reportDate дата отчета в формате ISO (yyyy-MM-dd)
+     * @return путь ключа объекта
      */
     String generateHistoryReportKey(Long userId, String reportDate);
 
     /**
-     * Ensures the MinIO bucket exists, creating it if necessary.
-     * Called during application startup.
+     * Убеждается, что корзина MinIO существует, создавая её при необходимости.
+     * Вызывается при запуске приложения.
      */
     void initializeBucket();
 }
