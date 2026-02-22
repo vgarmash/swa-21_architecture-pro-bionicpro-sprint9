@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
@@ -44,10 +45,28 @@ class ReportServiceTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-        // ... existing setup ...
-        when(minioReportService.generateLatestReportKey(anyLong()))
+        // Setup mock for minio report key generation (lenient for tests that don't use it)
+        lenient().when(minioReportService.generateLatestReportKey(anyLong()))
             .thenReturn("reports/1/latest.json");
+
+        // Initialize testReport with complete data matching test expectations
+        testReport = UserReport.builder()
+            .userId(TEST_USER_ID)
+            .reportDate(LocalDate.of(2024, 1, 15))
+            .totalSessions(45)
+            .avgSignalAmplitude(0.75f)
+            .maxSignalAmplitude(1.2f)
+            .minSignalAmplitude(0.3f)
+            .avgSignalFrequency(150.5f)
+            .totalUsageHours(12.5f)
+            .prosthesisType("upper_limb")
+            .muscleGroup("biceps")
+            .customerName("Ivan Ivanov")
+            .customerEmail("ivanov@example.com")
+            .customerAge(35)
+            .customerGender("male")
+            .customerCountry("Russia")
+            .build();
     }
 
     @Test

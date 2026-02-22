@@ -1,3 +1,9 @@
+# Include CDC compose for Change Data Capture
+include:
+  - path: cdc/docker-compose.yaml
+    external: true
+    name: app-network
+
 services:
   keycloak_db:
     image: postgres:14
@@ -77,6 +83,9 @@ services:
       - ./.data/postgres-crm-data:/var/lib/postgresql/data
     ports:
       - "5444:5432"
+    depends_on:
+      kafka-connect:
+        condition: service_started
     networks:
       - app-network
 
@@ -92,6 +101,9 @@ services:
     ports:
       - "5436:5432"
     restart: unless-stopped
+    depends_on:
+      kafka-connect:
+        condition: service_started
     networks:
       - app-network
 
@@ -109,6 +121,9 @@ services:
       interval: 1s
       timeout: 3s
       retries: 30
+    depends_on:
+      kafka:
+        condition: service_healthy
     networks:
       - app-network
 
@@ -191,6 +206,10 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_started
+      kafka:
+        condition: service_healthy
+      kafka-connect:
+        condition: service_healthy
     networks:
       - app-network
   # Nginx CDN service for static file caching

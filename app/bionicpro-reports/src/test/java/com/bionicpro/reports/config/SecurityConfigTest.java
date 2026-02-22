@@ -21,10 +21,14 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.bionicpro.reports.dto.ReportResponse;
 
 /**
  * Unit tests for SecurityConfig.
@@ -66,11 +70,11 @@ class SecurityConfigTest {
         
         // Mock MinIO service when disabled
         when(minioReportService.reportExists(anyString())).thenReturn(false);
-        when(minioReportService.storeReport(anyString(), any(ReportResponse.class))).thenReturn(null);
+        doNothing().when(minioReportService).storeReport(anyString(), any(ReportResponse.class));
         when(minioReportService.getReport(anyString())).thenReturn(Optional.empty());
         when(minioReportService.getCdnUrl(anyString())).thenReturn("");
-        when(minioReportService.deleteReport(anyString())).thenReturn(null);
-        when(minioReportService.deleteUserReports(anyLong())).thenReturn(null);
+        doNothing().when(minioReportService).deleteReport(anyString());
+        doNothing().when(minioReportService).deleteUserReports(anyLong());
     }
 
     @Test
