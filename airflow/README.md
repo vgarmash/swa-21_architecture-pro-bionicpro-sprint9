@@ -1,18 +1,18 @@
-# BionicPRO Standalone Airflow Module
+# Автономный модуль Airflow для BionicPRO
 
-A standalone Apache Airflow deployment for the BionicPRO ETL pipeline, decoupled from the main monolith.
+Автономное развертывание Apache Airflow для ETL-конвейера BionicPRO, отделенное от основного монолита.
 
-## Project Overview
+## Обзор проекта
 
-The BionicPRO ETL pipeline is an Apache Airflow-based data processing system that extracts, transforms, and loads data from multiple source databases into a ClickHouse OLAP database for analytics and reporting.
+ETL-конвейер BionicPRO — это система обработки данных на базе Apache Airflow, которая извлекает, преобразует и загружает данные из нескольких исходных баз данных в OLAP-базу данных ClickHouse для аналитики и отчетности.
 
-### Purpose
+### Назначение
 
-- **Data Extraction**: Pull data from PostgreSQL databases (Sensors DB and CRM DB)
-- **Data Transformation**: Aggregate and merge sensor readings with customer information
-- **Data Loading**: Store processed data in ClickHouse for high-performance analytical queries
+- **Извлечение данных**: Получение данных из баз данных PostgreSQL (Sensors DB и CRM DB)
+- **Преобразование данных**: Агрегация и объединение показаний датчиков с информацией о клиентах
+- **Загрузка данных**: Сохранение обработанных данных в ClickHouse для высокопроизводительных аналитических запросов
 
-### Architecture
+### Архитектура
 
 ```mermaid
 graph LR
@@ -34,92 +34,92 @@ graph LR
     DAG -->|load_to_olap| CH
 ```
 
-### Data Flow
+### Поток данных
 
-1. **Extract**: Two parallel tasks fetch data from Sensors DB and CRM DB
-2. **Transform**: Data is aggregated and merged based on user_id
-3. **Load**: Final dataset is inserted into ClickHouse `user_reports` table
+1. **Извлечение**: Две параллельные задачи получают данные из Sensors DB и CRM DB
+2. **Преобразование**: Данные агрегируются и объединяются по user_id
+3. **Загрузка**: Финальный набор данных вставляется в таблицу ClickHouse `user_reports`
 
 ---
 
-## Directory Structure
+## Структура каталогов
 
 ```
 airflow/
-├── dags/                      # DAG definitions
+├── dags/                      # Определения DAG
 │   ├── .gitkeep
-│   └── bionicpro_etl_dag.py  # Main ETL pipeline DAG
-├── logs/                      # Task execution logs
+│   └── bionicpro_etl_dag.py  # Основной ETL-конвейер DAG
+├── logs/                      # Логи выполнения задач
 │   └── .gitkeep
-├── tests/                     # Unit tests
+├── tests/                     # Модульные тесты
 │   └── test_bionicpro_etl_dag.py
-├── docker-compose.yaml        # Docker Compose configuration
-├── requirements.txt           # Python dependencies
-├── .env.example               # Environment variables template
-└── .dockerignore              # Docker build exclusions
+├── docker-compose.yaml        # Конфигурация Docker Compose
+├── requirements.txt           # Зависимости Python
+├── .env.example               # Шаблон переменных окружения
+└── .dockerignore              # Исключения для сборки Docker
 ```
 
 ---
 
-## Environment Variables
+## Переменные окружения
 
 ### Airflow Core
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `AIRFLOW__CORE__FERNET_KEY` | (required) | Encryption key for sensitive data. Generate with: `openssl rand -base64 32` |
-| `AIRFLOW__CORE__EXECUTOR` | LocalExecutor | Executor type for task execution |
-| `AIRFLOW_WEBSERVER_PORT` | 8080 | Host port for Airflow Web UI |
-| `AIRFLOW_UID` | 50000 | User ID for Airflow container |
+| Переменная | По умолчанию | Описание |
+|------------|--------------|----------|
+| `AIRFLOW__CORE__FERNET_KEY` | (required) | Ключ шифрования для конфиденциальных данных. Сгенерировать: `openssl rand -base64 32` |
+| `AIRFLOW__CORE__EXECUTOR` | LocalExecutor | Тип исполнителя для выполнения задач |
+| `AIRFLOW_WEBSERVER_PORT` | 8080 | Порт хоста для веб-интерфейса Airflow |
+| `AIRFLOW_UID` | 50000 | ID пользователя для контейнера Airflow |
 
-### Airflow Database
+### База данных Airflow
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `AIRFLOW_DB_HOST` | postgres | PostgreSQL container hostname |
-| `AIRFLOW_DB_PORT` | 5432 | PostgreSQL port |
-| `AIRFLOW_DB_USER` | airflow | Database username |
-| `AIRFLOW_DB_PASSWORD` | (required) | Database password |
-| `AIRFLOW_DB_NAME` | airflow | Database name |
+| Переменная | По умолчанию | Описание |
+|------------|--------------|----------|
+| `AIRFLOW_DB_HOST` | postgres | Имя хоста контейнера PostgreSQL |
+| `AIRFLOW_DB_PORT` | 5432 | Порт PostgreSQL |
+| `AIRFLOW_DB_USER` | airflow | Имя пользователя базы данных |
+| `AIRFLOW_DB_PASSWORD` | (required) | Пароль базы данных |
+| `AIRFLOW_DB_NAME` | airflow | Имя базы данных |
 
-### Source Databases (BionicPRO Integration)
+### Исходные базы данных (Интеграция BionicPRO)
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SENSORS_DB_HOST` | sensors-db | Sensors PostgreSQL hostname |
-| `SENSORS_DB_PORT` | 5432 | Sensors database port |
-| `SENSORS_DB_PASSWORD` | (required) | Sensors database password |
-| `CRM_DB_HOST` | crm-db | CRM PostgreSQL hostname |
-| `CRM_DB_PORT` | 5432 | CRM database port |
-| `CRM_DB_PASSWORD` | (required) | CRM database password |
-| `OLAP_DB_HOST` | olap-db | ClickHouse hostname |
-| `OLAP_DB_PORT` | 9000 | ClickHouse HTTP interface port |
+| Переменная | По умолчанию | Описание |
+|------------|--------------|----------|
+| `SENSORS_DB_HOST` | sensors-db | Имя хоста PostgreSQL датчиков |
+| `SENSORS_DB_PORT` | 5432 | Порт базы данных датчиков |
+| `SENSORS_DB_PASSWORD` | (required) | Пароль базы данных датчиков |
+| `CRM_DB_HOST` | crm-db | Имя хоста PostgreSQL CRM |
+| `CRM_DB_PORT` | 5432 | Порт базы данных CRM |
+| `CRM_DB_PASSWORD` | (required) | Пароль базы данных CRM |
+| `OLAP_DB_HOST` | olap-db | Имя хоста ClickHouse |
+| `OLAP_DB_PORT` | 9000 | Порт HTTP-интерфейса ClickHouse |
 
-### Admin Credentials
+### Учетные данные администратора
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `AIRFLOW_ADMIN_USER` | admin | Web UI admin username |
-| `AIRFLOW_ADMIN_PASSWORD` | (required) | Web UI admin password |
+| Переменная | По умолчанию | Описание |
+|------------|--------------|----------|
+| `AIRFLOW_ADMIN_USER` | admin | Имя пользователя администратора веб-интерфейса |
+| `AIRFLOW_ADMIN_PASSWORD` | (required) | Пароль администратора веб-интерфейса |
 
 ---
 
-## Docker Compose Usage
+## Использование Docker Compose
 
-### Prerequisites
+### Предварительные требования
 
 - Docker Engine 20.10+
 - Docker Compose 2.0+
 
-### Quick Start
+### Быстрый старт
 
-1. **Copy environment template**
+1. **Копирование шаблона окружения**
 
    ```bash
    cp airflow/.env.example airflow/.env
    ```
 
-2. **Generate Fernet key**
+2. **Генерация ключа Fernet**
 
    ```bash
    # Linux/macOS
@@ -128,76 +128,76 @@ airflow/
    [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
    ```
 
-3. **Update `.env` file** with generated keys and passwords
+3. **Обновление файла `.env`** сгенерированными ключами и паролями
 
-4. **Start Airflow services**
+4. **Запуск сервисов Airflow**
 
    ```bash
    cd airflow
    docker-compose up -d
    ```
 
-5. **Access Web UI**
+5. **Доступ к веб-интерфейсу**
 
    - URL: http://localhost:8080
-   - Username: `admin` (or configured value)
-   - Password: (as set in `.env`)
+   - Имя пользователя: `admin` (или настроенное значение)
+   - Пароль: (как указано в `.env`)
 
-### Service Management
+### Управление сервисами
 
-| Command | Description |
-|---------|-------------|
-| `docker-compose up -d` | Start all services |
-| `docker-compose down` | Stop all services (preserve data) |
-| `docker-compose down -v` | Stop and remove volumes (reset DB) |
-| `docker-compose restart` | Restart all services |
-| `docker-compose logs -f` | Follow logs from all services |
-| `docker-compose logs -f <service>` | Follow logs from specific service |
+| Команда | Описание |
+|---------|----------|
+| `docker-compose up -d` | Запуск всех сервисов |
+| `docker-compose down` | Остановка всех сервисов (сохранение данных) |
+| `docker-compose down -v` | Остановка и удаление томов (сброс БД) |
+| `docker-compose restart` | Перезапуск всех сервисов |
+| `docker-compose logs -f` | Просмотр логов всех сервисов |
+| `docker-compose logs -f <service>` | Просмотр логов конкретного сервиса |
 
-### Available Services
+### Доступные сервисы
 
-| Service | Port | Description |
-|---------|------|-------------|
-| `postgres` | 5432 (internal) | Airflow metadata database |
-| `airflow-webserver` | 8080 | Web UI and REST API |
-| `airflow-scheduler` | - | DAG scheduling engine |
-| `airflow-triggerer` | - | Deferred task handler |
+| Сервис | Порт | Описание |
+|--------|------|----------|
+| `postgres` | 5432 (внутренний) | База данных метаданных Airflow |
+| `airflow-webserver` | 8080 | Веб-интерфейс и REST API |
+| `airflow-scheduler` | - | Планировщик DAG |
+| `airflow-triggerer` | - | Обработчик отложенных задач |
 
-### Scaling Considerations
+### Масштабирование
 
-- Currently configured with `LocalExecutor` for single-node deployment
-- For multi-node setup, switch to `CeleryExecutor` and add Redis/flower services
-- Webserver can be scaled horizontally with load balancer
+- В настоящее время настроено с `LocalExecutor` для одноузлового развертывания
+- Для многоузловой настройки переключитесь на `CeleryExecutor` и добавьте сервисы Redis/flower
+- Webserver можно масштабировать горизонтально с балансировщиком нагрузки
 
 ---
 
-## Database Connections
+## Подключения к базам данных
 
-### Connection Configuration
+### Конфигурация подключения
 
-External database connections are configured via environment variables in the Docker Compose network.
+Внешние подключения к базам данных настраиваются через переменные окружения в сети Docker Compose.
 
-#### Sensors Database (PostgreSQL)
+#### База данных датчиков (PostgreSQL)
 
 ```
 Host: sensors-db
 Port: 5432
 Database: sensors-data
 User: sensors_user
-Password: <from SENSORS_DB_PASSWORD>
+Password: <из SENSORS_DB_PASSWORD>
 ```
 
-#### CRM Database (PostgreSQL)
+#### База данных CRM (PostgreSQL)
 
 ```
 Host: crm-db
 Port: 5432
 Database: crm_db
 User: crm_user
-Password: <from CRM_DB_PASSWORD>
+Password: <из CRM_DB_PASSWORD>
 ```
 
-#### OLAP Database (ClickHouse)
+#### OLAP база данных (ClickHouse)
 
 ```
 Host: olap-db
@@ -205,132 +205,132 @@ Port: 9000
 Database: default
 ```
 
-### Network Requirements
+### Требования к сети
 
-- Airflow must be on the same Docker network as source databases
-- For external access (databases outside Docker), ensure firewall rules allow connections
-- Connection URIs follow standard formats:
+- Airflow должен находиться в той же Docker-сети, что и исходные базы данных
+- Для внешнего доступа (базы данных вне Docker) убедитесь, что файрвол разрешает подключения
+- URI подключения следуют стандартным форматам:
   - PostgreSQL: `postgresql+psycopg2://user:password@host:port/dbname`
   - ClickHouse: `clickhouse://host:port/database`
 
 ---
 
-## Deployment Steps
+## Шаги развертывания
 
-### Step 1: Environment Configuration
+### Шаг 1: Настройка окружения
 
 ```bash
-# Navigate to airflow directory
+# Переход в директорию airflow
 cd airflow
 
-# Copy example environment file
+# Копирование примера файла окружения
 cp .env.example .env
 ```
 
-### Step 2: Generate Required Keys
+### Шаг 2: Генерация требуемых ключей
 
 ```bash
-# Generate Fernet key
+# Генерация ключа Fernet
 openssl rand -base64 32
 
-# Generate Webserver secret key
+# Генерация секретного ключа веб-сервера
 openssl rand -base64 32
 ```
 
-### Step 3: Update Environment Variables
+### Шаг 3: Обновление переменных окружения
 
-Edit `.env` file with:
-- Fernet key
-- Webserver secret key
-- Database passwords
-- Admin credentials
+Редактирование файла `.env` с:
+- Ключом Fernet
+- Секретным ключом веб-сервера
+- Паролями баз данных
+- Учетными данными администратора
 
-### Step 4: Start Services
+### Шаг 4: Запуск сервисов
 
 ```bash
 docker-compose up -d
 ```
 
-### Step 5: Verify Health
+### Шаг 5: Проверка работоспособности
 
 ```bash
-# Check service status
+# Проверка статуса сервисов
 docker-compose ps
 
-# Check webserver health
+# Проверка работоспособности веб-сервера
 curl http://localhost:8080/health
 
-# Check scheduler health
+# Проверка работоспособности планировщика
 curl http://localhost:8974/health
 ```
 
-### Step 6: Access Airflow UI
+### Шаг 6: Доступ к интерфейсу Airflow
 
-1. Open browser: http://localhost:8080
-2. Login with admin credentials
-3. Verify `bionicpro_etl_pipeline` DAG is visible
+1. Открыть браузер: http://localhost:8080
+2. Войти с учетными данными администратора
+3. Проверить видимость DAG `bionicpro_etl_pipeline`
 
-### Troubleshooting
+### Устранение неполадок
 
-| Issue | Solution |
-|-------|----------|
-| Webserver not starting | Check logs: `docker-compose logs airflow-webserver` |
-| Database connection failed | Verify `.env` credentials and network connectivity |
-| DAG not visible | Ensure DAG file is in `dags/` directory |
-| Permission errors | Check `AIRFLOW_UID` matches host user |
+| Проблема | Решение |
+|----------|---------|
+| Webserver не запускается | Проверить логи: `docker-compose logs airflow-webserver` |
+| Ошибка подключения к базе данных | Проверить учетные данные в `.env` и сетевое подключение |
+| DAG не отображается | Убедиться, что файл DAG находится в директории `dags/` |
+| Ошибки разрешений | Проверить соответствие `AIRFLOW_UID` пользователю хоста |
 
 ---
 
-## DAG Documentation
+## Документация DAG
 
-### BionicPRO ETL Pipeline
+### ETL-конвейер BionicPRO
 
-**File**: [`dags/bionicpro_etl_dag.py`](dags/bionicpro_etl_dag.py)
+**Файл**: [`dags/bionicpro_etl_dag.py`](dags/bionicpro_etl_dag.py)
 
-**Schedule**: Daily at 02:00 UTC (`0 2 * * *`)
+**Расписание**: Ежедневно в 02:00 UTC (`0 2 * * *`)
 
-**Tags**: `bionicpro`, `etl`, `analytics`
+**Теги**: `bionicpro`, `etl`, `analytics`
 
-### Task Descriptions
+### Описание задач
 
 #### 1. extract_sensors_data
 
-Extracts EMG sensor data from the Sensors PostgreSQL database.
+Извлекает данные EMG-датчиков из базы данных Sensors PostgreSQL.
 
-- **Source Table**: `emg_sensor_data`
-- **Extracted Fields**: user_id, prosthesis_type, muscle_group, signal_frequency, signal_duration, signal_amplitude, signal_time
-- **Filter**: Data for execution date only
-- **Output**: CSV file at `/tmp/sensors_data.csv`
-- **Returns**: Number of records extracted
+- **Исходная таблица**: `emg_sensor_data`
+- **Извлекаемые поля**: user_id, prosthesis_type, muscle_group, signal_frequency, signal_duration, signal_amplitude, signal_time
+- **Фильтр**: Только данные на дату выполнения
+- **Вывод**: CSV-файл по адресу `/tmp/sensors_data.csv`
+- **Возвращает**: Количество извлеченных записей
 
 #### 2. extract_crm_data
 
-Extracts customer information from the CRM PostgreSQL database.
+Извлекает информацию о клиентах из базы данных CRM PostgreSQL.
 
-- **Source Table**: `customers`
-- **Extracted Fields**: id, name, email, age, gender, country
-- **Output**: CSV file at `/tmp/crm_data.csv`
-- **Returns**: Number of records extracted
+- **Исходная таблица**: `customers`
+- **Извлекаемые поля**: id, name, email, age, gender, country
+- **Вывод**: CSV-файл по адресу `/tmp/crm_data.csv`
+- **Возвращает**: Количество извлеченных записей
 
 #### 3. transform_and_merge_data
 
-Aggregates sensor data and merges with customer information.
+Агрегирует данные датчиков и объединяет с информацией о клиентах.
 
-- **Aggregations**: mean/max/min signal amplitude, mean frequency, total duration
-- **Join**: Merged on `user_id` with CRM data (left join)
-- **Output**: CSV file at `/tmp/merged_data.csv`
-- **Returns**: Number of records in final dataset
+- **Агрегации**: среднее/максимальное/минимальное значение амплитуды сигнала, средняя частота, общая продолжительность
+- **Объединение**: Объединение по `user_id` с данными CRM (левое объединение)
+- **Вывод**: CSV-файл по адресу `/tmp/merged_data.csv`
+- **Возвращает**: Количество записей в финальном наборе данных
 
 #### 4. load_to_olap
 
-Loads processed data into ClickHouse OLAP database.
+Загружает обработанные данные в OLAP-базу данных ClickHouse.
 
-- **Target Table**: `user_reports`
-- **Engine**: MergeTree
-- **Partitioning**: By (user_id, report_date)
-- **Returns**: Number of records inserted
+- **Целевая таблица**: `user_reports`
+- **Движок**: MergeTree
+- **Секционирование**: По (user_id, report_date)
+- **Возвращает**: Количество вставленных записей
 
-### Task Dependencies
+### Зависимости задач
 
 ```
 extract_sensors_data ─┐
@@ -338,57 +338,57 @@ extract_sensors_data ─┐
 extract_crm_data ──────┘
 ```
 
-### Default Arguments
+### Аргументы по умолчанию
 
 - `owner`: bionicpro
 - `depends_on_past`: false
 - `retries`: 3
-- `retry_delay`: 5 minutes
+- `retry_delay`: 5 минут
 - `email_on_failure`: false
 
 ---
 
-## Development
+## Разработка
 
-### Adding New DAGs
+### Добавление новых DAG
 
-1. Create new Python file in `dags/` directory:
+1. Создайте новый файл Python в директории `dags/`:
 
    ```python
    from airflow import DAG
-   # ... your DAG definition
+   # ... ваше определение DAG
    ```
 
-2. DAG will be automatically detected on next scheduler refresh (typically every 30 seconds)
+2. DAG будет автоматически обнаружен при следующем обновлении планировщика (обычно каждые 30 секунд)
 
-3. In Airflow UI, unpause the new DAG
+3. В интерфейсе Airflow активируйте новый DAG
 
-### Running Tests
+### Запуск тестов
 
 ```bash
-# Run all tests
+# Запуск всех тестов
 pytest airflow/tests/
 
-# Run specific test file
+# Запуск конкретного тестового файла
 pytest airflow/tests/test_bionicpro_etl_dag.py
 
-# Run with verbose output
+# Запуск с подробным выводом
 pytest -v airflow/tests/
 ```
 
-### Installing Additional Python Packages
+### Установка дополнительных пакетов Python
 
-Edit `requirements.txt` and rebuild containers:
+Отредактируйте `requirements.txt` и пересоберите контейнеры:
 
 ```bash
-# Add package to requirements.txt
+# Добавление пакета в requirements.txt
 echo "new-package>=1.0.0" >> requirements.txt
 
-# Rebuild containers
+# Пересборка контейнеров
 docker-compose up -d --build
 ```
 
-Or install during runtime (not recommended for production):
+Или установите во время выполнения (не рекомендуется для продакшена):
 
 ```bash
 docker-compose exec airflow-webserver pip install new-package
@@ -396,26 +396,19 @@ docker-compose exec airflow-webserver pip install new-package
 
 ---
 
-## Dependencies
+## Зависимости
 
-| Package | Version | Purpose |
-|---------|---------|---------|
-| apache-airflow | >=2.8.0 | Core workflow engine |
-| psycopg2-binary | >=2.9.0 | PostgreSQL connectivity |
-| pandas | >=2.0.0 | Data processing |
-| clickhouse-driver | >=0.2.0 | ClickHouse connectivity |
-| pytest | >=7.0.0 | Unit testing |
-
----
-
-## Related Documentation
-
-- [BionicPRO Main README](../README.md)
-- [Application Docker Compose](../app/docker-compose.yaml)
-- [BionicPRO Architecture](../analysis/arch/initial/architecture.md)
+| Пакет | Версия | Назначение |
+|-------|--------|------------|
+| apache-airflow | >=2.8.0 | Основной движок рабочего процесса |
+| psycopg2-binary | >=2.9.0 | Подключение к PostgreSQL |
+| pandas | >=2.0.0 | Обработка данных |
+| clickhouse-driver | >=0.2.0 | Подключение к ClickHouse |
+| pytest | >=7.0.0 | Модульное тестирование |
 
 ---
 
-## License
+## Связанная документация
 
-Internal BionicPRO project use only.
+- [Осной README BionicPRO](../README.md)
+- [Docker Compose приложения](../app/docker-compose.yaml)
