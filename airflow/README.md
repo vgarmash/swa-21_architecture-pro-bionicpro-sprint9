@@ -410,5 +410,6 @@ docker-compose exec airflow-webserver pip install new-package
 
 ## Связанная документация
 
-- [Осной README BionicPRO](../README.md)
+- [README.md по архитектуре всего приложения BionicPro](../app/README.md)
 - [Docker Compose приложения](../app/docker-compose.yaml)
+- [Постановка задачи и описание системы BionicPRO](../README.md)

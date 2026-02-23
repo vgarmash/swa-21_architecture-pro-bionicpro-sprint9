@@ -1,133 +1,167 @@
-# Docker Compose для BionicPRO Auth System
+# Docker Compose для BionicPRO
 
-## Архитектура системы
+## 📚 Общее описание проекта
 
-Система построена на основе BFF (Backend-for-Frontend) паттерна с использованием:
-- **Keycloak 21.1** - OpenID Connect провайдер с поддержкой PKCE
-- **BFF-сервис (bionicpro-auth)** - Spring Boot приложение на порту 8000
-- **Redis** - хранение сессий
-- **OpenLDAP 1.5.0** - LDAP User Federation
-- **Яндекс ID** - внешний Identity Provider
+Проект **BionicPRO** – комплексная система для управления бионическими протезами. Архитектура построена на паттерне **Backend‑for‑Frontend (BFF)** и состоит из нескольких микросервисов, баз данных, систем потоковой обработки и CDN. Ниже представлена полная карта компонентов, их назначение и взаимодействие.
+
+---
+
+## 🏗️ Архитектура системы
+
+Система состоит из следующих ключевых компонентов:
+
+- **Keycloak 21.1** – OpenID Connect провайдер с поддержкой PKCE, MFA и Identity Brokering (Yandex ID).
+- **BFF‑сервис `bionicpro-auth`** – Spring Boot приложение (порт 8000), управляет аутентификацией, сессиями (Redis) и выдачей HTTP‑Only куки.
+- **Redis** – хранение пользовательских сессий.
+- **OpenLDAP 1.5.0** – федерация пользователей по регионам.
+- **Yandex ID** – внешний Identity Provider.
+- **Сервис отчётов `bionicpro-reports`** – Spring Boot API (порт 8081) для генерации и выдачи отчётов из ClickHouse.
+- **Apache Airflow** – оркестрация ETL‑pipeline, ежедневно в 02:00 UTC. **Находится в отдельной папке `/airflow`**.
+- **ClickHouse** – OLAP‑хранилище для агрегированных данных.
+- **MinIO** – S3‑совместимое объектное хранилище, кеширует готовые отчёты.
+- **Nginx (CDN)** – reverse‑proxy с кешированием, отдаёт отчёты из MinIO через presigned URL.
+- **Kafka + Zookeeper + Debezium** – CDC‑модуль, захватывает изменения из PostgreSQL‑CRM и PostgreSQL‑Sensors и передаёт их в ClickHouse через KafkaEngine.
+- **PostgreSQL CRM** – хранит данные о клиентах.
+- **PostgreSQL Sensors** – хранит телеметрические данные сенсоров.
+- **Frontend (React)** – пользовательский интерфейс для управления протезом и получения отчётов.
+
+```mermaid
+flowchart LR
+    subgraph "Клиент"
+        UI[React UI]
+    end
+    subgraph "BFF"
+        BFF[bionicpro-auth]
+    end
+    subgraph "Auth"
+        KC[Keycloak]
+        LDAP[OpenLDAP]
+        YID[Yandex ID]
+    end
+    subgraph "Сервисы"
+        REP[bionicpro-reports]
+        AIR[Airflow]
+        CDC[Kafka + Debezium]
+    end
+    subgraph "Хранилища"
+        CH[ClickHouse]
+        MINIO[MinIO]
+        CDN[Nginx CDN]
+        CRM[PostgreSQL CRM]
+        SENS[PostgreSQL Sensors]
+        REDIS[Redis]
+    end
+    UI -->|auth| BFF
+    BFF -->|token| KC
+    KC -->|LDAP| LDAP
+    KC -->|IdP| YID
+    BFF -->|session| REDIS
+    BFF -->|reports API| REP
+    REP -->|query| CH
+    REP -->|cache| MINIO
+    MINIO -->|presigned URL| CDN
+    UI -->|fetch report| CDN
+    AIR -->|ETL| CH
+    CDC -->|CDC| CH
+    CRM -->|changes| CDC
+    SENS -->|changes| CDC
+```
+
+---
+
+## 📁 Структура проекта
+
+Проект имеет монорепозитарную структуру с двумя основными папками на корневом уровне:
+
+```
+bionicpro-sprint9/
+├── app/                          # Основное приложение
+│   ├── docker-compose.yaml
+│   ├── bionicpro-auth/           # BFF‑сервис
+│   ├── bionicpro-reports/       # Сервис отчётов
+│   ├── cdc/                     # Kafka, Zookeeper, Debezium
+│   ├── crm-db/                  # PostgreSQL CRM
+│   ├── sensors-db/              # PostgreSQL Sensors
+│   ├── olap-db/                 # ClickHouse
+│   ├── frontend/                 # React‑приложение
+│   ├── nginx/                   # CDN конфигурация
+│   ├── keycloak/                # Realm‑export.json
+│   ├── ldap/                    # config.ldif
+│   └── redis/                   # Redis данные
+│
+└── airflow/                      # Apache Airflow (оркестрация ETL)
+    ├── docker-compose.yaml
+    ├── dags/
+    │   └── bionicpro_etl_dag.py
+    ├── requirements.txt
+    └── ...
+```
 
 ---
 
 ## 🚀 Как запустить
 
 ### Требования
-
 - Docker
-- Docker Compose
+- Docker Compose (v2+)
 
-### Структура проекта
-
-```
-.
-├── docker-compose.yaml
-├── .data/                          # Тома данных (создаются автоматически)
-│   ├── postgres-keycloak-data/
-│   ├── postgres-crm-data/
-│   ├── clickhouse-data/
-│   └── sensors-data/              # Данные PostgreSQL для сенсоров
-├── keycloak/
-│   └── realm-export.json           # Экспорт realm с PKCE и MFA
-├── ldap/
-│   └── config.ldif                 # Начальная LDIF-конфигурация
-├── bionicpro-auth/                 # BFF-сервис
-│   ├── Dockerfile
-│   └── src/
-├── crm-db/                         # PostgreSQL CRM
-├── olap-db/                        # ClickHouse OLAP
-├── sensors-db/                     # PostgreSQL для данных ЭМГ сенсоров
-│   ├── init.sql                    # Скрипт инициализации БД
-│   └── sensors.csv                 # Данные сенсоров
-├── frontend/                       # React-приложение
-└── redis/data/                    # Redis данные
-```
-
-### Порядок запуска
-
+### Порядок запуска основного приложения (app)
 ```bash
-# 1. Запуск всех сервисов
+# 1. Сборка и запуск всех сервисов
+cd app
 docker-compose up -d
 
-# 2. Ожидание инициализации (首次 запуск может занять 2-5 минут)
-# Keycloak требует время для импорта realm и инициализации БД
+# 2. Ожидание инициализации (Keycloak импортирует realm, базы поднимаются)
 echo "Ожидание инициализации сервисов..."
 sleep 30
 
-# 3. Проверка статуса сервисов
+# 3. Проверка статуса контейнеров
 docker-compose ps
 ```
 
-> ⚠️ **Важно**: При первом запуске дождитесь полного старта всех сервисов. Keycloak должен импортировать `realm-export.json` с настройками PKCE, MFA и LDAP User Federation.
+### Запуск Apache Airflow (отдельный)
+```bash
+cd airflow
+docker-compose up -d
+```
+> ⚠️ **Важно**: Airflow находится в отдельной папке `/airflow` и запускается отдельно от основного приложения.
+
+> ⚠️ **Важно**: дождитесь, пока все контейнеры перейдут в статус `Up`. Keycloak импортирует `realm-export.json` с настройками PKCE, MFA и LDAP.
 
 ---
 
 ## 🌐 URL сервисов и учётные данные
 
-| Сервис           | URL                         | Логин / Пароль              |
-|------------------|-----------------------------|------------------------------|
-| **BionicPRO Auth (BFF)** | http://localhost:8000       | —                            |
-| Keycloak         | http://localhost:8088       | `admin` / `admin`            |
-| Realm            | `reports-realm`            | —                            |
-| Frontend         | http://localhost:3000       | —                            |
-| Redis            | localhost:6379              | —                            |
-| OpenLDAP         | ldap://localhost:389        | `cn=admin,dc=example,dc=com` / `admin` |
-| CRM DB           | localhost:5444 (PostgreSQL) | `crm_user` / `crm_password`  |
-| OLAP DB          | http://localhost:8123       | — (ClickHouse HTTP)          |
-| **Sensors DB**   | localhost:5436 (PostgreSQL) | `sensors_user` / `sensors_password` |
-| MinIO Console    | http://localhost:9001       | `minio_user` / `minio_password` |
+| Сервис | URL | Логин / Пароль |
+|--------|-----|----------------|
+| **BFF (bionicpro-auth)** | `http://localhost:8000` | — |
+| Keycloak | `http://localhost:8088` | `admin` / `admin` |
+| Realm | `reports-realm` | — |
+| Frontend | `http://localhost:3000` | — |
+| Redis | `localhost:6379` | — |
+| OpenLDAP | `ldap://localhost:389` | `cn=admin,dc=example,dc=com` / `admin` |
+| CRM DB | `localhost:5444` (PostgreSQL) | `crm_user` / `crm_password` |
+| Sensors DB | `localhost:5436` (PostgreSQL) | `sensors_user` / `sensors_password` |
+| ClickHouse | `http://localhost:8123` | — (HTTP) |
+| MinIO Console | `http://localhost:9001` | `minio_user` / `minio_password` |
+| Nginx CDN | `http://localhost:8082` | — |
+| **Airflow UI** | `http://localhost:8080` | `admin` / `admin` |
+
+> **Примечание**: Airflow запускается из отдельной папки `/airflow`. Для доступа к Airflow UI необходимо сначала запустить `cd airflow && docker-compose up -d`.
 
 ---
 
 ## 🔐 Конфигурация Keycloak
 
-### Realm: reports-realm
-
-При запуске автоматически импортируется из `keycloak/realm-export.json`:
-
-### PKCE (OAuth 2.0 Proof Key for Code Exchange)
-- **Method**: S256 (S256 Code Challenge Method)
-- **Enabled**: true
-
-### MFA/OTP (TOTP)
-- **Алгоритм**: SHA256
-- **Количество цифр**: 6
-- **Период**: 30 секунд
-- **Required Action**: CONFIGURE_TOTP
-
-### OpenLDAP User Federation
-- **Provider**: user-ldap
-- **Vendor**: Other
-- **Connection URL**: `ldap://openldap:389`
-- **Bind DN**: `cn=admin,dc=example,dc=com`
-- **Bind Credential**: `admin`
-- **Users DN**: `dc=example,dc=com`
-- **Search Scope**: Subtree
-- **Timeout**: 2000ms
-
-### Маппинг групп на роли
-| LDAP Group | Keycloak Role |
-|------------|---------------|
-| cn=user | user |
-| cn=administrator | administrator |
-| cn=prothetic_user | prothetic_user |
-
-### Яндекс ID Identity Provider
-- **Alias**: yandex
-- **Authorization URL**: https://oauth.yandex.ru/authorize
-- **Token URL**: https://oauth.yandex.ru/token
-- **User Info URL**: https://login.yandex.ru/info
-- **Client ID**: (настраивается в Яндекс OAuth)
-- **Client Secret**: (настраивается в Яндекс OAuth)
-- **Consent Screen**: Enabled
-- **Mapper**: email, name, first_name, last_name
+- **Realm**: `reports-realm` (импортируется из `keycloak/realm-export.json`).
+- **PKCE**: включён, метод `S256`.
+- **MFA/OTP**: TOTP, SHA256, 6 цифр, 30 сек.
+- **LDAP Federation**: `user-ldap` → `ldap://openldap:389`, bind DN `cn=admin,dc=example,dc=com`.
+- **Identity Brokering**: Yandex ID (alias `yandex`).
 
 ---
 
-## ⚙️ Конфигурация BFF-сервиса (bionicpro-auth)
-
-### Переменные окружения
+## ⚙️ Конфигурация BFF‑сервиса (`bionicpro-auth`)
 
 ```yaml
 bionicpro-auth:
@@ -141,179 +175,195 @@ bionicpro-auth:
     KEYCLOAK_REDIRECT_URI: http://localhost:8000/api/auth/callback
 ```
 
-### Особенности
 - **Порт**: 8000
-- **Spring Session**: Redis с namespace `bionicpro:session`
+- **Сессии**: Redis (`bionicpro:session` namespace)
 - **Куки**: Secure, HttpOnly, SameSite=Lax
-- **OAuth2 Client**: PKCE с методом S256
+- **OAuth2 клиент**: PKCE (S256)
+
+---
+
+## 📊 Сервис отчётов (`bionicpro-reports`)
+
+**Назначение** – предоставление агрегированных данных о работе протезов через REST API.
+
+### Основные функции
+- Генерация отчётов из OLAP‑хранилища ClickHouse.
+- Кеширование готовых отчётов в MinIO.
+- Защищённый доступ по JWT‑токенам (Keycloak).
+- Ограничение доступа: пользователь видит только свои отчёты.
+
+### Переменные окружения
+```yaml
+bionicpro-reports:
+  environment:
+    SPRING_PROFILES_ACTIVE: prod
+    KEYCLOAK_SERVER_URL: http://keycloak:8088
+    KEYCLOAK_REALM: reports-realm
+    KEYCLOAK_CLIENT_ID: bionicpro-reports
+    MINIO_ENDPOINT: http://minio:9000
+    MINIO_ACCESS_KEY: minioadmin
+    MINIO_SECRET_KEY: minioadmin
+    MINIO_BUCKET_NAME: reports
+    CDN_BASE_URL: http://nginx-cdn:80
+```
+
+---
+
+## 🛠️ ETL и Airflow
+
+**Назначение** – извлечение, трансформация и загрузка данных из CRM и Sensors в ClickHouse.
+
+### Расположение
+- Apache Airflow находится в **отдельной папке `/airflow`** на том же уровне, что и `/app`.
+- Запускается отдельно: `cd airflow && docker-compose up -d`
+
+### Взаимодействие с компонентами `/app`
+Airflow взаимодействует со следующими сервисами основного приложения:
+- **Читает из PostgreSQL**: `/app/sensors-db` (Sensors DB) и `/app/crm-db` (CRM DB)
+- **Пишет в ClickHouse**: `/app/olap-db`
+
+### Конфигурация
+- **Расписание**: ежедневно в 02:00 UTC.
+- **DAG**: `bionicpro_etl_dag` (см. `airflow/dags/bionicpro_etl_dag.py`).
+- **Этапы**: извлечение данных → трансформация → загрузка в ClickHouse‑витрину `user_reports`.
+
+---
+
+## 📦 Хранилища и CDN
+
+- **ClickHouse** – OLAP‑база, партиционирование по `user_id` и `report_date`.
+- **MinIO** – S3‑совместимое объектное хранилище, используется для кеша отчётов.
+- **Nginx CDN** – reverse‑proxy с кешированием, отдаёт отчёты из MinIO через presigned URL (`app/nginx/conf.d/reports-cdn.conf`).
+
+---
+
+## 🔄 CDC и потоковая обработка
+
+**Назначение** – обеспечить независимость выгрузок из CRM от транзакционных операций.
+
+### Компоненты
+- **Zookeeper** – координация Kafka.
+- **Kafka** – брокер сообщений.
+- **Debezium** (через Kafka Connect) – захват изменений из PostgreSQL‑CRM и PostgreSQL‑Sensors.
+- **ClickHouse KafkaEngine** – потребление изменений и обновление материализованных представлений (`user_reports_cdc`).
+
+### Запуск CDC
+```bash
+cd app/cdc
+docker-compose up -d   # поднимает Zookeeper, Kafka, Kafka Connect, Debezium
+```
+
+---
+
+## 🌐 Frontend (React)
+
+**Назначение** – пользовательский интерфейс для управления протезом и получения отчётов.
+
+### Основные функции
+- Авторизация через BFF‑сервис (HTTP‑Only куки).
+- Кнопка «Получить отчёт», вызывающая API `/reports`.
+- Отображение данных отчёта в удобном виде.
+- Обработка ошибок и состояний загрузки.
+
+---
+
+## 🗄️ Базы данных
+
+### CRM DB (PostgreSQL)
+- Хост: `localhost:5444`
+- Пользователь: `crm_user`
+- Пароль: `crm_password`
+- Скрипт инициализации: `app/crm-db/init.sql`
+
+### Sensors DB (PostgreSQL)
+- Хост: `localhost:5436`
+- Пользователь: `sensors_user`
+- Пароль: `sensors_password`
+- Скрипт инициализации: `app/sensors-db/init.sql`
+
+### ClickHouse OLAP
+- Хост: `localhost:8123`
+- Скрипт инициализации: `app/olap-db/init.sql`
 
 ---
 
 ## ✅ Проверка работоспособности
 
-### 1. Проверка статуса контейнеров
-
+1. **Контейнеры (app)**
 ```bash
-docker-compose ps
+cd app && docker-compose ps
 ```
-
-Все сервисы должны быть в статусе `Up` или `running`.
-
-### 2. Проверка Keycloak
-
+2. **Контейнеры (airflow)**
 ```bash
-# Проверка доступности Keycloak
+cd airflow && docker-compose ps
+```
+3. **Keycloak**
+```bash
 curl -s http://localhost:8088/health/ready
-
-# Проверка realm
-curl -s http://localhost:8080/realms/reports-realm | jq -r '.realm'
+curl -s http://localhost:8080/realms/reports-realm | jq .realm
 ```
-
-### 3. Проверка BFF-сервиса
-
+4. **BFF‑сервис**
 ```bash
-# Проверка здоровья
 curl -s http://localhost:8000/actuator/health
-
-# Проверка статуса аутентификации
 curl -s http://localhost:8000/api/auth/status
 ```
-
-### 4. Проверка Redis
-
+5. **Сервис отчётов**
 ```bash
-# Подключение к Redis
-docker exec -it redis redis-cli
-
-# Проверка сессий
-KEYS bionicpro:session:*
+curl -s http://localhost:8081/api/v1/reports   # требует JWT‑токен
 ```
-
-### 5. Проверка LDAP
-
+6. **Airflow UI** – `http://localhost:8080` (запускается из папки `/airflow`)
+7. **CDC** – проверка топиков:
 ```bash
-# Подключение к LDAP
-docker exec -it openldap ldapsearch -x -H ldap://localhost:389 \
-  -D "cn=admin,dc=example,dc=com" -w admin -b "dc=example,dc=com"
+docker exec -it app-kafka-1 kafka-topics --list --bootstrap-server localhost:9092
 ```
-
----
-
-## 🔁 Управление сервисами
-
-### Перезапуск
-
-```bash
-docker-compose restart
-```
-
-### Остановка (данные сохраняются)
-
-```bash
-docker-compose down
-```
-
-### Остановка с удалением томов (⚠️ данные будут потеряны!)
-
-```bash
-docker-compose down -v
-```
-
-### Просмотр логов
-
-```bash
-# Все сервисы
-docker-compose logs -f
-
-# Конкретный сервис
-docker-compose logs -f keycloak
-docker-compose logs -f bionicpro-auth
-docker-compose logs -f redis
-```
+8. **Frontend** – откройте `http://localhost:3000` и выполните вход через BFF.
 
 ---
 
 ## 🔧 Устранение проблем
 
 ### Keycloak не стартует
-
 ```bash
-# Проверка логов
+cd app
 docker-compose logs keycloak
-
-# Увеличение времени ожидания
+# При необходимости увеличить таймаут БД
 docker-compose up -d keycloak_db
-# Ожидание готовности БД
 sleep 10
 docker-compose up -d keycloak
 ```
 
-### BFF-сервис не подключается к Redis
-
+### BFF‑сервис не подключается к Redis
 ```bash
-# Проверка Redis
+cd app
 docker-compose logs redis
-
-# Проверка сети
-docker network ls
 docker network inspect app_default
 ```
 
-### LDAP User Federation не работает
-
-1. Проверьте, что Keycloak может подключиться к LDAP:
-   ```bash
-   docker exec -it keycloak bash
-   # В контейнере:
-   nc -zv openldap 389
-   ```
-
-2. Проверьте настройки User Federation в Keycloak Admin Console:
-   - Realm → User Federation → user-ldap → Test connection
-
----
-
-## 🗄️ Базы данных
-
-### Sensors DB (PostgreSQL)
-
-**sensors-db** - PostgreSQL база данных для хранения данных ЭМГ сенсоров протезов.
-
-| Параметр | Значение |
-|----------|----------|
-| Внешний порт | 5436 |
-| Внутренний порт | 5432 |
-| База данных | sensors-data |
-| Пользователь | sensors_user |
-| Пароль | sensors_password |
-| Таблица | emg_sensor_data (структура аналогична olap_db в ClickHouse) |
-| Персистентность | ./.data/sensors-data |
-
-#### Файлы инициализации
-
-- `app/sensors-db/init.sql` - SQL-скрипт для создания таблиц и начальных данных
-- `app/sensors-db/sensors.csv` - CSV-файл с данными ЭМГ сенсоров
-
-#### Подключение
-
+### LDAP Federation не работает
+1. Проверить соединение из Keycloak:
 ```bash
-# Подключение к БД через psql
-psql -h localhost -p 5436 -U sensors_user -d sensors-data
+docker exec -it keycloak bash
+nc -zv openldap 389
+```
+2. В админ‑консоли Keycloak проверить `User Federation → user-ldap → Test connection`.
 
-# Через docker
-docker exec -it sensors-db psql -U sensors_user -d sensors-data
+### CDC не захватывает изменения
+```bash
+curl http://localhost:8083/connectors/   # список коннекторов
+curl http://localhost:8083/connectors/customers-connector/status
 ```
 
 ---
 
-## 📝 Примечания
-
-- **Keycloak** запускается в режиме `start-dev` с автоматическим импортом `realm-export.json`
-- **BFF-сервис** использует Spring Session с Redis для управления сессиями
-- **PKCE** включён по умолчанию для всех OAuth2 клиентов
-- **MFA/OTP** требует настройки пользователем через required action CONFIGURE_TOTP
-- **Яндекс ID** требует предварительной регистрации приложения в Яндекс OAuth
+## 📂 Полезные ссылки
+- Файл realm‑export: `app/keycloak/realm-export.json`
+- Конфигурация MinIO: `app/bionicpro-reports/src/main/resources/application.yml`
+- Конфигурация Nginx CDN: `app/nginx/conf.d/reports-cdn.conf`
+- Airflow DAG: `airflow/dags/bionicpro_etl_dag.py`
+- CDC‑коннекторы: `app/cdc/debezium/connector-customers.json`, `app/cdc/debezium/connector-sensors.json`
 
 ---
 
-🎉 **Готово!**
+## 🎉 Готово!
+
+Все сервисы запущены, инфраструктура готова к работе. При необходимости обратитесь к разделу **Устранение проблем** или к документации в репозитории.
