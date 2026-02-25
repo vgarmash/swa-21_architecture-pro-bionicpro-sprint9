@@ -63,9 +63,9 @@ services:
     volumes:
       - ./ldap/config.ldif:/container/service/slapd/assets/config/bootstrap/ldif/50-bootstrap.ldif
     environment:
-      - LDAP_ORGANISATION=BionicPRO
-      - LDAP_DOMAIN=bionicpro.local
-      - LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
+      LDAP_ORGANISATION: BionicPRO
+      LDAP_DOMAIN: bionicpro.local
+      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
     ports:
       - "389:389"
       - "636:636"

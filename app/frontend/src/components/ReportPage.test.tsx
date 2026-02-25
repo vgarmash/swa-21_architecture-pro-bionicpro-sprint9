@@ -267,6 +267,19 @@ describe('ReportPage Component Tests', () => {
         resolveFetch!({
           ok: true,
           json: async () => mockReportData,
+          headers: new Headers(),
+          redirected: false,
+          status: 200,
+          statusText: 'OK',
+          type: 'default',
+          url: '',
+          body: null,
+          bodyUsed: false,
+          arrayBuffer: async () => new ArrayBuffer(0),
+          blob: async () => new Blob(),
+          clone: function (): Response { return this; },
+          formData: async () => new FormData(),
+          text: async () => '',
         });
         await fetchPromise;
       });
