@@ -43,7 +43,7 @@
         "credentials": [
           {
             "type": "password",
-            "value": "${KEYCLOAK_USER1_PASSWORD}",
+            "value": "password123",
             "temporary": false
           }
         ],
@@ -61,7 +61,7 @@
         "credentials": [
           {
             "type": "password",
-            "value": "${KEYCLOAK_USER1_PASSWORD}",
+            "value": "password123",
             "temporary": false
           }
         ],
@@ -79,7 +79,7 @@
         "credentials": [
           {
             "type": "password",
-            "value": "${KEYCLOAK_ADMIN1_PASSWORD}",
+            "value": "admin123",
             "temporary": false
           }
         ],
@@ -97,7 +97,7 @@
         "credentials": [
           {
             "type": "password",
-            "value": "${KEYCLOAK_PROTHETIC_PASSWORD}",
+            "value": "prothetic123",
             "temporary": false
           }
         ],
@@ -115,7 +115,7 @@
         "credentials": [
           {
             "type": "password",
-            "value": "${KEYCLOAK_PROTHETIC_PASSWORD}",
+            "value": "prothetic123",
             "temporary": false
           }
         ],
@@ -133,7 +133,7 @@
         "credentials": [
           {
             "type": "password",
-            "value": "${KEYCLOAK_PROTHETIC_PASSWORD}",
+            "value": "prothetic123",
             "temporary": false
           }
         ],
@@ -173,7 +173,7 @@
         "clientId": "reports-api",
         "enabled": true,
         "clientAuthenticatorType": "client-secret",
-        "secret": "${KEYCLOAK_REPORTS_API_CLIENT_SECRET}",
+        "secret": "reports-api-secret-change-in-production",
         "bearerOnly": true
       },
       {
@@ -181,7 +181,7 @@
         "name": "BionicPRO BFF Service",
         "enabled": true,
         "clientAuthenticatorType": "client-secret",
-        "secret": "${KEYCLOAK_BIONICPRO_AUTH_CLIENT_SECRET}",
+        "secret": "bionicpro-auth-secret-change-in-production",
         "publicClient": false,
         "standardFlowEnabled": true,
         "implicitFlowEnabled": false,
@@ -245,7 +245,6 @@
           "issuer": "https://oauth.yandex.ru",
           "scopes": "login:email login:info",
           "useJwksUrl": "false",
-          "validatingPublicKey": [],
           "backchannelSupported": "false",
           "disableUserInfo": "false",
           "connectionTimeout": "2000",
@@ -291,59 +290,5 @@
           "claim.name": "last_name"
         }
       }
-    ],
-    "components": {
-      "org.keycloak.userfed.UserFederationProvider": {
-        "ldap": {
-          "name": "OpenLDAP",
-          "providerName": "ldap",
-          "config": {
-            "vendor": ["other"],
-            "usernameLDAPAttribute": ["uid"],
-            "rdnLDAPAttribute": ["uid"],
-            "uuidLDAPAttribute": ["entryUUID"],
-            "userObjectClasses": ["inetOrgPerson, organizationalPerson"],
-            "connectionUrl": ["ldap://ldap:389"],
-            "baseDn": ["dc=bionicpro,dc=local"],
-            "bindDn": ["cn=admin,dc=bionicpro,dc=local"],
-            "bindCredential": ["${LDAP_BIND_PASSWORD}"],
-            "searchScope": ["1"],
-            "useTruststoreSpi": ["ldapsOnly"],
-            "connectionTimeout": ["2000"],
-            "readTimeout": ["2000"],
-            "usersDn": ["ou=users,dc=bionicpro,dc=local"],
-            "groupsDn": ["ou=groups,dc=bionicpro,dc=local"],
-            "groupNameLDAPAttribute": ["cn"],
-            "groupObjectClass": ["groupOfNames"],
-            "memberAttributeName": ["member"],
-            "mode": ["LDAP_ONLY"]
-          }
-        }
-      },
-      "org.keycloak.userfed.UserFederationMapper": {
-        "ldap-user-attribute-mapper": {
-          "name": "LDAP User Attributes",
-          "providerName": "ldap",
-          "config": {
-            "user.model.enabled": ["true"],
-            "LDAPAttribute": ["mail=email, givenName=firstName, sn=lastName"],
-            "keycloak.model.enabled": ["true"]
-          }
-        },
-        "ldap-group-role-mapper": {
-          "name": "LDAP Group Role Mapper",
-          "providerName": "ldap",
-          "config": {
-            "groupsDn": ["ou=groups,dc=bionicpro,dc=local"],
-            "groupNameLDAPAttribute": ["cn"],
-            "memberAttributeName": ["member"],
-            "groupObjectClass": ["groupOfNames"],
-            "mode": ["LDAP_ONLY"],
-            "dropMissingGroups": ["false"],
-            "dropMissingRoles": ["false"],
-            "roles": ["{\"cn\":\"user\",\"keycloakRole\":\"user\"},{\"cn\":\"administrator\",\"keycloakRole\":\"administrator\"},{\"cn\":\"prothetic_user\",\"keycloakRole\":\"prothetic_user\"}"]
-          }
-        }
-      }
-    }
+    ]
   }

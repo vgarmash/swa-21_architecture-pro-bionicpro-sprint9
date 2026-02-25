@@ -48,16 +48,14 @@ public class AuditServiceImpl implements AuditService {
     /**
      * Резолвер IP-адреса клиента для извлечения IP-клиента из запросов.
      */
-    private final ClientIpResolver clientIpResolver;
+    // ClientIpResolver - утилитарный класс со статическими методами, не требует внедрения
+    private static final ClientIpResolver clientIpResolver = null;
 
     /**
-     * Создаёт новый AuditServiceImpl с указанным резолвером IP-адреса клиента.
-     *
-     * @param clientIpResolver резолвер IP-адреса клиента
+     * Создаёт новый AuditServiceImpl.
      */
-    public AuditServiceImpl(ClientIpResolver clientIpResolver) {
+    public AuditServiceImpl() {
         this.auditLogger = LoggerFactory.getLogger(AUDIT_LOGGER_NAME);
-        this.clientIpResolver = clientIpResolver;
     }
 
     /**
@@ -195,9 +193,9 @@ public class AuditServiceImpl implements AuditService {
                                                           String userId,
                                                           String sessionId,
                                                           HttpServletRequest request) {
-        String clientIp = clientIpResolver.getClientIp(request);
+        String clientIp = ClientIpResolver.getClientIp(request);
         String userAgent = ClientIpResolver.sanitizeUserAgent(
-                clientIpResolver.getUserAgent(request));
+                ClientIpResolver.getUserAgent(request));
 
         return AuditEvent.builder()
                 .timestamp(Instant.now())

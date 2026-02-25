@@ -3,6 +3,9 @@ package com.bionicpro.config;
 import com.bionicpro.repository.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
 
 /**
  * Конфигурационный класс для репозиториев сессий.
@@ -12,8 +15,18 @@ import org.springframework.context.annotation.Configuration;
 public class SessionRepositoryConfig {
     
     @Bean
-    public SessionRepository sessionRepository(
+    @Primary
+    public SessionRepository customSessionRepository(
             RedisSessionRepository redisSessionRepository) {
         return new SessionRepositoryFacade(redisSessionRepository);
+    }
+
+    /**
+     * Бин SecurityContextRepository для Spring Security.
+     * Использует HttpSession для хранения контекста безопасности.
+     */
+    @Bean
+    public SecurityContextRepository securityContextRepository() {
+        return new HttpSessionSecurityContextRepository();
     }
 }

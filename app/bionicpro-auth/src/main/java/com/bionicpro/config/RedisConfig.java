@@ -9,16 +9,15 @@ import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactor
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisHttpSession;
 import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.session.web.http.DefaultCookieSerializer;
 
 /**
  * Конфигурация Redis для хранения сессий.
  * Настраивает подключение к Redis и сериализацию cookie сессий.
+ * Примечание: @EnableRedisHttpSession находится в BionicproAuthApplication.java
  */
 @Configuration
-@EnableRedisHttpSession(maxInactiveIntervalInSeconds = 1800)
 public class RedisConfig {
 
     @Value("${spring.data.redis.host:localhost}")
