@@ -3,3 +3,7 @@ Docker compose запустился
 
 Процессы в докере
 ![img.png](media/docker-ps.png)
+
+
+Все контейнеры в Докер Десктоп
+![img.png](media/docker-desktop.png)

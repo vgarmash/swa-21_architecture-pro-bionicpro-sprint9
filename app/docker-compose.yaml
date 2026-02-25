@@ -226,7 +226,9 @@ services:
       - app-network
   # Сервис Nginx CDN для кэширования статических файлов
   nginx-cdn:
-    image: nginx:alpine
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
     ports:
       - "8082:80"
     volumes:
