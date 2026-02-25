@@ -5,13 +5,6 @@
     "accessCodeLifespan": 60,
     "ssoSessionIdleTimeout": 1800,
     "ssoSessionMaxLifespan": 36000,
-    "otpPolicy": {
-      "type": "totp",
-      "algorithm": "SHA256",
-      "digits": 6,
-      "counter": 0,
-      "period": 30
-    },
     "requiredActions": [
       {
         "name": "CONFIGURE_TOTP",
@@ -152,7 +145,6 @@
         "clientId": "reports-frontend",
         "enabled": true,
         "publicClient": true,
-        "pkceMethod": "S256",
         "redirectUris": ["http://localhost:8081/*", "http://localhost:3000/*"],
         "webOrigins": ["http://localhost:8081", "http://localhost:3000"],
         "directAccessGrantsEnabled": false,
@@ -244,11 +236,9 @@
         "storeToken": false,
         "addReadTokenRoleOnCreate": false,
         "trustEmail": false,
-        "skipOAuthConsent": false,
-        "authorizeBy": "CONFIGURED",
         "config": {
-          "clientId": "YANDEX_CLIENT_ID",
-          "clientSecret": "YANDEX_CLIENT_SECRET",
+          "clientId": "d8ef675177c441bfae53a44e652cc7b8",
+          "clientSecret": "381d802df19a41629afb34b9b7057743",
           "authorizationUrl": "https://oauth.yandex.ru/authorize",
           "tokenUrl": "https://oauth.yandex.ru/token",
           "userInfoUrl": "https://login.yandex.ru/info",
