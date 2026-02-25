@@ -74,36 +74,35 @@ class AuthControllerTest {
     class LoginTest {
 
         @Test
-        @DisplayName("Should redirect to Keycloak login page with state parameter")
-        void login_shouldRedirectToKeycloakWithState() throws Exception {
+        @DisplayName("Should redirect to Spring Security authorization endpoint")
+        void login_shouldRedirectToSpringSecurityAuthorizationEndpoint() throws Exception {
             // Подготовка
             String redirectUri = "/dashboard";
-            
+
             // Действие
             authController.login(redirectUri, servletResponse);
-            
+
             // Проверка
             assertEquals(302, servletResponse.getStatus());
             String location = servletResponse.getHeader("Location");
             assertNotNull(location);
-            assertTrue(location.contains("/oauth2/authorization/keycloak"));
-            assertTrue(location.contains("state="));
-            assertTrue(location.contains("redirect_uri=" + redirectUri));
-            verify(sessionService).storeAuthRequest(anyString(), eq(redirectUri));
+            assertEquals("/api/auth/login/keycloak", location);
+            verify(sessionService, never()).storeAuthRequest(anyString(), anyString());
         }
 
         @Test
-        @DisplayName("Should use default redirect URI when not provided")
-        void login_shouldUseDefaultRedirectUri() throws Exception {
+        @DisplayName("Should redirect to Spring Security endpoint for default redirect URI")
+        void login_shouldRedirectToSpringSecurityEndpointForDefaultRedirectUri() throws Exception {
             // Подготовка
             String defaultRedirectUri = "/";
-            
+
             // Действие
             authController.login(defaultRedirectUri, servletResponse);
-            
+
             // Проверка
             assertEquals(302, servletResponse.getStatus());
-            verify(sessionService).storeAuthRequest(anyString(), eq(defaultRedirectUri));
+            assertEquals("/api/auth/login/keycloak", servletResponse.getHeader("Location"));
+            verify(sessionService, never()).storeAuthRequest(anyString(), anyString());
         }
     }
 

@@ -157,7 +157,7 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 .maximumSessions(1))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/login", "/api/auth/callback", "/error").permitAll()
+                .requestMatchers("/api/auth/login", "/api/auth/login/**", "/api/auth/callback", "/api/auth/callback/**", "/error").permitAll()
                 .requestMatchers("/api/auth/status", "/api/auth/logout", "/api/auth/refresh").authenticated()
                 .anyRequest().authenticated())
             .oauth2Login(oauth2 -> oauth2
@@ -213,7 +213,7 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").authenticated()
-                .requestMatchers("/oauth2/authorization/**").permitAll()
+                .requestMatchers("/api/auth/callback").permitAll()
                 .anyRequest().authenticated())
             .addFilterBefore(tokenPropagationFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(new SessionRotationFilter(sessionService), UsernamePasswordAuthenticationFilter.class)

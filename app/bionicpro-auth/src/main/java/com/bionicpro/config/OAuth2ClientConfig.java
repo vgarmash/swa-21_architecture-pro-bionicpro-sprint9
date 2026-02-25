@@ -59,10 +59,13 @@ public class OAuth2ClientConfig {
 
     @Bean
     public ClientRegistrationRepository clientRegistrationRepository() {
-        // Создай вспомогательную переменную для выбора URL
-        String baseKeycloakUrl = (keycloakServerUrl != null && !keycloakServerUrl.isEmpty() 
-            ? keycloakServerUrl 
-            : (keycloakPublicUrl != null && !keycloakPublicUrl.isEmpty() ? keycloakPublicUrl : "http://localhost:8088"));
+        String browserKeycloakUrl = (keycloakPublicUrl != null && !keycloakPublicUrl.isEmpty())
+            ? keycloakPublicUrl
+            : (keycloakServerUrl != null && !keycloakServerUrl.isEmpty() ? keycloakServerUrl : "http://localhost:8088");
+
+        String backchannelKeycloakUrl = (keycloakServerUrl != null && !keycloakServerUrl.isEmpty())
+            ? keycloakServerUrl
+            : browserKeycloakUrl;
 
         ClientRegistration registration = ClientRegistration.withRegistrationId("keycloak")
                 .clientId(clientId)
@@ -71,11 +74,11 @@ public class OAuth2ClientConfig {
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .redirectUri(redirectUri)
                 .scope("openid", "profile", "email")
-                .authorizationUri(baseKeycloakUrl + "/realms/" + realm + "/protocol/openid-connect/auth")
-                .tokenUri(baseKeycloakUrl + "/realms/" + realm + "/protocol/openid-connect/token")
-                .userInfoUri(baseKeycloakUrl + "/realms/" + realm + "/protocol/openid-connect/userinfo")
-                .jwkSetUri(baseKeycloakUrl + "/realms/" + realm + "/protocol/openid-connect/certs")
-                .issuerUri(baseKeycloakUrl + "/realms/" + realm)
+                .authorizationUri(browserKeycloakUrl + "/realms/" + realm + "/protocol/openid-connect/auth")
+                .tokenUri(backchannelKeycloakUrl + "/realms/" + realm + "/protocol/openid-connect/token")
+                .userInfoUri(backchannelKeycloakUrl + "/realms/" + realm + "/protocol/openid-connect/userinfo")
+                .jwkSetUri(backchannelKeycloakUrl + "/realms/" + realm + "/protocol/openid-connect/certs")
+                .issuerUri(backchannelKeycloakUrl + "/realms/" + realm)
                 .userNameAttributeName(IdTokenClaimNames.SUB)
                 .clientName("Keycloak")
                 .build();

@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Контроллер аутентификации для BFF эндпоинтов.
@@ -41,25 +40,19 @@ public class AuthController {
     private final SessionDataMapper sessionDataMapper;
 
     /**
-     * Инициирует аутентификацию - перенаправляет на страницу входа Keycloak.
+     * Инициирует OAuth2 аутентификацию через Spring Security authorization endpoint.
      * GET /api/auth/login
      */
     @GetMapping("/login")
     public void login(
             @RequestParam(required = false, defaultValue = "/") String redirectUri,
             HttpServletResponse response) throws Exception {
-        
+
         log.info("Initiating login with redirectUri: {}", redirectUri);
-        
-        // Генерируем параметр state для защиты от CSRF
-        String state = UUID.randomUUID().toString();
-        
-        // Сохраняем redirect URI в сессию для использования после callback
-        sessionService.storeAuthRequest(state, redirectUri);
-        
-        // Spring Security OAuth2 Login обработает перенаправление
-        // redirect_uri не передаём явно - он настроен в OAuth2ClientConfig
-        response.sendRedirect("/oauth2/authorization/keycloak?state=" + state);
+
+        // Перенаправляем на endpoint Spring Security.
+        // state генерируется внутри Spring Security автоматически.
+        response.sendRedirect("/api/auth/login/keycloak");
     }
 
     /**
