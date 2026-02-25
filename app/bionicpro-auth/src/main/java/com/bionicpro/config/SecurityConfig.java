@@ -17,11 +17,16 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
+import org.springframework.security.oauth2.core.OAuth2RefreshToken;
+import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.context.SecurityContextRepository;
@@ -31,7 +36,9 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Arrays;
+import java.util.Map;
 
 /**
  * Конфигурация безопасности для BFF сервиса bionic-pro-auth.
@@ -63,6 +70,81 @@ public class SecurityConfig {
         return source;
     }
 
+    /**
+     * Custom OAuth2 authentication success handler.
+     * This handler is called AFTER Spring Security OAuth2 has successfully processed the callback
+     * and exchanged the authorization code for tokens. At this point, the authentication
+     * object contains all the tokens in its principal's attributes.
+     */
+    @Bean
+    public AuthenticationSuccessHandler oauth2AuthenticationSuccessHandler() {
+        return (request, response, authentication) -> {
+            log.info("=== OAuth2 Success Handler START ===");
+            log.info("Authentication class: {}", authentication.getClass().getName());
+            log.info("Authenticated: {}", authentication.isAuthenticated());
+            log.info("User name: {}", authentication.getName());
+            
+            if (authentication instanceof OAuth2AuthenticationToken) {
+                OAuth2AuthenticationToken oauth2Auth = (OAuth2AuthenticationToken) authentication;
+                Map<String, Object> attributes = oauth2Auth.getPrincipal().getAttributes();
+                
+                log.info("Principal attributes keys: {}", attributes.keySet());
+                
+                // Extract ID token
+                OidcIdToken idToken = null;
+                Object idTokenObj = attributes.get("id_token");
+                if (idTokenObj instanceof OidcIdToken) {
+                    idToken = (OidcIdToken) idTokenObj;
+                } else if (attributes.containsKey("id_token")) {
+                    String tokenValue = attributes.get("id_token").toString();
+                    idToken = new OidcIdToken(
+                        tokenValue,
+                        Instant.now(),
+                        Instant.now().plusSeconds(3600),
+                        attributes
+                    );
+                }
+                
+                // Extract access token
+                OAuth2AccessToken accessToken = null;
+                Object accessTokenObj = attributes.get("access_token");
+                if (accessTokenObj instanceof OAuth2AccessToken) {
+                    accessToken = (OAuth2AccessToken) accessTokenObj;
+                } else if (attributes.containsKey("access_token")) {
+                    String tokenValue = attributes.get("access_token").toString();
+                    accessToken = new OAuth2AccessToken(
+                        OAuth2AccessToken.TokenType.BEARER,
+                        tokenValue,
+                        Instant.now(),
+                        Instant.now().plusSeconds(3600)
+                    );
+                }
+                
+                // Extract refresh token
+                OAuth2RefreshToken refreshToken = null;
+                Object refreshTokenObj = attributes.get("refresh_token");
+                if (refreshTokenObj instanceof OAuth2RefreshToken) {
+                    refreshToken = (OAuth2RefreshToken) refreshTokenObj;
+                } else if (attributes.containsKey("refresh_token")) {
+                    String tokenValue = attributes.get("refresh_token").toString();
+                    refreshToken = new OAuth2RefreshToken(tokenValue, Instant.now(), Instant.now().plusSeconds(86400));
+                }
+                
+                // Create session with tokens
+                if (idToken != null && accessToken != null) {
+                    sessionService.createSession(request, response, idToken, accessToken, refreshToken);
+                    log.info("Session created for user: {}", idToken.getSubject());
+                } else {
+                    log.error("Failed to extract tokens from OAuth2 authentication!");
+                    log.error("idToken present: {}, accessToken present: {}", idToken != null, accessToken != null);
+                }
+            }
+            
+            log.info("=== OAuth2 Success Handler END ===");
+            response.sendRedirect("/api/auth/status");
+        };
+    }
+
     @Bean
     @Order(1)
     public SecurityFilterChain authSecurityFilterChain(HttpSecurity http) throws Exception {
@@ -84,13 +166,10 @@ public class SecurityConfig {
                     .baseUri("/api/auth/login"))
                 .redirectionEndpoint(endpoint -> endpoint
                     .baseUri("/api/auth/callback"))
-                .successHandler((request, response, authentication) -> {
-                    log.info("OAuth2 login successful for user: {}", authentication.getName());
-                    response.sendRedirect("/api/auth/status");
-                })
+                .successHandler(oauth2AuthenticationSuccessHandler())
                 .failureHandler((request, response, exception) -> {
                     log.error("OAuth2 login failed: {}", exception.getMessage());
-                    response.sendRedirect("/login?error=auth_failed");
+                    response.sendRedirect("/login?error=auth_failed"); 
                 }))
             .logout(logout -> logout
                 .logoutUrl("/api/auth/logout")
@@ -134,6 +213,7 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").authenticated()
+                .requestMatchers("/oauth2/authorization/**").permitAll()
                 .anyRequest().authenticated())
             .addFilterBefore(tokenPropagationFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(new SessionRotationFilter(sessionService), UsernamePasswordAuthenticationFilter.class)

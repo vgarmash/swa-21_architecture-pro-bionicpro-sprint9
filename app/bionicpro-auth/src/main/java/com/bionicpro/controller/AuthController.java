@@ -58,8 +58,8 @@ public class AuthController {
         sessionService.storeAuthRequest(state, redirectUri);
         
         // Spring Security OAuth2 Login обработает перенаправление
-        response.sendRedirect("/oauth2/authorization/keycloak?state=" + state + 
-                "&redirect_uri=" + redirectUri);
+        // redirect_uri не передаём явно - он настроен в OAuth2ClientConfig
+        response.sendRedirect("/oauth2/authorization/keycloak?state=" + state);
     }
 
     /**
@@ -74,6 +74,18 @@ public class AuthController {
             HttpServletRequest request,
             HttpServletResponse response) throws Exception {
         
+        log.info("=== OAuth2 Callback START ===");
+        log.info("Callback params - code: {}, state: {}, error: {}", 
+            code != null ? "[PRESENT]" : "[NULL]", state, error);
+        
+        // DEBUG: Check what's in SecurityContext BEFORE any processing
+        Authentication debugAuth = SecurityContextHolder.getContext().getAuthentication();
+        log.info("SecurityContext authentication BEFORE processing: {}", debugAuth);
+        log.info("SecurityContext authentication isAuthenticated: {}", 
+            debugAuth != null ? debugAuth.isAuthenticated() : "N/A");
+        log.info("SecurityContext authentication class: {}", 
+            debugAuth != null ? debugAuth.getClass().getName() : "N/A");
+        
         if (error != null) {
             log.error("OAuth2 callback error: {}", error);
             // Логирование аудита для неуспешной аутентификации
@@ -82,13 +94,20 @@ public class AuthController {
             return;
         }
         
-        log.info("Processing OAuth2 callback with state: {}", state);
-        
+        log.info("Getting redirectUri from sessionService for state: {}", state);
         // Получаем redirect URI из сохранённого запроса аутентификации
         String redirectUri = sessionService.getAuthRequest(state);
+        log.info("Retrieved redirectUri: {}", redirectUri);
+        
+        // DEBUG: Check authentication AGAIN after getting redirectUri
+        Authentication authAfter = SecurityContextHolder.getContext().getAuthentication();
+        log.info("SecurityContext authentication AFTER getAuthRequest: {}", authAfter);
+        log.info("SecurityContext authentication isAuthenticated: {}", 
+            authAfter != null ? authAfter.isAuthenticated() : "N/A");
         
         // Сохраняем токены в сессию
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        log.info("=== Authentication check: {} ===", authentication);
         if (authentication != null && authentication instanceof OAuth2AuthenticationToken) {
             OAuth2AuthenticationToken oauth2Auth = (OAuth2AuthenticationToken) authentication;
             

@@ -24,7 +24,7 @@ spring:
           min-idle: 0
 
 keycloak:
-  server-url: ${KEYCLOAK_SERVER_URL:http://localhost:8080}
+  server-url: ${KEYCLOAK_SERVER_URL:http://keycloak:8080}
   public-url: ${KEYCLOAK_PUBLIC_URL:http://localhost:8088}
   realm: ${KEYCLOAK_REALM:reports-realm}
   client-id: ${KEYCLOAK_CLIENT_ID:bionicpro-auth}
@@ -32,8 +32,8 @@ keycloak:
   redirect-uri: ${KEYCLOAK_REDIRECT_URI:http://localhost:8000/api/auth/callback}
 
 oauth2:
-  aes-key: ${OAUTH2_AES_KEY:}
-  salt: ${OAUTH2_SALT:}
+  aes-key: ${OAUTH2_AES_KEY:changeme}
+  salt: ${OAUTH2_SALT:changeme}
 
 auth:
   session:
