@@ -28,12 +28,12 @@ keycloak:
   public-url: ${KEYCLOAK_PUBLIC_URL:http://localhost:8088}
   realm: ${KEYCLOAK_REALM:reports-realm}
   client-id: ${KEYCLOAK_CLIENT_ID:bionicpro-auth}
-  client-secret: ${KEYCLOAK_CLIENT_SECRET:changeme}
+  client-secret: ${KEYCLOAK_CLIENT_SECRET:}
   redirect-uri: ${KEYCLOAK_REDIRECT_URI:http://localhost:8000/api/auth/callback}
 
 oauth2:
-  aes-key: ${OAUTH2_AES_KEY:changeme}
-  salt: ${OAUTH2_SALT:changeme}
+  aes-key: ${OAUTH2_AES_KEY:}
+  salt: ${OAUTH2_SALT:}
 
 auth:
   session:

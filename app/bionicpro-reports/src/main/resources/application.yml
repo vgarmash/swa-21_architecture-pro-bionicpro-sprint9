@@ -39,8 +39,8 @@ app:
     # MinIO server endpoint (Docker network address)
     endpoint: ${MINIO_ENDPOINT:http://minio:9000}
     # MinIO access credentials from environment
-    access-key: ${MINIO_ROOT_USER:minioadmin}
-    secret-key: ${MINIO_ROOT_PASSWORD:minioadmin}
+    access-key: ${MINIO_ROOT_USER:}
+    secret-key: ${MINIO_ROOT_PASSWORD:}
     # Bucket name for storing reports
     bucket-name: ${MINIO_BUCKET_NAME:reports}
     # CDN base URL for generating public URLs
