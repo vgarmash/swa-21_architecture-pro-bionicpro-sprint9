@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * In-memory реализация SessionRepository.
  * Этот репозиторий служит как запасной вариант, когда Redis недоступен.
  */
-@Repository
+@Repository("inMemorySessionRepository")
 public class InMemorySessionRepository implements SessionRepository {
     
     private final Map<String, SessionData> sessionStore = new ConcurrentHashMap<>();

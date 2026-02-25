@@ -7,3 +7,6 @@ Docker compose запустился
 
 Все контейнеры в Докер Десктоп
 ![img.png](media/docker-desktop.png)
+
+Keycloack reports-realm
+![img.png](media/kk-reports-realm.png)
