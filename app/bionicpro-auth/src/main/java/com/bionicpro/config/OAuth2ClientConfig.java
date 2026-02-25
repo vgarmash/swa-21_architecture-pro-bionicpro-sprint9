@@ -22,6 +22,9 @@ public class OAuth2ClientConfig {
     @Value("${keycloak.server-url:http://localhost:8080}")
     private String keycloakServerUrl;
 
+    @Value("${keycloak.public-url:}")
+    private String keycloakPublicUrl;
+
     @Value("${keycloak.realm:reports-realm}")
     private String realm;
 
@@ -43,7 +46,7 @@ public class OAuth2ClientConfig {
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .redirectUri(redirectUri)
                 .scope("openid", "profile", "email")
-                .authorizationUri(keycloakServerUrl + "/realms/" + realm + "/protocol/openid-connect/auth")
+                .authorizationUri((keycloakPublicUrl != null && !keycloakPublicUrl.isEmpty() ? keycloakPublicUrl : keycloakServerUrl) + "/realms/" + realm + "/protocol/openid-connect/auth")
                 .tokenUri(keycloakServerUrl + "/realms/" + realm + "/protocol/openid-connect/token")
                 .userInfoUri(keycloakServerUrl + "/realms/" + realm + "/protocol/openid-connect/userinfo")
                 .jwkSetUri(keycloakServerUrl + "/realms/" + realm + "/protocol/openid-connect/certs")
