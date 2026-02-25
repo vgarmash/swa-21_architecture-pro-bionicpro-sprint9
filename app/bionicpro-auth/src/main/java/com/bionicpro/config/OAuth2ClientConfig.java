@@ -1,5 +1,8 @@
 package com.bionicpro.config;
 
+import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +22,8 @@ import org.springframework.security.oauth2.core.oidc.IdTokenClaimNames;
 @Configuration
 public class OAuth2ClientConfig {
 
+    private static final Logger log = LoggerFactory.getLogger(OAuth2ClientConfig.class);
+
     @Value("${keycloak.server-url:http://localhost:8080}")
     private String keycloakServerUrl;
 
@@ -36,6 +41,21 @@ public class OAuth2ClientConfig {
 
     @Value("${keycloak.redirect-uri:http://localhost:8000/api/auth/callback}")
     private String redirectUri;
+
+    @PostConstruct
+    public void validateConfiguration() {
+        if (clientSecret == null || clientSecret.isBlank()) {
+            throw new IllegalStateException(
+                "KEYCLOAK_CLIENT_SECRET is not configured! " +
+                "Please set KEYCLOAK_CLIENT_SECRET environment variable or " +
+                "update application.yml with valid client secret."
+            );
+        }
+        
+        if (clientSecret.equals("bionicpro-auth-secret-change-in-production")) {
+            log.warn("WARNING: Using default client secret! Change it in production!");
+        }
+    }
 
     @Bean
     public ClientRegistrationRepository clientRegistrationRepository() {
