@@ -102,6 +102,20 @@ public class SecurityConfig {
                 .deleteCookies("BIONICPRO_SESSION"))
             .securityContext(context -> context
                 .securityContextRepository(securityContextRepository))
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((request, response, authException) -> {
+                    // Возвращаем 401 с JSON вместо редиректа для AJAX запросов
+                    if ("XMLHttpRequest".equals(request.getHeader("X-Requested-With"))) {
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                        response.setContentType("application/json");
+                        response.getWriter().write("{\"authenticated\":false}");
+                    } else {
+                        // Для обычных запросов возвращаем 401 без редиректа
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                        response.setContentType("application/json");
+                        response.getWriter().write("{\"authenticated\":false}");
+                    }
+                }))
             .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(new SessionRotationFilter(sessionService), UsernamePasswordAuthenticationFilter.class);
 

@@ -56,8 +56,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # BFF (bionicpro-auth) base URL
-      REACT_APP_API_URL: http://bionicpro-auth:8000
+      # BFF (bionicpro-auth) base URL - публичный URL для браузера
+      REACT_APP_API_URL: http://localhost:8000
     networks:
       - app-network
 

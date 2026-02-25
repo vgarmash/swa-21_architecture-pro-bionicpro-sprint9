@@ -32,3 +32,4 @@ replay_pid*
 /app/.env
 **/*.drawio.bkp
 /.proxyai/
+**/AGENTS.md
