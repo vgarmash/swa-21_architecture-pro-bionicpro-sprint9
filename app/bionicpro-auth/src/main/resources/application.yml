@@ -22,6 +22,24 @@ spring:
           max-active: 8
           max-idle: 8
           min-idle: 0
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            provider: keycloak
+            client-id: ${KEYCLOAK_CLIENT_ID:bionicpro-auth}
+            client-secret: ${KEYCLOAK_CLIENT_SECRET}
+            authorization-grant-type: authorization_code
+            redirect-uri: ${KEYCLOAK_REDIRECT_URI:http://localhost:8000/api/auth/callback}
+            scope: openid,profile,email
+        provider:
+          keycloak:
+            issuer-uri: ${KEYCLOAK_SERVER_URL:http://keycloak:8080}/realms/${KEYCLOAK_REALM:reports-realm}
+            authorization-uri: ${KEYCLOAK_PUBLIC_URL:http://localhost:8088}/realms/${KEYCLOAK_REALM:reports-realm}/protocol/openid-connect/auth
+            token-uri: ${KEYCLOAK_SERVER_URL:http://keycloak:8080}/realms/${KEYCLOAK_REALM:reports-realm}/protocol/openid-connect/token
+            user-info-uri: ${KEYCLOAK_SERVER_URL:http://keycloak:8080}/realms/${KEYCLOAK_REALM:reports-realm}/protocol/openid-connect/userinfo
+            jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://keycloak:8080}/realms/${KEYCLOAK_REALM:reports-realm}/protocol/openid-connect/certs
 
 keycloak:
   server-url: ${KEYCLOAK_SERVER_URL:http://keycloak:8080}
