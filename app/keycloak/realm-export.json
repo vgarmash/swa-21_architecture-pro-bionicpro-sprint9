@@ -83,7 +83,18 @@
             "temporary": false
           }
         ],
-        "realmRoles": ["administrator"]
+        "realmRoles": ["administrator"],
+        "clientRoles": {
+          "realm-management": [
+            "realm-admin",
+            "view-users",
+            "view-realms",
+            "view-clients",
+            "manage-users",
+            "manage-realms",
+            "manage-clients"
+          ]
+        }
       },
       {
         "username": "prothetic1",
