@@ -1,7 +1,6 @@
 package com.bionicpro.service;
 
 import com.bionicpro.model.SessionData;
-import com.bionicpro.model.TokenData;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;

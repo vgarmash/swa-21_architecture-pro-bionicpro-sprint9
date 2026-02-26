@@ -4,8 +4,6 @@ import com.bionicpro.dto.AuthStatusResponse;
 import com.bionicpro.model.SessionData;
 import org.mapstruct.*;
 
-import java.time.Instant;
-
 /**
  * MapStruct маппер для преобразований SessionData.
  * Предоставляет типобезопасное маппинг между SessionData и DTO ответа.

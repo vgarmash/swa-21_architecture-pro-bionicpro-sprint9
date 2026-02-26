@@ -1,12 +1,11 @@
 package com.bionicpro.repository;
 
 import com.bionicpro.model.SessionData;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
 import java.time.Duration;
+import java.util.Optional;
 
 /**
  * Redis реализация SessionRepository.
