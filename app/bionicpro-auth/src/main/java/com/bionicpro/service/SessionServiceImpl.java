@@ -2,6 +2,7 @@ package com.bionicpro.service;
 
 import com.bionicpro.audit.AuditService;
 import com.bionicpro.mapper.SessionDataMapper;
+import com.bionicpro.model.AuthRequestData;
 import com.bionicpro.model.SessionData;
 import com.bionicpro.repository.SessionRepository;
 import jakarta.servlet.http.Cookie;
@@ -40,12 +41,16 @@ public class SessionServiceImpl implements SessionService {
     private final BytesEncryptor bytesEncryptor;
     private final AuditService auditService;
     private final SessionDataMapper sessionDataMapper;
+    private final RestTemplate restTemplate;
 
     @Value("${auth.session.timeout-minutes:30}")
     private int sessionTimeoutMinutes;
 
     @Value("${auth.session.cookie-name:BIONICPRO_SESSION}")
     private String cookieName;
+
+    @Value("${auth.session.cookie-secure:true}")
+    private boolean cookieSecure;
 
     @Value("${keycloak.server-url:http://keycloak:8080}")
     private String keycloakUrl;
@@ -71,22 +76,57 @@ public class SessionServiceImpl implements SessionService {
      */
     @Override
     public void storeAuthRequest(String state, String redirectUri) {
-        // Для auth request storage используем Redis напрямую, так как это специфичная логика
-        String key = AUTH_REQUEST_PREFIX + state;
-        redisTemplate.opsForValue().set(key, redirectUri, AUTH_REQUEST_TTL);
-        log.debug("Stored auth request for state: {}", state);
+        AuthRequestData authRequestData = AuthRequestData.builder()
+                .redirectUri(redirectUri)
+                .createdAt(Instant.now())
+                .build();
+        storeAuthRequest(state, authRequestData);
     }
 
     /**
-     * Получает и удаляет сохранённый запрос аутентификации.
+     * Сохраняет расширенные параметры OAuth2 запроса аутентификации.
+     */
+    @Override
+    public void storeAuthRequest(String state, AuthRequestData authRequestData) {
+        String key = AUTH_REQUEST_PREFIX + state;
+        redisTemplate.opsForValue().set(key, authRequestData, AUTH_REQUEST_TTL);
+        log.debug("Stored auth request data for state: {}", state);
+    }
+
+    /**
+     * Получает и удаляет сохранённый redirectUri запроса аутентификации.
      */
     @Override
     public String getAuthRequest(String state) {
-        // Для auth request storage используем Redis напрямую, так как это специфичная логика
+        AuthRequestData authRequestData = getAuthRequestData(state);
+        return authRequestData != null ? authRequestData.getRedirectUri() : null;
+    }
+
+    /**
+     * Получает и удаляет расширенные данные OAuth2 запроса аутентификации.
+     */
+    @Override
+    public AuthRequestData getAuthRequestData(String state) {
         String key = AUTH_REQUEST_PREFIX + state;
-        String redirectUri = (String) redisTemplate.opsForValue().getAndDelete(key);
-        log.debug("Retrieved auth request for state: {}, redirectUri: {}", state, redirectUri);
-        return redirectUri;
+        Object storedValue = redisTemplate.opsForValue().getAndDelete(key);
+
+        if (storedValue instanceof AuthRequestData) {
+            AuthRequestData authRequestData = (AuthRequestData) storedValue;
+            log.debug("Retrieved auth request data for state: {}, redirectUri: {}", state, authRequestData.getRedirectUri());
+            return authRequestData;
+        }
+
+        if (storedValue instanceof String) {
+            String redirectUri = (String) storedValue;
+            log.debug("Retrieved legacy auth request redirectUri for state: {}, redirectUri: {}", state, redirectUri);
+            return AuthRequestData.builder()
+                    .redirectUri(redirectUri)
+                    .createdAt(Instant.now())
+                    .build();
+        }
+
+        log.debug("No auth request data found for state: {}", state);
+        return null;
     }
 
     /**
@@ -161,11 +201,12 @@ public class SessionServiceImpl implements SessionService {
             log.debug("Access token needs refresh for user: {}", sessionData.getUserId());
             
             if (sessionData.getRefreshToken() != null) {
+                String userId = sessionData.getUserId();
                 sessionData = refreshAccessToken(sessionData);
                 
                 if (sessionData == null) {
                     // Обновление не удалось - аннулируем сессию
-                    log.warn("Token refresh failed for user: {}", sessionData.getUserId());
+                    log.warn("Token refresh failed for user: {}", userId);
                     invalidateSessionById(sessionId);
                     return null;
                 }
@@ -482,7 +523,7 @@ public class SessionServiceImpl implements SessionService {
     private void setSessionCookie(HttpServletResponse response, String sessionId) {
         Cookie cookie = new Cookie(cookieName, sessionId);
         cookie.setHttpOnly(true);
-        cookie.setSecure(true);
+        cookie.setSecure(cookieSecure);
         cookie.setPath("/");
         cookie.setMaxAge(sessionTimeoutMinutes * 60);
         cookie.setAttribute("SameSite", "Lax");
@@ -497,7 +538,7 @@ public class SessionServiceImpl implements SessionService {
     private void clearSessionCookie(HttpServletResponse response) {
         Cookie cookie = new Cookie(cookieName, "");
         cookie.setHttpOnly(true);
-        cookie.setSecure(true);
+        cookie.setSecure(cookieSecure);
         cookie.setPath("/");
         cookie.setMaxAge(0);
         
@@ -529,5 +570,4 @@ public class SessionServiceImpl implements SessionService {
         return new String(decrypted);
     }
     
-    private final RestTemplate restTemplate = new RestTemplate();
 }

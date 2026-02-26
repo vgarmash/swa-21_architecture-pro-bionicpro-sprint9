@@ -15,9 +15,11 @@ keycloak:
   redirect-uri: http://localhost:8000/api/auth/callback
 
 auth:
+  frontend-url: http://localhost:3000
   session:
     timeout-minutes: 30
     cookie-name: BIONICPRO_SESSION
+    cookie-secure: false
   token:
     access-token-timeout-minutes: 2
     refresh-token-timeout-minutes: 30

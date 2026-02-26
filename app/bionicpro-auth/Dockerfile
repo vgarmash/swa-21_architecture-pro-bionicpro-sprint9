@@ -38,7 +38,7 @@ EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8000/actuator/health || exit 1
+    CMD wget -q -S -O /dev/null http://localhost:8000/api/auth/status 2>&1 | grep -q "HTTP/" || exit 1
 
 # Run application
 ENTRYPOINT ["java", "-jar", "app.jar"]

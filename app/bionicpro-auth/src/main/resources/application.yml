@@ -55,9 +55,11 @@ oauth2:
   salt: ${OAUTH2_SALT:}
 
 auth:
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
   session:
     timeout-minutes: 30
     cookie-name: BIONICPRO_SESSION
+    cookie-secure: true
   token:
     access-token-timeout-minutes: 2
     refresh-token-timeout-minutes: 30

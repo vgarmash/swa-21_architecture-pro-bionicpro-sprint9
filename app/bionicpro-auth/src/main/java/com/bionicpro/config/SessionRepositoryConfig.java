@@ -15,6 +15,7 @@ import org.springframework.security.crypto.encrypt.BytesEncryptor;
 import org.springframework.security.crypto.encrypt.Encryptors;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.web.client.RestTemplate;
 
 /**
  * Конфигурационный класс для репозиториев сессий.
@@ -83,6 +84,11 @@ public class SessionRepositoryConfig {
             logger.warn("Redis unavailable - falling back to InMemorySessionRepository: {}", e.getMessage());
             return inMemorySessionRepository;
         }
+    }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 
     /**

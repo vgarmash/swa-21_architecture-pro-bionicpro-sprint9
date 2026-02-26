@@ -33,3 +33,8 @@ replay_pid*
 **/*.drawio.bkp
 /.proxyai/
 **/AGENTS.md
+/swa-21_architecture-pro-bionicpro-sprint9.iml
+/app/frontend/frontend.iml
+**/*.log.gz
+/plans/auth-security-audit.md
+/plans/auth-security-implementation-plan.md

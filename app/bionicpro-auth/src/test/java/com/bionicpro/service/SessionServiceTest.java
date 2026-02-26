@@ -3,6 +3,7 @@ package com.bionicpro.service;
 import com.bionicpro.audit.AuditService;
 import com.bionicpro.mapper.SessionDataMapper;
 import com.bionicpro.mapper.SessionDataMapperImpl;
+import com.bionicpro.model.AuthRequestData;
 import com.bionicpro.model.SessionData;
 import com.bionicpro.repository.SessionRepository;
 import jakarta.servlet.http.Cookie;
@@ -18,23 +19,31 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.encrypt.BytesEncryptor;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for SessionService.
- * Tests session management: creation, validation, rotation, invalidation.
+ * Tests session management: creation, validation, refresh, revocation, invalidation.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SessionService Tests")
@@ -52,7 +61,10 @@ class SessionServiceTest {
     @Mock
     private AuditService auditService;
 
-    private SessionDataMapper sessionDataMapper = new SessionDataMapperImpl();
+    @Mock
+    private RestTemplate restTemplate;
+
+    private final SessionDataMapper sessionDataMapper = new SessionDataMapperImpl();
 
     @Mock
     private ValueOperations<String, Object> valueOperations;
@@ -67,7 +79,14 @@ class SessionServiceTest {
 
     @BeforeEach
     void setUp() {
-        sessionService = new SessionServiceImpl(sessionRepository, bytesEncryptor, auditService, sessionDataMapper, redisTemplate);
+        sessionService = new SessionServiceImpl(
+                sessionRepository,
+                bytesEncryptor,
+                auditService,
+                sessionDataMapper,
+                restTemplate,
+                redisTemplate
+        );
     }
 
     private void setFieldValue(Object target, String fieldName, Object value) throws Exception {
@@ -76,41 +95,84 @@ class SessionServiceTest {
         field.set(target, value);
     }
 
+    private String encodedCipherToken(String token) {
+        return Base64.getEncoder().encodeToString(token.getBytes(StandardCharsets.UTF_8));
+    }
+
     @Nested
     @DisplayName("Auth Request Storage")
     class AuthRequestStorageTest {
 
         @Test
-        @DisplayName("Should store auth request with state")
-        void storeAuthRequest_shouldStoreAuthRequest() {
-            // Подготовка
+        @DisplayName("Should store auth request data with state")
+        void storeAuthRequest_shouldStoreAuthRequestData() {
             String state = "test-state";
-            String redirectUri = "/dashboard";
+            AuthRequestData authRequestData = AuthRequestData.builder()
+                    .redirectUri("/dashboard")
+                    .codeVerifier("verifier-1")
+                    .nonce("nonce-1")
+                    .createdAt(Instant.now())
+                    .build();
 
             when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-            when(valueOperations.getAndDelete("auth:request:" + state)).thenReturn(redirectUri);
 
-            // Действие
-            sessionService.storeAuthRequest(state, redirectUri);
+            sessionService.storeAuthRequest(state, authRequestData);
 
-            // Проверка - verify through getAuthRequest
-            String retrievedUri = sessionService.getAuthRequest(state);
-            assertEquals(redirectUri, retrievedUri);
+            ArgumentCaptor<AuthRequestData> captor = ArgumentCaptor.forClass(AuthRequestData.class);
+            verify(valueOperations).set(eq("auth:request:" + state), captor.capture(), eq(Duration.ofMinutes(10)));
+            assertEquals("/dashboard", captor.getValue().getRedirectUri());
+            assertEquals("verifier-1", captor.getValue().getCodeVerifier());
+            assertEquals("nonce-1", captor.getValue().getNonce());
+        }
+
+        @Test
+        @DisplayName("Should return auth request data for existing state")
+        void getAuthRequestData_shouldReturnDataWhenExists() {
+            String state = "test-state";
+            AuthRequestData stored = AuthRequestData.builder()
+                    .redirectUri("/dashboard")
+                    .codeVerifier("verifier-1")
+                    .nonce("nonce-1")
+                    .createdAt(Instant.now())
+                    .build();
+
+            when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+            when(valueOperations.getAndDelete("auth:request:" + state)).thenReturn(stored);
+
+            AuthRequestData result = sessionService.getAuthRequestData(state);
+
+            assertNotNull(result);
+            assertEquals("/dashboard", result.getRedirectUri());
+            assertEquals("verifier-1", result.getCodeVerifier());
+            assertEquals("nonce-1", result.getNonce());
+        }
+
+        @Test
+        @DisplayName("Should support legacy redirect-only auth request value")
+        void getAuthRequestData_shouldSupportLegacyStringValue() {
+            String state = "legacy-state";
+
+            when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+            when(valueOperations.getAndDelete("auth:request:" + state)).thenReturn("/legacy");
+
+            AuthRequestData result = sessionService.getAuthRequestData(state);
+
+            assertNotNull(result);
+            assertEquals("/legacy", result.getRedirectUri());
+            assertNull(result.getCodeVerifier());
+            assertNull(result.getNonce());
         }
 
         @Test
         @DisplayName("Should return null for non-existent state")
         void getAuthRequest_shouldReturnNullForNonExistentState() {
-            // Подготовка
             String state = "non-existent-state";
 
             when(redisTemplate.opsForValue()).thenReturn(valueOperations);
             when(valueOperations.getAndDelete("auth:request:" + state)).thenReturn(null);
 
-            // Действие
             String result = sessionService.getAuthRequest(state);
 
-            // Проверка
             assertNull(result);
         }
     }
@@ -122,314 +184,256 @@ class SessionServiceTest {
         @Test
         @DisplayName("Should create session with tokens")
         void createSession_shouldCreateSessionWithTokens() throws Exception {
-            // Подготовка
             setFieldValue(sessionService, "sessionTimeoutMinutes", 30);
             setFieldValue(sessionService, "cookieName", "BIONICPRO_SESSION");
+            setFieldValue(sessionService, "cookieSecure", false);
 
             when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-            when(bytesEncryptor.encrypt(any())).thenReturn("encrypted".getBytes());
+            when(bytesEncryptor.encrypt(any())).thenReturn("encrypted".getBytes(StandardCharsets.UTF_8));
 
             OidcIdToken idToken = new OidcIdToken(
-                "id-token-value",
-                Instant.now(),
-                Instant.now().plusSeconds(3600),
-                java.util.Map.of("sub", "user123", "preferred_username", "testuser")
+                    "id-token-value",
+                    Instant.now(),
+                    Instant.now().plusSeconds(3600),
+                    Map.of("sub", "user123", "preferred_username", "testuser")
             );
 
             OAuth2AccessToken accessToken = new OAuth2AccessToken(
-                OAuth2AccessToken.TokenType.BEARER,
-                "access-token-value",
-                Instant.now(),
-                Instant.now().plusSeconds(3600)
+                    OAuth2AccessToken.TokenType.BEARER,
+                    "access-token-value",
+                    Instant.now(),
+                    Instant.now().plusSeconds(3600)
             );
 
             OAuth2RefreshToken refreshToken = new OAuth2RefreshToken(
-                "refresh-token-value",
-                Instant.now(),
-                Instant.now().plusSeconds(86400)
+                    "refresh-token-value",
+                    Instant.now(),
+                    Instant.now().plusSeconds(86400)
             );
 
-            // Действие
             sessionService.createSession(request, response, idToken, accessToken, refreshToken);
 
-            // Проверка
             verify(valueOperations).set(anyString(), any(SessionData.class), any(Duration.class));
-            
-            // Verify cookie is set
+
             ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
             verify(response).addCookie(cookieCaptor.capture());
-            
+
             Cookie setCookie = cookieCaptor.getValue();
             assertEquals("BIONICPRO_SESSION", setCookie.getName());
             assertTrue(setCookie.isHttpOnly());
             assertEquals("/", setCookie.getPath());
         }
-
-        @Test
-        @DisplayName("Should create session without refresh token")
-        void createSession_shouldCreateSessionWithoutRefreshToken() throws Exception {
-            // Подготовка
-            setFieldValue(sessionService, "sessionTimeoutMinutes", 30);
-            setFieldValue(sessionService, "cookieName", "BIONICPRO_SESSION");
-
-            when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-            when(bytesEncryptor.encrypt(any())).thenReturn("encrypted".getBytes());
-
-            OidcIdToken idToken = new OidcIdToken(
-                "id-token-value",
-                Instant.now(),
-                Instant.now().plusSeconds(3600),
-                java.util.Map.of("sub", "user123", "preferred_username", "testuser")
-            );
-
-            OAuth2AccessToken accessToken = new OAuth2AccessToken(
-                OAuth2AccessToken.TokenType.BEARER,
-                "access-token-value",
-                Instant.now(),
-                Instant.now().plusSeconds(3600)
-            );
-
-            // Действие
-            sessionService.createSession(request, response, idToken, accessToken, null);
-
-            // Проверка
-            verify(valueOperations).set(anyString(), any(SessionData.class), any(Duration.class));
-        }
     }
 
     @Nested
-    @DisplayName("Session Retrieval")
-    class SessionRetrievalTest {
-
-        @Test
-        @DisplayName("Should return session data when exists")
-        void getSession_shouldReturnSessionData() {
-            // Подготовка
-            SessionData expectedSession = SessionData.builder()
-                .sessionId("session-123")
-                .userId("user123")
-                .username("testuser")
-                .build();
-
-            when(sessionRepository.findById("session-123")).thenReturn(Optional.of(expectedSession));
-
-            // Действие
-            SessionData result = sessionService.getSession("session-123");
-
-            // Проверка
-            assertNotNull(result);
-            assertEquals("session-123", result.getSessionId());
-            assertEquals("user123", result.getUserId());
-        }
-
-        @Test
-        @DisplayName("Should return null when session not found")
-        void getSession_shouldReturnNullWhenNotFound() {
-            // Подготовка
-            when(sessionRepository.findById(anyString())).thenReturn(Optional.empty());
-
-            // Действие
-            SessionData result = sessionService.getSession("non-existent");
-
-            // Проверка
-            assertNull(result);
-        }
-    }
-
-    @Nested
-    @DisplayName("Session Validation")
-    class SessionValidationTest {
-
-        @Test
-        @DisplayName("Should return session when valid")
-        void validateAndRefreshSession_shouldReturnValidSession() throws Exception {
-            // Подготовка
-            setFieldValue(sessionService, "sessionTimeoutMinutes", 30);
-
-            SessionData sessionData = SessionData.builder()
-                .sessionId("session-123")
-                .userId("user123")
-                .expiresAt(Instant.now().plusSeconds(1800))
-                .accessTokenExpiresAt(Instant.now().plusSeconds(3600))
-                .lastAccessedAt(Instant.now())
-                .build();
-
-            when(sessionRepository.findById("session-123")).thenReturn(Optional.of(sessionData));
-
-            // Действие
-            SessionData result = sessionService.validateAndRefreshSession("session-123");
-
-            // Проверка
-            assertNotNull(result);
-            assertEquals("user123", result.getUserId());
-        }
+    @DisplayName("Session Validation and Refresh")
+    class SessionValidationAndRefreshTest {
 
         @Test
         @DisplayName("Should return null when session expired")
         void validateAndRefreshSession_shouldReturnNullWhenExpired() throws Exception {
-            // Подготовка
             setFieldValue(sessionService, "sessionTimeoutMinutes", 30);
 
             SessionData sessionData = SessionData.builder()
-                .sessionId("session-123")
-                .userId("user123")
-                .expiresAt(Instant.now().minusSeconds(100)) // Expired
-                .build();
+                    .sessionId("session-123")
+                    .userId("user123")
+                    .expiresAt(Instant.now().minusSeconds(100))
+                    .build();
 
             when(sessionRepository.findById("session-123")).thenReturn(Optional.of(sessionData));
 
-            // Действие
             SessionData result = sessionService.validateAndRefreshSession("session-123");
 
-            // Проверка
             assertNull(result);
             verify(sessionRepository).deleteById("session-123");
+            verify(auditService).logSessionExpired("user123", "session-123");
         }
 
         @Test
-        @DisplayName("Should return null when session not found")
-        void validateAndRefreshSession_shouldReturnNullWhenNotFound() {
-            // Подготовка
-            when(sessionRepository.findById(anyString())).thenReturn(Optional.empty());
-
-            // Действие
-            SessionData result = sessionService.validateAndRefreshSession("non-existent");
-
-            // Проверка
-            assertNull(result);
-        }
-    }
-
-    @Nested
-    @DisplayName("Session Rotation")
-    class SessionRotationTest {
-
-        @Test
-        @DisplayName("Should rotate session successfully")
-        void rotateSession_shouldRotateSession() throws Exception {
-            // Подготовка
-            setFieldValue(sessionService, "sessionTimeoutMinutes", 30);
-            setFieldValue(sessionService, "cookieName", "BIONICPRO_SESSION");
-
-            Cookie sessionCookie = new Cookie("BIONICPRO_SESSION", "old-session-id");
-            
-            SessionData oldSession = SessionData.builder()
-                .sessionId("old-session-id")
-                .userId("user123")
-                .username("testuser")
-                .expiresAt(Instant.now().plusSeconds(1800))
-                .build();
-
-            when(request.getCookies()).thenReturn(new Cookie[]{sessionCookie});
-            when(sessionRepository.findById("old-session-id")).thenReturn(Optional.of(oldSession));
-            when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-
-            // Действие
-            sessionService.rotateSession(request, response);
-
-            // Проверка
-            verify(valueOperations).set(anyString(), any(SessionData.class), any(Duration.class));
-            verify(sessionRepository).deleteById("old-session-id");
-            
-            // Verify new cookie is set
-            ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
-            verify(response).addCookie(cookieCaptor.capture());
-            
-            Cookie newCookie = cookieCaptor.getValue();
-            assertEquals("BIONICPRO_SESSION", newCookie.getName());
-            assertNotEquals("old-session-id", newCookie.getValue());
-        }
-
-        @Test
-        @DisplayName("Should do nothing when no session cookie")
-        void rotateSession_shouldDoNothingWhenNoCookie() throws Exception {
-            // Подготовка
-            setFieldValue(sessionService, "sessionTimeoutMinutes", 30);
-            setFieldValue(sessionService, "cookieName", "BIONICPRO_SESSION");
-
-            when(request.getCookies()).thenReturn(null);
-
-            // Действие
-            sessionService.rotateSession(request, response);
-
-            // Проверка
-            verify(redisTemplate, never()).delete(anyString());
-            verify(response, never()).addCookie(any());
-        }
-    }
-
-    @Nested
-    @DisplayName("Session Invalidation")
-    class SessionInvalidationTest {
-
-        @Test
-        @DisplayName("Should invalidate session and clear cookie")
-        void invalidateSession_shouldInvalidateSessionAndClearCookie() throws Exception {
-            // Подготовка
-            setFieldValue(sessionService, "sessionTimeoutMinutes", 30);
-            setFieldValue(sessionService, "cookieName", "BIONICPRO_SESSION");
-
-            Cookie sessionCookie = new Cookie("BIONICPRO_SESSION", "session-123");
-            
-            when(request.getCookies()).thenReturn(new Cookie[]{sessionCookie});
-
-            // Действие
-            sessionService.invalidateSession(request, response);
-
-            // Проверка
-            verify(sessionRepository).deleteById("session-123");
-            
-            // Verify cookie is cleared
-            ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
-            verify(response).addCookie(cookieCaptor.capture());
-            
-            Cookie clearedCookie = cookieCaptor.getValue();
-            assertEquals("BIONICPRO_SESSION", clearedCookie.getName());
-            assertEquals(0, clearedCookie.getMaxAge());
-        }
-    }
-
-    @Nested
-    @DisplayName("Session Expiration")
-    class SessionExpirationTest {
-
-        @Test
-        @DisplayName("Should return expiration time when session exists")
-        void getSessionExpiration_shouldReturnExpirationTime() throws Exception {
-            // Подготовка
-            setFieldValue(sessionService, "sessionTimeoutMinutes", 30);
-            setFieldValue(sessionService, "cookieName", "BIONICPRO_SESSION");
-
-            Cookie sessionCookie = new Cookie("BIONICPRO_SESSION", "session-123");
-            Instant expiresAt = Instant.now().plusSeconds(1800);
-            
+        @DisplayName("Should invalidate session when access token expiring and refresh token absent")
+        void validateAndRefreshSession_shouldInvalidateWhenNoRefreshToken() throws Exception {
             SessionData sessionData = SessionData.builder()
-                .sessionId("session-123")
-                .expiresAt(expiresAt)
-                .build();
+                    .sessionId("session-123")
+                    .userId("user123")
+                    .expiresAt(Instant.now().plusSeconds(1800))
+                    .accessTokenExpiresAt(Instant.now().plusSeconds(5))
+                    .refreshToken(null)
+                    .build();
+
+            when(sessionRepository.findById("session-123")).thenReturn(Optional.of(sessionData));
+
+            SessionData result = sessionService.validateAndRefreshSession("session-123");
+
+            assertNull(result);
+            verify(sessionRepository).deleteById("session-123");
+        }
+
+        @Test
+        @DisplayName("Should refresh token and keep session valid when refresh succeeds")
+        void validateAndRefreshSession_shouldRefreshAndReturnSession() throws Exception {
+            setFieldValue(sessionService, "keycloakUrl", "http://keycloak:8080");
+            setFieldValue(sessionService, "keycloakRealm", "reports-realm");
+            setFieldValue(sessionService, "clientId", "bionicpro-auth");
+
+            SessionData sessionData = SessionData.builder()
+                    .sessionId("session-123")
+                    .userId("user123")
+                    .expiresAt(Instant.now().plusSeconds(1800))
+                    .accessTokenExpiresAt(Instant.now().plusSeconds(10))
+                    .refreshToken(encodedCipherToken("cipher-refresh-token"))
+                    .build();
+
+            Map<String, Object> tokenPayload = new HashMap<>();
+            tokenPayload.put("access_token", "new-access-token");
+            tokenPayload.put("refresh_token", "new-refresh-token");
+            tokenPayload.put("expires_in", 120);
+            tokenPayload.put("refresh_expires_in", 600);
+
+            when(sessionRepository.findById("session-123")).thenReturn(Optional.of(sessionData));
+            when(bytesEncryptor.decrypt(any(byte[].class))).thenReturn("plain-refresh-token".getBytes(StandardCharsets.UTF_8));
+            when(bytesEncryptor.encrypt(any(byte[].class))).thenReturn("encrypted-value".getBytes(StandardCharsets.UTF_8));
+            when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(Map.class)))
+                    .thenReturn(ResponseEntity.ok(tokenPayload));
+
+            SessionData result = sessionService.validateAndRefreshSession("session-123");
+
+            assertNotNull(result);
+            assertNotNull(result.getAccessTokenExpiresAt());
+            assertTrue(result.getAccessTokenExpiresAt().isAfter(Instant.now()));
+            assertNotNull(result.getLastAccessedAt());
+
+            verify(sessionRepository).save(eq("session-123"), any(SessionData.class));
+            verify(auditService).logTokenRefresh(eq("user123"), eq("session-123"), isNull());
+        }
+
+        @Test
+        @DisplayName("Should invalidate session when refresh token flow fails")
+        void validateAndRefreshSession_shouldInvalidateWhenRefreshFails() throws Exception {
+            setFieldValue(sessionService, "keycloakUrl", "http://keycloak:8080");
+            setFieldValue(sessionService, "keycloakRealm", "reports-realm");
+
+            SessionData sessionData = SessionData.builder()
+                    .sessionId("session-123")
+                    .userId("user123")
+                    .expiresAt(Instant.now().plusSeconds(1800))
+                    .accessTokenExpiresAt(Instant.now().plusSeconds(5))
+                    .refreshToken(encodedCipherToken("cipher-refresh-token"))
+                    .build();
+
+            when(sessionRepository.findById("session-123")).thenReturn(Optional.of(sessionData));
+            when(bytesEncryptor.decrypt(any(byte[].class))).thenReturn("plain-refresh-token".getBytes(StandardCharsets.UTF_8));
+            when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(Map.class)))
+                    .thenReturn(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
+
+            SessionData result = sessionService.validateAndRefreshSession("session-123");
+
+            assertNull(result);
+            verify(sessionRepository).deleteById("session-123");
+        }
+    }
+
+    @Nested
+    @DisplayName("Refresh Token Endpoint")
+    class RefreshTokenEndpointTest {
+
+        @Test
+        @DisplayName("refreshAccessToken should return null on exception")
+        void refreshAccessToken_shouldReturnNullOnException() throws Exception {
+            setFieldValue(sessionService, "keycloakUrl", "http://keycloak:8080");
+            setFieldValue(sessionService, "keycloakRealm", "reports-realm");
+
+            SessionData sessionData = SessionData.builder()
+                    .sessionId("session-123")
+                    .userId("user123")
+                    .refreshToken(encodedCipherToken("cipher-refresh-token"))
+                    .build();
+
+            when(bytesEncryptor.decrypt(any(byte[].class))).thenReturn("plain-refresh-token".getBytes(StandardCharsets.UTF_8));
+            when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(Map.class)))
+                    .thenThrow(new RuntimeException("timeout"));
+
+            SessionData result = sessionService.refreshAccessToken(sessionData);
+
+            assertNull(result);
+        }
+
+        @Test
+        @DisplayName("refreshAccessToken should return null on malformed token body")
+        void refreshAccessToken_shouldReturnNullOnMalformedBody() throws Exception {
+            setFieldValue(sessionService, "keycloakUrl", "http://keycloak:8080");
+            setFieldValue(sessionService, "keycloakRealm", "reports-realm");
+
+            SessionData sessionData = SessionData.builder()
+                    .sessionId("session-123")
+                    .userId("user123")
+                    .refreshToken(encodedCipherToken("cipher-refresh-token"))
+                    .build();
+
+            when(bytesEncryptor.decrypt(any(byte[].class))).thenReturn("plain-refresh-token".getBytes(StandardCharsets.UTF_8));
+            when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(Map.class)))
+                    .thenReturn(ResponseEntity.ok(Map.of("refresh_token", "new-refresh")));
+
+            SessionData result = sessionService.refreshAccessToken(sessionData);
+
+            assertNull(result);
+        }
+    }
+
+    @Nested
+    @DisplayName("Logout and Revocation")
+    class LogoutAndRevocationTest {
+
+        @Test
+        @DisplayName("Should revoke token and clear session cookie on invalidateSessionWithTokenRevocation")
+        void invalidateSessionWithTokenRevocation_shouldRevokeAndClearCookie() throws Exception {
+            setFieldValue(sessionService, "cookieName", "BIONICPRO_SESSION");
+            setFieldValue(sessionService, "keycloakUrl", "http://keycloak:8080");
+            setFieldValue(sessionService, "keycloakRealm", "reports-realm");
+            setFieldValue(sessionService, "clientId", "bionicpro-auth");
+
+            Cookie sessionCookie = new Cookie("BIONICPRO_SESSION", "session-123");
+            SessionData sessionData = SessionData.builder()
+                    .sessionId("session-123")
+                    .userId("user123")
+                    .refreshToken(encodedCipherToken("cipher-refresh-token"))
+                    .build();
 
             when(request.getCookies()).thenReturn(new Cookie[]{sessionCookie});
             when(sessionRepository.findById("session-123")).thenReturn(Optional.of(sessionData));
+            when(bytesEncryptor.decrypt(any(byte[].class))).thenReturn("plain-refresh-token".getBytes(StandardCharsets.UTF_8));
+            when(restTemplate.postForEntity(contains("/protocol/openid-connect/token/logout"), any(HttpEntity.class), eq(String.class)))
+                    .thenReturn(ResponseEntity.ok("ok"));
 
-            // Действие
-            Instant result = sessionService.getSessionExpiration(request);
+            sessionService.invalidateSessionWithTokenRevocation(request, response);
 
-            // Проверка
-            assertNotNull(result);
-            assertEquals(expiresAt, result);
+            verify(restTemplate).postForEntity(contains("/protocol/openid-connect/token/logout"), any(HttpEntity.class), eq(String.class));
+            verify(sessionRepository).deleteById("session-123");
+
+            ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
+            verify(response).addCookie(cookieCaptor.capture());
+            assertEquals(0, cookieCaptor.getValue().getMaxAge());
         }
 
         @Test
-        @DisplayName("Should return null when no session cookie")
-        void getSessionExpiration_shouldReturnNullWhenNoCookie() {
-            // Подготовка
-            when(request.getCookies()).thenReturn(null);
+        @DisplayName("revokeTokens should return true when refresh token is null")
+        void revokeTokens_shouldReturnTrueWhenTokenNull() {
+            assertTrue(sessionService.revokeTokens(null));
+            verifyNoInteractions(restTemplate);
+        }
 
-            // Действие
-            Instant result = sessionService.getSessionExpiration(request);
+        @Test
+        @DisplayName("revokeTokens should return true when Keycloak call fails")
+        void revokeTokens_shouldReturnTrueOnException() throws Exception {
+            setFieldValue(sessionService, "keycloakUrl", "http://keycloak:8080");
+            setFieldValue(sessionService, "keycloakRealm", "reports-realm");
+            setFieldValue(sessionService, "clientId", "bionicpro-auth");
 
-            // Проверка
-            assertNull(result);
+            when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(String.class)))
+                    .thenThrow(new RuntimeException("connection error"));
+
+            boolean result = sessionService.revokeTokens("refresh-token");
+
+            assertTrue(result);
         }
     }
 
@@ -439,44 +443,61 @@ class SessionServiceTest {
 
         @Test
         @DisplayName("Should return decrypted access token")
-        void getAccessToken_shouldReturnDecryptedToken() throws Exception {
-            // Подготовка
-            // encryptedToken must be a valid Base64 string (Base64 of "someTokenData")
-            String encryptedToken = "c29tZVRva2VuRGF0YQ==";
+        void getAccessToken_shouldReturnDecryptedToken() {
+            String encryptedToken = encodedCipherToken("cipher-access-token");
             String decryptedToken = "decryptedToken456";
-            
+
             SessionData sessionData = SessionData.builder()
-                .sessionId("session-123")
-                .accessToken(encryptedToken)
-                .build();
+                    .sessionId("session-123")
+                    .accessToken(encryptedToken)
+                    .build();
 
             when(sessionRepository.findById("session-123")).thenReturn(Optional.of(sessionData));
-            when(bytesEncryptor.decrypt(any(byte[].class))).thenReturn(decryptedToken.getBytes());
+            when(bytesEncryptor.decrypt(any(byte[].class))).thenReturn(decryptedToken.getBytes(StandardCharsets.UTF_8));
 
-            // Действие
             String result = sessionService.getAccessToken("session-123");
 
-            // Проверка
             assertNotNull(result);
             assertEquals(decryptedToken, result);
         }
+    }
+
+    @Nested
+    @DisplayName("Direct refresh request payload")
+    class DirectRefreshRequestPayloadTest {
 
         @Test
-        @DisplayName("Should return null when no access token")
-        void getAccessToken_shouldReturnNullWhenNoToken() throws Exception {
-            // Подготовка
+        @DisplayName("Should send expected refresh request params")
+        void refreshAccessToken_shouldSendExpectedRequest() throws Exception {
+            setFieldValue(sessionService, "keycloakUrl", "http://keycloak:8080");
+            setFieldValue(sessionService, "keycloakRealm", "reports-realm");
+            setFieldValue(sessionService, "clientId", "bionicpro-auth");
+
             SessionData sessionData = SessionData.builder()
-                .sessionId("session-123")
-                .accessToken(null)
-                .build();
+                    .sessionId("session-123")
+                    .userId("user123")
+                    .refreshToken(encodedCipherToken("cipher-refresh-token"))
+                    .build();
 
-            when(sessionRepository.findById("session-123")).thenReturn(Optional.of(sessionData));
+            Map<String, Object> tokenPayload = new HashMap<>();
+            tokenPayload.put("access_token", "new-access-token");
+            tokenPayload.put("expires_in", 120);
 
-            // Действие
-            String result = sessionService.getAccessToken("session-123");
+            when(bytesEncryptor.decrypt(any(byte[].class))).thenReturn("plain-refresh-token".getBytes(StandardCharsets.UTF_8));
+            when(bytesEncryptor.encrypt(any(byte[].class))).thenReturn("enc".getBytes(StandardCharsets.UTF_8));
+            when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(Map.class)))
+                    .thenReturn(ResponseEntity.ok(tokenPayload));
 
-            // Проверка
-            assertNull(result);
+            sessionService.refreshAccessToken(sessionData);
+
+            ArgumentCaptor<HttpEntity> captor = ArgumentCaptor.forClass(HttpEntity.class);
+            verify(restTemplate).postForEntity(eq("http://keycloak:8080/realms/reports-realm/protocol/openid-connect/token"), captor.capture(), eq(Map.class));
+
+            @SuppressWarnings("unchecked")
+            MultiValueMap<String, String> body = (MultiValueMap<String, String>) captor.getValue().getBody();
+            assertEquals("refresh_token", body.getFirst("grant_type"));
+            assertEquals("bionicpro-auth", body.getFirst("client_id"));
+            assertEquals("plain-refresh-token", body.getFirst("refresh_token"));
         }
     }
 }

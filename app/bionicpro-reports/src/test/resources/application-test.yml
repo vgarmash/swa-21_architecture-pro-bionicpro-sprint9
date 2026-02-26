@@ -30,3 +30,14 @@ minio:
 test:
   minio:
     enabled: false
+
+# Provide dummy MinIO credentials so MinioReportServiceImpl constructor does not throw
+# (MinIO client will not actually connect because minio.enabled=false)
+app:
+  minio:
+    endpoint: http://localhost:9000
+    access-key: testminioadmin
+    secret-key: testminioadmin
+    bucket-name: test-reports
+    cdn-base-url: http://localhost:9000
+    presigned-url-expiry-hours: 168

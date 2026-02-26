@@ -1,6 +1,7 @@
 package com.bionicpro.service;
 
 import com.bionicpro.audit.AuditService;
+import com.bionicpro.model.AuthRequestData;
 import com.bionicpro.model.SessionData;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -17,8 +18,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -31,50 +37,68 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class AuthServiceImpl implements AuthService {
-    
-    private final ClientRegistrationRepository clientRegistrationRepository;
 
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final Base64.Encoder BASE64_URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
+
+    private final ClientRegistrationRepository clientRegistrationRepository;
     private final SessionService sessionService;
     private final AuditService auditService;
-    private final RestTemplate restTemplate = new RestTemplate();
-    
+    private final RestTemplate restTemplate;
+
     @Value("${keycloak.server-url:http://keycloak:8080}")
     private String keycloakUrl;
-    
+
     @Value("${keycloak.realm:reports-realm}")
     private String keycloakRealm;
-    
+
     @Value("${keycloak.client-id:bionicpro-auth}")
     private String clientId;
-    
+
     @Value("${auth.session.timeout-minutes:30}")
     private int sessionTimeoutMinutes;
-    
+
     @Value("${auth.session.cookie-name:BIONICPRO_SESSION}")
     private String cookieName;
-    
+
+    @Value("${auth.frontend-url:http://localhost:3000}")
+    private String frontendUrl;
+
     @Override
     public void initiateAuthentication(HttpServletRequest request, HttpServletResponse response, String redirectUri) {
-        // Получаем регистрацию клиента
         ClientRegistration clientRegistration = clientRegistrationRepository.findByRegistrationId("keycloak");
-        
-        // Генерируем параметр state для защиты от CSRF
+
         String state = UUID.randomUUID().toString();
-        
-        // Сохраняем redirect URI в сессию для дальнейшего использования
-        sessionService.storeAuthRequest(state, redirectUri);
-        
-        // Формируем URI авторизации
-        String authorizationUri = clientRegistration.getProviderDetails().getAuthorizationUri()
-                .replace("{client_id}", clientRegistration.getClientId())
-                .replace("{redirect_uri}", clientRegistration.getRedirectUri())
-                .replace("{response_type}", "code")
-                .replace("{scope}", "openid profile email")
-                .replace("{state}", state)
-                .replace("{code_challenge}", "S256") // PKCE
-                .replace("{code_challenge_method}", "S256");
-        
-        // Перенаправляем на Keycloak
+        String codeVerifier = generateCodeVerifier();
+        String codeChallenge = generateCodeChallenge(codeVerifier);
+        String nonce = UUID.randomUUID().toString();
+
+        String safeRedirectUri = (redirectUri == null || redirectUri.isBlank() || "/".equals(redirectUri))
+                ? frontendUrl
+                : redirectUri;
+        AuthRequestData authRequestData = AuthRequestData.builder()
+                .redirectUri(safeRedirectUri)
+                .codeVerifier(codeVerifier)
+                .nonce(nonce)
+                .createdAt(Instant.now())
+                .build();
+        sessionService.storeAuthRequest(state, authRequestData);
+
+        String scope = String.join(" ", clientRegistration.getScopes());
+        String authorizationUri = UriComponentsBuilder
+                .fromUriString(clientRegistration.getProviderDetails().getAuthorizationUri())
+                .queryParam("response_type", "code")
+                .queryParam("client_id", clientRegistration.getClientId())
+                .queryParam("scope", scope)
+                .queryParam("redirect_uri", clientRegistration.getRedirectUri())
+                .queryParam("state", state)
+                .queryParam("code_challenge", codeChallenge)
+                .queryParam("code_challenge_method", "S256")
+                .queryParam("nonce", nonce)
+                .build()
+                .encode()
+                .toUriString();
+
         try {
             response.sendRedirect(authorizationUri);
         } catch (Exception e) {
@@ -82,130 +106,159 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Failed to initiate authentication", e);
         }
     }
-    
+
     @Override
-    public Map<String, String> handleCallback(HttpServletRequest request, HttpServletResponse response, 
+    public Map<String, String> handleCallback(HttpServletRequest request, HttpServletResponse response,
                                               String code, String state, String sessionState) {
         Map<String, String> result = new HashMap<>();
-        
+
         try {
-            // Валидируем параметр state для предотвращения CSRF атак
-            String storedRedirectUri = sessionService.getAuthRequest(state);
-            if (storedRedirectUri == null) {
+            if (isBlank(state)) {
+                result.put("error", "Invalid state parameter");
+                return result;
+            }
+
+            AuthRequestData authRequestData = sessionService.getAuthRequestData(state);
+            if (authRequestData == null || isBlank(authRequestData.getRedirectUri())) {
                 log.warn("Invalid state parameter in callback");
                 result.put("error", "Invalid state parameter");
                 return result;
             }
-            
-            // Получаем регистрацию клиента
+
+            String storedRedirectUri = authRequestData.getRedirectUri();
+            String codeVerifier = authRequestData.getCodeVerifier();
+            String nonce = authRequestData.getNonce();
+
+            if (isBlank(codeVerifier)) {
+                result.put("error", "Missing PKCE code verifier");
+                return result;
+            }
+            if (isBlank(nonce)) {
+                result.put("error", "Missing nonce");
+                return result;
+            }
+            if (isBlank(code)) {
+                result.put("error", "Missing authorization code");
+                return result;
+            }
+
             ClientRegistration clientRegistration = clientRegistrationRepository.findByRegistrationId("keycloak");
-            
-            // Обменять код авторизации на токены с помощью REST шаблона
             String tokenUrl = String.format("%s/realms/%s/protocol/openid-connect/token", keycloakUrl, keycloakRealm);
-            
+
             MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
             params.add("grant_type", "authorization_code");
             params.add("client_id", clientId);
             params.add("code", code);
             params.add("redirect_uri", clientRegistration.getRedirectUri());
-            
+            params.add("code_verifier", codeVerifier);
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-            
+
             HttpEntity<MultiValueMap<String, String>> httpEntity = new HttpEntity<>(params, headers);
-            
             ResponseEntity<Map> tokenResponse = restTemplate.postForEntity(tokenUrl, httpEntity, Map.class);
-            
-            if (tokenResponse.getStatusCode() != HttpStatus.OK || tokenResponse.getBody() == null) {
+
+            if (!tokenResponse.getStatusCode().is2xxSuccessful() || tokenResponse.getBody() == null) {
                 log.error("Failed to exchange authorization code for tokens");
-                // Логирование аудита для неуспешной аутентификации
                 auditService.logAuthenticationFailure("unknown", "Token exchange failed", request);
                 result.put("error", "Token exchange failed");
                 return result;
             }
-            
-            Map<String, Object> tokenMap = tokenResponse.getBody();
-            String accessTokenValue = (String) tokenMap.get("access_token");
-            String refreshTokenValue = (String) tokenMap.get("refresh_token");
-            String idTokenValue = (String) tokenMap.get("id_token");
-            
-            OAuth2AccessToken accessToken = new OAuth2AccessToken(OAuth2AccessToken.TokenType.BEARER, accessTokenValue, Instant.now(), Instant.now().plusSeconds(300));
-            OAuth2RefreshToken refreshToken = refreshTokenValue != null ? new OAuth2RefreshToken(refreshTokenValue, Instant.now(), Instant.now().plusSeconds(1800)) : null;
-            
-            // Парсим ID токен
-            OidcIdToken idToken = OidcIdToken.withTokenValue(idTokenValue)
-                    .subject((String) tokenMap.get("sub"))
-                    .claim("preferred_username", tokenMap.get("preferred_username"))
-                    .build();
-            
-            if (idToken == null) {
-                log.warn("ID token not found in authorized client");
-                // Логирование аудита для неуспешной аутентификации
-                auditService.logAuthenticationFailure("unknown", "ID token not found", request);
-                result.put("error", "ID token not found");
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> tokenMap = (Map<String, Object>) tokenResponse.getBody();
+            String accessTokenValue = getStringValue(tokenMap, "access_token");
+            String refreshTokenValue = getStringValue(tokenMap, "refresh_token");
+            String idTokenValue = getStringValue(tokenMap, "id_token");
+
+            if (isBlank(accessTokenValue) || isBlank(idTokenValue)) {
+                auditService.logAuthenticationFailure("unknown", "Invalid token response", request);
+                result.put("error", "Invalid token response");
                 return result;
             }
-            
-            // Создаём сессию
+
+            long expiresIn = getLongValue(tokenMap, "expires_in", 300);
+            long refreshExpiresIn = getLongValue(tokenMap, "refresh_expires_in", 1800);
+            Instant now = Instant.now();
+
+            OAuth2AccessToken accessToken = new OAuth2AccessToken(
+                    OAuth2AccessToken.TokenType.BEARER,
+                    accessTokenValue,
+                    now,
+                    now.plusSeconds(expiresIn)
+            );
+            OAuth2RefreshToken refreshToken = refreshTokenValue != null
+                    ? new OAuth2RefreshToken(refreshTokenValue, now, now.plusSeconds(refreshExpiresIn))
+                    : null;
+
+            String subject = getStringValue(tokenMap, "sub");
+            if (isBlank(subject)) {
+                subject = "unknown";
+            }
+            String preferredUsername = getStringValue(tokenMap, "preferred_username");
+
+            OidcIdToken idToken = OidcIdToken.withTokenValue(idTokenValue)
+                    .issuedAt(now)
+                    .expiresAt(now.plusSeconds(expiresIn))
+                    .subject(subject)
+                    .claim("preferred_username", preferredUsername)
+                    .claim("nonce", nonce)
+                    .build();
+
             sessionService.createSession(request, response, idToken, accessToken, refreshToken);
-            
-            // Логирование аудита для успешной аутентификации
+
             String sessionId = sessionService.getSessionIdFromRequest(request);
             auditService.logAuthenticationSuccess(idToken.getSubject(), sessionId, request);
-            
-            // Перенаправляем на сохранённый redirect URI
+
             result.put("redirect", storedRedirectUri);
-            
         } catch (Exception e) {
             log.error("Error handling callback", e);
-            // Audit logging for failed authentication
             auditService.logAuthenticationFailure("unknown", "Authentication exception: " + e.getMessage(), request);
             result.put("error", "Authentication failed");
         }
-        
+
         return result;
     }
-    
+
     @Override
     public Map<String, Object> getAuthStatus(HttpServletRequest request) {
         Map<String, Object> result = new HashMap<>();
-        
+
         try {
             String sessionId = sessionService.getSessionIdFromRequest(request);
-            
+
             if (sessionId == null) {
                 result.put("authenticated", false);
                 result.put("error", "No session found");
                 return result;
             }
-            
+
             SessionData sessionData = sessionService.validateAndRefreshSession(sessionId);
-            
+
             if (sessionData == null) {
                 result.put("authenticated", false);
                 result.put("error", "Session expired or invalid");
                 return result;
             }
-            
+
             result.put("authenticated", true);
             result.put("userId", sessionData.getUserId());
             result.put("username", sessionData.getUsername());
             result.put("roles", sessionData.getRoles());
             result.put("sessionExpiresAt", sessionData.getExpiresAt());
-            
+
         } catch (Exception e) {
             log.error("Error getting auth status", e);
             result.put("authenticated", false);
             result.put("error", "Error checking authentication status");
         }
-        
+
         return result;
     }
-    
+
     @Override
     public void logout(HttpServletRequest request, HttpServletResponse response) {
         try {
-            // Получаем информацию о сессии до её аннулирования для логирования аудита
             String sessionId = sessionService.getSessionIdFromRequest(request);
             String userId = null;
             if (sessionId != null) {
@@ -214,10 +267,9 @@ public class AuthServiceImpl implements AuthService {
                     userId = sessionData.getUserId();
                 }
             }
-            
+
             sessionService.invalidateSessionWithTokenRevocation(request, response);
-            
-            // Логирование аудита для выхода
+
             if (userId != null && sessionId != null) {
                 auditService.logLogout(userId, sessionId, request);
             }
@@ -225,21 +277,20 @@ public class AuthServiceImpl implements AuthService {
             log.error("Error during logout", e);
         }
     }
-    
+
     @Override
     public void refreshSession(HttpServletRequest request, HttpServletResponse response) {
         try {
             String sessionId = sessionService.getSessionIdFromRequest(request);
-            
+
             if (sessionId != null) {
-                // Ротация сессии для её обновления
                 sessionService.rotateSession(request, response);
             }
         } catch (Exception e) {
             log.error("Error refreshing session", e);
         }
     }
-    
+
     @Override
     public Object validateAndRefreshSession(HttpServletRequest request) {
         try {
@@ -250,11 +301,11 @@ public class AuthServiceImpl implements AuthService {
             return null;
         }
     }
-    
+
     @Override
     public Map<String, Object> getUserDetails(OidcIdToken idToken) {
         Map<String, Object> userDetails = new HashMap<>();
-        
+
         if (idToken != null) {
             userDetails.put("userId", idToken.getSubject());
             userDetails.put("username", idToken.getClaimAsString("preferred_username"));
@@ -263,7 +314,40 @@ public class AuthServiceImpl implements AuthService {
             userDetails.put("lastName", idToken.getClaimAsString("family_name"));
             userDetails.put("roles", idToken.getClaimAsStringList("roles"));
         }
-        
+
         return userDetails;
+    }
+
+    String generateCodeVerifier() {
+        byte[] verifierBytes = new byte[32];
+        SECURE_RANDOM.nextBytes(verifierBytes);
+        return BASE64_URL_ENCODER.encodeToString(verifierBytes);
+    }
+
+    String generateCodeChallenge(String codeVerifier) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(codeVerifier.getBytes(StandardCharsets.US_ASCII));
+            return BASE64_URL_ENCODER.encodeToString(hash);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to generate PKCE code challenge", e);
+        }
+    }
+
+    private String getStringValue(Map<String, Object> tokenMap, String key) {
+        Object value = tokenMap.get(key);
+        return value != null ? String.valueOf(value) : null;
+    }
+
+    private long getLongValue(Map<String, Object> tokenMap, String key, long defaultValue) {
+        Object value = tokenMap.get(key);
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        return defaultValue;
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }

@@ -1,5 +1,6 @@
 package com.bionicpro.service;
 
+import com.bionicpro.model.AuthRequestData;
 import com.bionicpro.model.SessionData;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,9 +22,19 @@ public interface SessionService {
     void storeAuthRequest(String state, String redirectUri);
 
     /**
-     * Получает и удаляет сохранённый запрос аутентификации.
+     * Сохраняет расширенные параметры OAuth2 запроса аутентификации (redirectUri + PKCE + nonce).
+     */
+    void storeAuthRequest(String state, AuthRequestData authRequestData);
+
+    /**
+     * Получает и удаляет сохранённый redirectUri запроса аутентификации.
      */
     String getAuthRequest(String state);
+
+    /**
+     * Получает и удаляет расширенные данные OAuth2 запроса аутентификации.
+     */
+    AuthRequestData getAuthRequestData(String state);
 
     /**
      * Создаёт новую сессию с токенами.

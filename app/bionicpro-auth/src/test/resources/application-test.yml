@@ -8,10 +8,11 @@ spring:
       - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
 
 auth:
+  frontend-url: http://localhost:3000
   session:
     timeout-minutes: 30
     cookie-name: BIONICPRO_SESSION
-    cookie-secure: true
+    cookie-secure: false
     cookie-http-only: true
     cookie-same-site: Lax
 
