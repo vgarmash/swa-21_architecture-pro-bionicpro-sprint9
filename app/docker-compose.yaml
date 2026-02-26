@@ -32,20 +32,25 @@ services:
       KC_DB_URL: jdbc:postgresql://keycloak_db:5432/keycloak_db
       KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      # Включаем поддержку эндпоинтов здоровья и метрик
+      KC_HEALTH_ENABLED: true
+      KC_METRICS_ENABLED: true
     command: ["start-dev", "--import-realm"]
     volumes:
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
     ports:
       - "8088:8080"
+      - "9009:9000"
     depends_on:
       keycloak_db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      # Используем /dev/tcp для отправки запроса на управляющий порт 9000
+      test: [ "CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK' || exit 1" ]
       interval: 30s
       timeout: 10s
-      retries: 20
-      start_period: 60s
+      retries: 5
+      start_period: 40s
     networks:
       - app-network
 
@@ -90,7 +95,7 @@ services:
       - "5444:5432"
     depends_on:
       kafka-connect:
-        condition: service_started
+        condition: service_healthy
     networks:
       - app-network
 
@@ -108,7 +113,7 @@ services:
     restart: unless-stopped
     depends_on:
       kafka-connect:
-        condition: service_started
+        condition: service_healthy
     networks:
       - app-network
 
@@ -179,8 +184,8 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-      KEYCLOAK_SERVER_URL: http://keycloak:8080
-      KEYCLOAK_PUBLIC_URL: http://localhost:8088
+      KEYCLOAK_SERVER_URL: ${KEYCLOAK_SERVER_URL:-http://keycloak:8080}
+      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8088}
       KEYCLOAK_REALM: reports-realm
       KEYCLOAK_CLIENT_ID: bionicpro-auth
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_BIONICPRO_AUTH_CLIENT_SECRET}
@@ -191,7 +196,7 @@ services:
       redis:
         condition: service_healthy
       keycloak:
-        condition: service_started
+        condition: service_healthy
     networks:
       - app-network
 
@@ -206,8 +211,8 @@ services:
       CLICKHOUSE_PORT: 8123
       CLICKHOUSE_USER: default
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/reports-realm
-      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/reports-realm/protocol/openid-connect/certs
+      KEYCLOAK_ISSUER_URI: ${KEYCLOAK_ISSUER_URI:-http://keycloak:8080/realms/reports-realm}
+      KEYCLOAK_JWK_SET_URI: ${KEYCLOAK_JWK_SET_URI:-http://keycloak:8080/realms/reports-realm/protocol/openid-connect/certs}
       # MinIO configuration for caching
       MINIO_ENDPOINT: http://minio:9000
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
@@ -218,7 +223,7 @@ services:
       olap_db:
         condition: service_healthy
       keycloak:
-        condition: service_started
+        condition: service_healthy
       kafka:
         condition: service_healthy
       kafka-connect:

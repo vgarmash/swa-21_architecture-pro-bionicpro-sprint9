@@ -47,7 +47,7 @@ public class SessionServiceImpl implements SessionService {
     @Value("${auth.session.cookie-name:BIONICPRO_SESSION}")
     private String cookieName;
 
-    @Value("${keycloak.server-url:http://localhost:8080}")
+    @Value("${keycloak.server-url:http://keycloak:8080}")
     private String keycloakUrl;
 
     @Value("${keycloak.realm:reports-realm}")

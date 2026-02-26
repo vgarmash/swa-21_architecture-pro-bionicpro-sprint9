@@ -48,7 +48,7 @@ public class AuthServiceImpl implements AuthService {
     private final AuditService auditService;
     private final RestTemplate restTemplate = new RestTemplate();
     
-    @Value("${keycloak.server-url:http://localhost:8080}")
+    @Value("${keycloak.server-url:http://keycloak:8080}")
     private String keycloakUrl;
     
     @Value("${keycloak.realm:reports-realm}")
