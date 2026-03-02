@@ -1,0 +1,319 @@
+{
+    "realm": "reports-realm",
+    "enabled": true,
+    "accessTokenLifespan": 300,
+    "accessCodeLifespan": 60,
+    "ssoSessionIdleTimeout": 1800,
+    "ssoSessionMaxLifespan": 36000,
+    "requiredActions": [
+      {
+        "name": "CONFIGURE_TOTP",
+        "providerId": "CONFIGURE_TOTP",
+        "enabled": true,
+        "defaultAction": true,
+        "priority": 10
+      }
+    ],
+    "roles": {
+      "realm": [
+        {
+          "name": "user",
+          "description": "Regular user role"
+        },
+        {
+          "name": "administrator",
+          "description": "Administrator role"
+        },
+        {
+          "name": "prothetic_user",
+          "description": "Prothetic user role with report access"
+        }
+      ]
+    },
+    "users": [
+      {
+        "username": "user1",
+        "enabled": true,
+        "email": "user1@example.com",
+        "firstName": "User",
+        "lastName": "One",
+        "attributes": {
+          "user_id": ["512"]
+        },
+        "credentials": [
+          {
+            "type": "password",
+            "value": "password123",
+            "temporary": false
+          }
+        ],
+        "realmRoles": ["user"]
+      },
+      {
+        "username": "user2",
+        "enabled": true,
+        "email": "user2@example.com",
+        "firstName": "User",
+        "lastName": "Two",
+        "attributes": {
+          "user_id": ["887"]
+        },
+        "credentials": [
+          {
+            "type": "password",
+            "value": "password123",
+            "temporary": false
+          }
+        ],
+        "realmRoles": ["user"]
+      },
+      {
+        "username": "admin1",
+        "enabled": true,
+        "email": "admin1@example.com",
+        "firstName": "Admin",
+        "lastName": "One",
+        "attributes": {
+          "user_id": ["316"]
+        },
+        "credentials": [
+          {
+            "type": "password",
+            "value": "admin123",
+            "temporary": false
+          }
+        ],
+        "realmRoles": ["administrator"],
+        "clientRoles": {
+          "realm-management": [
+            "realm-admin",
+            "view-users",
+            "view-realms",
+            "view-clients",
+            "manage-users",
+            "manage-realms",
+            "manage-clients"
+          ]
+        }
+      },
+      {
+        "username": "prothetic1",
+        "enabled": true,
+        "email": "prothetic1@example.com",
+        "firstName": "Prothetic",
+        "lastName": "One",
+        "attributes": {
+          "user_id": ["779"]
+        },
+        "credentials": [
+          {
+            "type": "password",
+            "value": "prothetic123",
+            "temporary": false
+          }
+        ],
+        "realmRoles": ["prothetic_user"]
+      },
+      {
+        "username": "prothetic2",
+        "enabled": true,
+        "email": "prothetic2@example.com",
+        "firstName": "Prothetic",
+        "lastName": "Two",
+        "attributes": {
+          "user_id": ["355"]
+        },
+        "credentials": [
+          {
+            "type": "password",
+            "value": "prothetic123",
+            "temporary": false
+          }
+        ],
+        "realmRoles": ["prothetic_user"]
+      },
+      {
+        "username": "prothetic3",
+        "enabled": true,
+        "email": "prothetic3@example.com",
+        "firstName": "Prothetic",
+        "lastName": "Three",
+        "attributes": {
+          "user_id": ["256"]
+        },
+        "credentials": [
+          {
+            "type": "password",
+            "value": "prothetic123",
+            "temporary": false
+          }
+        ],
+        "realmRoles": ["prothetic_user"]
+      }
+    ],
+    "clients": [
+      {
+        "clientId": "reports-frontend",
+        "enabled": true,
+        "publicClient": true,
+        "redirectUris": ["http://localhost:8081/*", "http://localhost:3000/*"],
+        "webOrigins": ["http://localhost:8081", "http://localhost:3000"],
+        "directAccessGrantsEnabled": false,
+        "standardFlowEnabled": true,
+        "implicitFlowEnabled": false,
+        "rootUrl": "http://localhost:8081",
+        "baseUrl": "/",
+        "protocolMappers": [
+          {
+            "name": "user_id",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-usermodel-attribute-mapper",
+            "consentRequired": false,
+            "config": {
+              "userinfo.token.claim": "true",
+              "user.attribute": "user_id",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "user_id",
+              "jsonType.label": "String"
+            }
+          }
+        ]
+      },
+      {
+        "clientId": "reports-api",
+        "enabled": true,
+        "clientAuthenticatorType": "client-secret",
+        "secret": "reports-api-secret-change-in-production",
+        "bearerOnly": true
+      },
+      {
+        "clientId": "bionicpro-auth",
+        "name": "BionicPRO BFF Service",
+        "enabled": true,
+        "publicClient": false,
+        "clientAuthenticatorType": "client-secret",
+        "secret": "mAu+Af98H0Bq5diUVwbU0ymE76Bqpx55",
+        "standardFlowEnabled": true,
+        "implicitFlowEnabled": false,
+        "directAccessGrantsEnabled": false,
+        "serviceAccountsEnabled": false,
+        "authorizationServicesEnabled": false,
+        "frontchannelLogout": true,
+        "protocol": "openid-connect",
+        "attributes": {
+          "access.token.lifespan": "900",
+          "pkce.code.challenge.method": "S256",
+          "display.on.consent.screen": "false",
+          "backchannel.logout.session.required": "true",
+          "backchannel.logout.revoke.offline.tokens": "false"
+        },
+        "redirectUris": [
+          "http://localhost:8000/api/auth/callback"
+        ],
+        "webOrigins": [
+          "http://localhost:8000"
+        ],
+        "protocolMappers": [
+          {
+            "name": "user_id",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-usermodel-attribute-mapper",
+            "consentRequired": false,
+            "config": {
+              "userinfo.token.claim": "true",
+              "user.attribute": "user_id",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "user_id",
+              "jsonType.label": "String"
+            }
+          },
+          {
+            "name": "realm-roles-mapper",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-usermodel-realm-role-mapper",
+            "consentRequired": false,
+            "config": {
+              "multivalued": "true",
+              "userinfo.token.claim": "false",
+              "id.token.claim": "false",
+              "access.token.claim": "true",
+              "claim.name": "realm_access.roles",
+              "jsonType.label": "String"
+            }
+          }
+        ],
+        "access": {
+          "view": true,
+          "configure": true,
+          "manage": true
+        }
+      }
+    ],
+    "identityProviders": [
+      {
+        "alias": "yandex",
+        "displayName": "Yandex ID",
+        "providerId": "oidc",
+        "enabled": true,
+        "linkOnly": false,
+        "storeToken": false,
+        "addReadTokenRoleOnCreate": false,
+        "trustEmail": false,
+        "config": {
+          "clientId": "d8ef675177c441bfae53a44e652cc7b8",
+          "clientSecret": "381d802df19a41629afb34b9b7057743",
+          "authorizationUrl": "https://oauth.yandex.ru/authorize",
+          "tokenUrl": "https://oauth.yandex.ru/token",
+          "userInfoUrl": "https://login.yandex.ru/info",
+          "issuer": "https://oauth.yandex.ru",
+          "scopes": "login:email login:info",
+          "useJwksUrl": "false",
+          "backchannelSupported": "false",
+          "disableUserInfo": "false",
+          "connectionTimeout": "2000",
+          "readTimeout": "2000",
+          "clientAuthenticationMethod": "client_secret_post"
+        }
+      }
+    ],
+    "identityProviderMappers": [
+      {
+        "name": "yandex-email-mapper",
+        "identityProviderAlias": "yandex",
+        "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+        "config": {
+          "user.attribute": "email",
+          "claim.name": "default_email"
+        }
+      },
+      {
+        "name": "yandex-username-mapper",
+        "identityProviderAlias": "yandex",
+        "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+        "config": {
+          "user.attribute": "username",
+          "claim.name": "login"
+        }
+      },
+      {
+        "name": "yandex-firstname-mapper",
+        "identityProviderAlias": "yandex",
+        "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+        "config": {
+          "user.attribute": "firstName",
+          "claim.name": "first_name"
+        }
+      },
+      {
+        "name": "yandex-lastname-mapper",
+        "identityProviderAlias": "yandex",
+        "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+        "config": {
+          "user.attribute": "lastName",
+          "claim.name": "last_name"
+        }
+      }
+    ]
+  }

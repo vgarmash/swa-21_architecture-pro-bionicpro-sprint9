@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: bionicpro-auth
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+auth:
+  frontend-url: http://localhost:3000
+  session:
+    timeout-minutes: 30
+    cookie-name: BIONICPRO_SESSION
+    cookie-secure: false
+    cookie-http-only: true
+    cookie-same-site: Lax
+
+keycloak:
+  auth-server-url: ${KEYCLOAK_SERVER_URL:http://localhost:8088}/auth
+  realm: bionicpro
+  resource: bionicpro-auth
+  public-client: true
+
+oauth2:
+  aes-key: "0123456789abcdef0123456789abcdef"
+  salt: "0123456789abcdef"
+
+logging:
+  level:
+    root: WARN
+    com.bionicpro: DEBUG

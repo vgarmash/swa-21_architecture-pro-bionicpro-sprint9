@@ -1,0 +1,279 @@
+# Подключение CDC compose для захвата изменённых данных
+include:
+  - path: cdc/docker-compose.yaml
+
+
+services:
+  keycloak_db:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: keycloak_db
+      POSTGRES_USER: ${KEYCLOAK_DB_USER}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+    volumes:
+      - ./.data/postgres-keycloak-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak_user -d keycloak_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - app-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.8
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak_db:5432/keycloak_db
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      # Включаем поддержку эндпоинтов здоровья и метрик
+      KC_HEALTH_ENABLED: true
+      KC_METRICS_ENABLED: true
+      # Явно указываем hostname для корректной генерации issuer в токенах
+      KC_HOSTNAME_URL: http://keycloak:8080
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
+    command: ["start-dev", "--import-realm"]
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
+    ports:
+      - "8088:8080"
+      - "9009:9000"
+    depends_on:
+      keycloak_db:
+        condition: service_healthy
+    healthcheck:
+      # Используем /dev/tcp для отправки запроса на управляющий порт 9000
+      test: [ "CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK' || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      # BFF (bionicpro-auth) base URL - публичный URL для браузера
+      REACT_APP_API_URL: http://localhost:8000
+    networks:
+      - app-network
+
+  openldap:
+    image: osixia/openldap:1.5.0
+    container_name: openldap
+    command: --copy-service
+    volumes:
+      - ./ldap/config.ldif:/container/service/slapd/assets/config/bootstrap/ldif/50-bootstrap.ldif
+    environment:
+      LDAP_ORGANISATION: BionicPRO
+      LDAP_DOMAIN: bionicpro.local
+      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
+    ports:
+      - "389:389"
+      - "636:636"
+    networks:
+      - app-network
+
+  crm_db:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: crm_db
+      POSTGRES_USER: ${CRM_DB_USER}
+      POSTGRES_PASSWORD: ${CRM_DB_PASSWORD}
+    volumes:
+      - ./crm-db:/docker-entrypoint-initdb.d
+      - ./.data/postgres-crm-data:/var/lib/postgresql/data
+    ports:
+      - "5444:5432"
+    depends_on:
+      kafka-connect:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  sensors-db:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: sensors-data
+      POSTGRES_USER: ${SENSORS_DB_USER}
+      POSTGRES_PASSWORD: ${SENSORS_DB_PASSWORD}
+    volumes:
+      - ./sensors-db:/docker-entrypoint-initdb.d
+      - ./.data/sensors-data:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"
+    restart: unless-stopped
+    depends_on:
+      kafka-connect:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  olap_db:
+    image: clickhouse/clickhouse-server:23.8
+    container_name: app-olap_db
+    user: "0:0"
+    cap_add:
+      - SYS_NICE
+    ports:
+      - "8123:8123"
+      - "9005:9000"
+    volumes:
+      - ./.data/clickhouse-data:/var/lib/clickhouse
+      - ./olap-db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./olap-db/users.xml:/etc/clickhouse-server/users.d/users.xml
+    environment:
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1'"]
+      interval: 10s
+      timeout: 15s
+      retries: 30
+      start_period: 30s
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_storage:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: server --console-address ":9001" /data
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./.data/data:/data
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - app-network
+
+  bionicpro-auth:
+    build:
+      context: ./bionicpro-auth
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      KEYCLOAK_SERVER_URL: ${KEYCLOAK_SERVER_URL:-http://keycloak:8080}
+      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8088}
+      KEYCLOAK_REALM: reports-realm
+      KEYCLOAK_CLIENT_ID: bionicpro-auth
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      KEYCLOAK_BIONICPRO_AUTH_CLIENT_SECRET: ${KEYCLOAK_BIONICPRO_AUTH_CLIENT_SECRET}
+      KEYCLOAK_REDIRECT_URI: http://localhost:8000/api/auth/callback
+      OAUTH2_AES_KEY: ${OAUTH2_AES_KEY}
+      OAUTH2_SALT: ${OAUTH2_SALT}
+      REPORTS_SERVICE_URL: http://bionicpro-reports:8081
+    depends_on:
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  bionicpro-reports:
+    build:
+      context: ./bionicpro-reports
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      CLICKHOUSE_HOST: ${CLICKHOUSE_HOST}
+      CLICKHOUSE_PORT: ${CLICKHOUSE_PORT}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      KEYCLOAK_ISSUER_URI: ${KEYCLOAK_ISSUER_URI:-http://localhost:8088/realms/reports-realm}
+      KEYCLOAK_JWK_SET_URI: ${KEYCLOAK_JWK_SET_URI:-http://keycloak:8080/realms/reports-realm/protocol/openid-connect/certs}
+      # MinIO configuration for caching
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET_NAME: reports
+      CDN_BASE_URL: http://nginx-cdn:80
+    depends_on:
+      olap_db:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka-connect:
+        condition: service_healthy
+    networks:
+      - app-network
+    # Docker healthcheck configuration for Spring Boot Actuator
+    healthcheck:
+      # Liveness probe - checks if the application is running
+      test: ["CMD-SHELL", "curl -sf http://localhost:8081/actuator/health/liveness || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    # Readiness probe - checks if the application is ready to receive traffic
+    # Note: Spring Boot 3.2.0 supports separate readiness endpoint via management.endpoint.readiness.enabled
+  # Сервис Nginx CDN для кэширования статических файлов
+  nginx-cdn:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "8082:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - nginx_cache:/var/cache/nginx
+    depends_on:
+      - minio
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  minio_storage: {}
+  nginx_cache: {}
+
+networks:
+  app-network:
+    driver: bridge
