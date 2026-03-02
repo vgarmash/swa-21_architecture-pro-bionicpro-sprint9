@@ -33,7 +33,6 @@ spring:
             authorization-grant-type: authorization_code
             redirect-uri: ${KEYCLOAK_REDIRECT_URI:http://localhost:8000/api/auth/callback}
             scope: openid,profile,email
-            client-authentication-method: none
         provider:
           keycloak:
             issuer-uri: ${KEYCLOAK_SERVER_URL:http://keycloak:8080}/realms/${KEYCLOAK_REALM:reports-realm}

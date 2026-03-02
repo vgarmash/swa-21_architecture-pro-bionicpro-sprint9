@@ -143,7 +143,7 @@ public class SessionServiceImpl implements SessionService {
                 .sessionId(sessionId)
                 .userId(idToken.getSubject())
                 .username(idToken.getClaimAsString("preferred_username"))
-                .roles(idToken.getClaimAsStringList("roles"))
+                .roles(idToken.getClaimAsStringList("realm_access.roles"))
                 .accessToken(encryptToken(accessToken.getTokenValue()))
                 .refreshToken(refreshToken != null ? encryptToken(refreshToken.getTokenValue()) : null)
                 .accessTokenExpiresAt(accessToken.getExpiresAt())

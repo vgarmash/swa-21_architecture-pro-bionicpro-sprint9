@@ -191,7 +191,9 @@
         "clientId": "bionicpro-auth",
         "name": "BionicPRO BFF Service",
         "enabled": true,
-        "publicClient": true,
+        "publicClient": false,
+        "clientAuthenticatorType": "client-secret",
+        "secret": "mAu+Af98H0Bq5diUVwbU0ymE76Bqpx55",
         "standardFlowEnabled": true,
         "implicitFlowEnabled": false,
         "directAccessGrantsEnabled": false,
@@ -224,6 +226,20 @@
               "id.token.claim": "true",
               "access.token.claim": "true",
               "claim.name": "user_id",
+              "jsonType.label": "String"
+            }
+          },
+          {
+            "name": "realm-roles-mapper",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-usermodel-realm-role-mapper",
+            "consentRequired": false,
+            "config": {
+              "multivalued": "true",
+              "userinfo.token.claim": "false",
+              "id.token.claim": "false",
+              "access.token.claim": "true",
+              "claim.name": "realm_access.roles",
               "jsonType.label": "String"
             }
           }

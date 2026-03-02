@@ -9,10 +9,10 @@ spring:
   
   # ClickHouse datasource configuration
   datasource:
-    url: jdbc:clickhouse://${CLICKHOUSE_HOST:olap_db}:${CLICKHOUSE_PORT:8123}/default
+    url: jdbc:clickhouse://${CLICKHOUSE_HOST}/default
     driver-class-name: com.clickhouse.jdbc.ClickHouseDriver
-    username: ${CLICKHOUSE_USER:default}
-    password: ${CLICKHOUSE_PASSWORD:}
+    username: ${CLICKHOUSE_USER}
+    password: ${CLICKHOUSE_PASSWORD}
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
@@ -59,12 +59,68 @@ logging:
     com.bionicpro: DEBUG
     org.springframework.security: DEBUG
 
-# Management endpoints
+# Management endpoints (Actuator)
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        # Include health, liveness, readiness, and info endpoints
+        include: health,info,liveness,readiness
+    # Configure endpoint-specific settings
+    health:
+      # Path for health check endpoint
+      path: /health
+    info:
+      # Path for info endpoint
+      path: /info
+  # Configure health endpoint specific settings
   endpoint:
     health:
+      # Show details only when authenticated (security context)
       show-details: when-authorized
+      # Configure health indicators timeout
+      timeout: 10s
+      # Enable Kubernetes liveness and readiness probes
+      probes:
+        enabled: true
+        # Liveness probe - checks if application is running
+        liveness:
+          enabled: true
+        # Readiness probe - checks if application is ready to receive traffic
+        readiness:
+          enabled: true
+      # Health status aggregation configuration
+      status:
+        # Order of statuses (highest to lowest priority)
+        order:
+          - DOWN
+          - OUT_OF_SERVICE
+          - UP
+          - UNKNOWN
+    # Info endpoint configuration
+    info:
+      # Show all details for info endpoint
+      show-details: when-authorized
+
+# Custom health check configuration
+healthcheck:
+  # ClickHouse health check settings
+  clickhouse:
+    enabled: true
+    timeout-ms: 5000
+    query: "SELECT 1"
+  # MinIO health check settings
+  minio:
+    enabled: true
+    timeout-ms: 5000
+    # Bucket to check for existence
+    bucket-name: ${app.minio.bucket-name:reports}
+
+# SpringDoc OpenAPI configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha

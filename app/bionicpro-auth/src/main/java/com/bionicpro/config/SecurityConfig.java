@@ -2,6 +2,7 @@ package com.bionicpro.config;
 
 import com.bionicpro.filter.RateLimitFilter;
 import com.bionicpro.filter.TokenPropagationFilter;
+import com.bionicpro.service.SessionService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,9 +32,9 @@ import java.util.Arrays;
 @Slf4j
 public class SecurityConfig {
 
-    private final SecurityContextRepository securityContextRepository;
     private final TokenPropagationFilter tokenPropagationFilter;
     private final RateLimitFilter rateLimitFilter;
+
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -51,7 +52,8 @@ public class SecurityConfig {
 
     @Bean
     @Order(1)
-    public SecurityFilterChain authSecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain authSecurityFilterChain(HttpSecurity http,
+                                                       SecurityContextRepository securityContextRepository) throws Exception {
         http
             .securityMatcher("/api/auth/**")
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -77,18 +79,20 @@ public class SecurityConfig {
 
     @Bean
     @Order(2)
-    public SecurityFilterChain apiProxySecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain apiProxySecurityFilterChain(HttpSecurity http,
+                                                           SecurityContextRepository securityContextRepository) throws Exception {
         http
             .securityMatcher("/api/**")
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf
-                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
+            .csrf(csrf -> csrf.ignoringRequestMatchers("/api/reports/**", "/api/auth/**")) // Enable CSRF with selective ignoring
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").authenticated()
                 .requestMatchers("/api/auth/callback").permitAll()
                 .anyRequest().authenticated())
+            .securityContext(context -> context
+                .securityContextRepository(securityContextRepository))
             .addFilterBefore(tokenPropagationFilter, UsernamePasswordAuthenticationFilter.class)
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((request, response, authException) -> {

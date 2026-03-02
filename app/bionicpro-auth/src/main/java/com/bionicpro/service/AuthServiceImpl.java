@@ -28,6 +28,8 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.http.HttpHeaders;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Сервис для управления аутентификацией.
@@ -54,6 +56,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Value("${keycloak.client-id:bionicpro-auth}")
     private String clientId;
+
+    @Value("${keycloak.client-secret:}")
+    private String clientSecret;
 
     @Value("${auth.session.timeout-minutes:30}")
     private int sessionTimeoutMinutes;
@@ -148,6 +153,7 @@ public class AuthServiceImpl implements AuthService {
             MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
             params.add("grant_type", "authorization_code");
             params.add("client_id", clientId);
+            params.add("client_secret", clientSecret);
             params.add("code", code);
             params.add("redirect_uri", clientRegistration.getRedirectUri());
             params.add("code_verifier", codeVerifier);
@@ -191,11 +197,12 @@ public class AuthServiceImpl implements AuthService {
                     ? new OAuth2RefreshToken(refreshTokenValue, now, now.plusSeconds(refreshExpiresIn))
                     : null;
 
-            String subject = getStringValue(tokenMap, "sub");
+            // Извлекаем subject и preferred_username из access token (JWT)
+            String subject = extractClaimFromJwt(accessTokenValue, "sub");
             if (isBlank(subject)) {
                 subject = "unknown";
             }
-            String preferredUsername = getStringValue(tokenMap, "preferred_username");
+            String preferredUsername = extractClaimFromJwt(accessTokenValue, "preferred_username");
 
             OidcIdToken idToken = OidcIdToken.withTokenValue(idTokenValue)
                     .issuedAt(now)
@@ -349,5 +356,31 @@ public class AuthServiceImpl implements AuthService {
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    /**
+     * Извлекает claim из JWT токена.
+     * JWT состоит из трёх частей: header.payload.signature
+     * Payload кодируется Base64URL.
+     */
+    private String extractClaimFromJwt(String jwt, String claimName) {
+        try {
+            String[] parts = jwt.split("\\.");
+            if (parts.length != 3) {
+                return null;
+            }
+            String payload = parts[1];
+            // Добавляем padding для Base64
+            String paddedPayload = payload + "=".repeat((4 - payload.length() % 4) % 4);
+            byte[] decoded = Base64.getUrlDecoder().decode(paddedPayload);
+            String json = new String(decoded, StandardCharsets.UTF_8);
+            
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, Object> claims = mapper.readValue(json, Map.class);
+            return (String) claims.get(claimName);
+        } catch (Exception e) {
+            log.warn("Failed to extract claim '{}' from JWT", claimName, e);
+            return null;
+        }
     }
 }

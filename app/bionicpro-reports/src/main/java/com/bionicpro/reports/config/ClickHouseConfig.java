@@ -1,5 +1,7 @@
 package com.bionicpro.reports.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +15,8 @@ import com.zaxxer.hikari.HikariDataSource;
  */
 @Configuration
 public class ClickHouseConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(ClickHouseConfig.class);
 
     @Value("${spring.datasource.url}")
     private String jdbcUrl;
@@ -32,6 +36,9 @@ public class ClickHouseConfig {
     @Value("${spring.datasource.hikari.connection-timeout:2000}")
     private long connectionTimeout;
 
+    @Value("${spring.datasource.driver-class-name}")
+    private String driverClassName;
+
     /**
      * Создает HikariCP DataSource для пула подключений ClickHouse.
      */
@@ -44,8 +51,11 @@ public class ClickHouseConfig {
         dataSource.setMaximumPoolSize(maximumPoolSize);
         dataSource.setMinimumIdle(minimumIdle);
         dataSource.setConnectionTimeout(connectionTimeout);
-        dataSource.setDriverClassName("com.clickhouse.jdbc.ClickHouseDriver");
-        
+        dataSource.setDriverClassName(driverClassName);
+
+        log.info("Creating HikariDataSource with parameters: jdbcUrl={}, username={}, maximumPoolSize={}, minimumIdle={}, connectionTimeout={}, driverClassName={}",
+                jdbcUrl, username, maximumPoolSize, minimumIdle, connectionTimeout, driverClassName);
+
         return dataSource;
     }
 

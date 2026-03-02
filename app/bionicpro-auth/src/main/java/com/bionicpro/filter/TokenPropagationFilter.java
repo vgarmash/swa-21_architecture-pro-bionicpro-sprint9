@@ -9,10 +9,16 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Фильтр для распространения токена доступа к запросам backend API.
@@ -70,6 +76,29 @@ public class TokenPropagationFilter extends OncePerRequestFilter {
         // Добавляем токен доступа в атрибут запроса для использования далее
         request.setAttribute("accessToken", accessToken);
         request.setAttribute("userId", sessionData.getUserId());
+
+        // Создаём Authentication и устанавливаем в SecurityContext
+        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+        if (sessionData.getRoles() != null) {
+            sessionData.getRoles().forEach(role ->
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + role)));
+        }
+        UsernamePasswordAuthenticationToken authentication =
+            new UsernamePasswordAuthenticationToken(
+                sessionData.getUserId(),
+                accessToken,
+                authorities
+            );
+        authentication.setDetails(sessionData);
+
+        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+        securityContext.setAuthentication(authentication);
+        
+        // Set the security context to the SecurityContextHolder so Spring Security sees it
+        SecurityContextHolder.setContext(securityContext);
+        
+        // Also store the security context in the request for the SecurityContextRepository to use
+        request.setAttribute("CUSTOM_SECURITY_CONTEXT", securityContext);
 
         log.debug("Token propagated for user: {}", sessionData.getUserId());
 

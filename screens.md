@@ -10,3 +10,10 @@ Docker compose запустился
 
 Keycloack reports-realm
 ![img.png](media/kk-reports-realm.png)
+
+
+After login with no permissions:
+![img.png](media/no-permissions.png)
+
+After successful login: 
+![img_1.png](media/app-bionicpro-reports.png)
